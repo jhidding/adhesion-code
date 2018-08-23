@@ -76,9 +76,27 @@ typedef Traits::Weighted_point                              Weighted_point;
 typedef CGAL::Regular_triangulation_3<Traits>               Rt;
 ```
 
-Since we'll be using bare (unweighted) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they may have the same numerical representation, but this may not strictly be the case for all geometry kernels.
+Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they may have the same numerical representation, but this may not strictly be the case for all geometry kernels.
 
 ## Initial conditions
+
+The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
+
+$$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$
+
+We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
+
+To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function $f$ are positively correlated at the small scale. Taking any two positions $x_1$ and $x_2$, their correlation is
+
+$$\xi(x_1, x_2) = \langle f(x_1) f(x_2) \rangle.$$
+
+Often we write the correlation function $\xi(r)$ because our fields are isotropic and homogeneous. We can now ask the next question: what is the probability that the function $f$ at position $\vec{x}$ attains the value $f(\vec{x}) = y_1$ and at position $\vec{x} + \vec{r}$ attains the value $f(\vec{x} + \vec{r}) = y_2$,
+
+$$P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).$$
+
+Here, $\Sigma(r)$ is the corellation matrix,
+
+$$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$$
 
 ``` {.cpp file=src/initial_conditions.hh}
 #pragma once
@@ -135,28 +153,7 @@ struct BoxParam {
     return std::array<size_t, 3>{ N, N, N };
   }
 
-  std::array<size_t, 3> rfft_shape() const
-  {
-    return std::array<size_t, 3>{ N, N, N/2 + 1 };
-  }
-
-  size_t rfft_size() const
-  {
-    return N * N * (N / 2 + 1);
-  }
-
-  double wave_number(int i) const
-  {
-    return (int(i) > int(N)/2 ? int(i) - int(N) : int(i)) * (2*M_PI)/L;
-  }
-
-  double k_abs(std::array<size_t, 3> const &loc) const
-  {
-    double x = 0.0;
-    for (size_t i : loc)
-      x += sqr(wave_number(i));
-    return sqrt(x);
-  }
+  <<fourier-properties>>
 
   <<boxparam-methods>>
 };
@@ -178,6 +175,39 @@ Point point(size_t i) const
 
 Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. Later on, we will be adding more methods to the `BoxParam` structure.
 
+#### Fourier properties
+
+These functions we'll need when we compute Fourier transforms. The real FFT algorithm saves precious memory by using only half the space of the complex FFT. With the exception of the Nyquist frequencies that makes $N/2 + 1$ for the last axis.
+
+``` {.cpp #fourier-properties append=true}
+std::array<size_t, 3> rfft_shape() const {
+  return std::array<size_t, 3>{ N, N, N/2 + 1 };
+}
+
+size_t rfft_size() const {
+  return N * N * (N / 2 + 1);
+}
+```
+
+Next up, we need to compute the wave number of the Fourier mode represented at a certain index. With a physical box-size of $L$ and a logical size of $N$, we use the following convention
+
+$$k_i = i \frac{2 \pi}{L},~{\rm for}~i \in [0, 1, \dots, N/2, -N/2 - 1, \dots, -1].$$
+
+``` {.cpp #fourier-properties append=true}
+double wave_number(int i) const {
+  return (int(i) > int(N)/2
+          ? int(i) - int(N)
+          : int(i)) * (2*M_PI)/L;
+}
+
+double k_abs(std::array<size_t, 3> const &loc) const {
+  double x = 0.0;
+  for (size_t i : loc)
+    x += sqr(wave_number(i));
+  return sqrt(x);
+}
+```
+
 #### Iterating multi-dimensional arrays
 
 We'll be indexing multi-dimensional arrays. To prevent having to write nested for-loops, we use the `increment_index` helper function.
@@ -193,14 +223,18 @@ inline unsigned increment_index(
       return i;
 
     if (i == R - 1)
-      return R;
+      break;
 
     index[i] = 0;
   }
+
+  return R;
 }
 ```
 
 ### White noise
+
+The `white_noise` function fills a newly created array with random values, following a normal distribution with $\sigma = 1$.
 
 ``` {.cpp file=src/white_noise.cc}
 #include "initial_conditions.hh"
@@ -214,8 +248,7 @@ std::unique_ptr<xt::xtensor<double, 3>> white_noise(
   std::mt19937 random(seed);
   std::normal_distribution<double> normal;
 
-  for (double &value : *result)
-  {
+  for (double &value : *result) {
     value = normal(random);
   }
 
@@ -281,7 +314,7 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
            T0 = L0 / (L0 + C0 * pow(q, 2));
 
     return A * pow(k, ns) * pow(T0, 2);
-  });
+  };
 }
 ```
 
@@ -293,23 +326,27 @@ This takes some Fourier wizardry.
 
 ``` {.cpp file=src/apply_power_spectrum.cc}
 #include "initial_conditions.hh"
-#include <xtensor-fftw/basic.hpp>
+#include "fft.hh"
 
 void apply_power_spectrum(
     BoxParam const &box,
     xt::xtensor<double, 3> &field,
     PowerSpectrum const &P)
 {
-  auto f_k = xt::fftw::rfft(field);
+  RFFT3 rfft(box);
   auto f_shape = box.rfft_shape();
 
-  std::array<size_t, 3> loc(0);
+  std::copy(field.begin(), field.end(), rfft.real_space.begin());
+  rfft.forward_transform();
+
+  std::array<size_t, 3> loc = {0, 0, 0};
   for (size_t i = 0; i < box.rfft_size(); ++i) {
-    f_k[i] *= sqrt(P(box.k_abs(loc)));
-    increment_index(f_shape, loc);
+    rfft.fourier_space[i] *= sqrt(P(box.k_abs(loc)));
+    increment_index<3>(f_shape, loc);
   }
 
-  field = xt::fftw::irfft(f_k) / box.size();
+  rfft.backward_transform();
+  std::copy(rfft.real_space.begin(), rfft.real_space.end(), field.begin());
 }
 ```
 
@@ -323,3 +360,153 @@ void apply_power_spectrum(
 
 ## Input/Output
 
+### Configuration
+
+We read the configuration from a YAML file. Let's take the latest values from the Planck collaboration.
+
+``` {.yaml file=examples/lcdm128.yaml}
+box:
+  N:      128       # logical box size
+  L:      150.0     # physical box size
+
+cosmology:
+  power-spectrum: Eisenstein & Hu
+  h:        0.674   # Hubble parameter / 100
+  ns:       0.965   # primordial power spectrum index
+  Omega0:   1.0     # density in units of critical density
+  sigma8:   0.811   # amplitude over 8 h⁻¹ Mpc
+
+run:
+  seed:     0
+  time:     1.0
+```
+
+## Main function
+
+``` {.cpp file=src/main.cc}
+#include <iostream>
+
+int main(int argc, char **argv)
+{
+  std::cout << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
+  return 0;
+}
+```
+
+## Fourier interface
+
+``` {.cpp file=src/fft.hh}
+#pragma once
+#include <fftw3.h>
+#include <memory>
+#include <complex>
+#include <vector>
+
+#include "boxparam.hh"
+#include <iostream>
+
+template <typename T>
+class FFTW_allocator: public std::allocator<T>
+{
+public:
+  typedef T           value_type;
+  typedef T *         pointer;
+  typedef T &         reference;
+  typedef T const *   const_pointer;
+  typedef T const &   const_reference;
+  typedef size_t      size_type;
+  typedef ptrdiff_t   difference_type;
+
+  pointer allocate(
+      size_t n,
+      std::allocator<void>::const_pointer hint = 0)
+  {
+    if (hint != 0)
+        fftw_free(hint);
+
+    return reinterpret_cast<T *>(fftw_malloc(n * sizeof(T)));
+  }
+
+  void deallocate(
+      pointer p,
+      size_t n)
+  {
+    fftw_free(p);
+  }
+};
+
+class RFFT3
+{
+public:
+  using c64 = std::complex<double>;
+  std::vector<c64, FFTW_allocator<c64>>
+    fourier_space;
+  std::vector<double, FFTW_allocator<double>>
+    real_space;
+
+private:
+  BoxParam    box;
+  fftw_plan   d_plan_fwd, d_plan_bwd;
+
+public:
+  RFFT3(BoxParam const &box_):
+    fourier_space(box_.rfft_size()),
+    real_space(box_.size),
+    box(box_)
+  {
+    int N = static_cast<int>(box.N);
+
+    d_plan_fwd = fftw_plan_dft_r2c_3d(N, N, N,
+      reinterpret_cast<double *>(real_space.data()),
+      reinterpret_cast<fftw_complex *>(fourier_space.data()),
+      FFTW_ESTIMATE);
+
+    d_plan_bwd = fftw_plan_dft_c2r_3d(N, N, N,
+      reinterpret_cast<fftw_complex *>(fourier_space.data()),
+      reinterpret_cast<double *>(real_space.data()),
+      FFTW_ESTIMATE);
+  }
+
+  void forward_transform()
+  {
+      fftw_execute(d_plan_fwd);
+  }
+
+  void backward_transform()
+  {
+      fftw_execute(d_plan_bwd);
+      for (double &z : real_space) z /= box.size;
+  }
+};
+```
+
+## Testing
+
+``` {.cpp file=tests/main.cc}
+#include <gtest/gtest.h>
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+```
+
+``` {.cpp file=tests/initial_conditions.cc}
+#include <gtest/gtest.h>
+#include "initial_conditions.hh"
+
+TEST(InitialConditions, BoxParam) {
+  BoxParam box(128, 100.0);
+  EXPECT_EQ(box.N, 128);
+  EXPECT_EQ(box.size, 2097152);
+  EXPECT_FLOAT_EQ(box.L, 100.0);
+  EXPECT_FLOAT_EQ(box.res, 0.78125);
+}
+
+TEST(InitialConditions, GeneratingNoise) {
+  BoxParam box(128, 100.0);
+  auto x = white_noise(box, 0);
+  ASSERT_TRUE(x);
+  EXPECT_EQ(x->size(), box.size);
+}
+```

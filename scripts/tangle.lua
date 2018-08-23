@@ -30,7 +30,8 @@ prepare() {
 
 function CodeBlock (elem)
     if elem.identifier then
-        vars[elem.identifier] = elem.text
+        t = vars[elem.identifier] or ""
+        vars[elem.identifier] = t .. elem.text
     end
 
     for k, v in pairs(elem.attr[3]) do

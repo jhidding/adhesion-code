@@ -1,2 +1,5 @@
 src
+examples
+tests
+build
 *.pdf
