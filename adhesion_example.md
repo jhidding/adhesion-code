@@ -494,6 +494,7 @@ int main(int argc, char **argv) {
 ``` {.cpp file=tests/initial_conditions.cc}
 #include <gtest/gtest.h>
 #include "initial_conditions.hh"
+#include "xtensor/xmath.hpp"
 
 TEST(InitialConditions, BoxParam) {
   BoxParam box(128, 100.0);
@@ -508,5 +509,7 @@ TEST(InitialConditions, GeneratingNoise) {
   auto x = white_noise(box, 0);
   ASSERT_TRUE(x);
   EXPECT_EQ(x->size(), box.size);
+  double total = xt::mean(*x)[0];
+  EXPECT_NEAR(total, 0.0, 1e-2);
 }
 ```

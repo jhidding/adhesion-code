@@ -7,6 +7,10 @@ compile_flags = -Wall -Isrc -I${HOME}/.local/include
 link = g++
 link_flags = -lfftw3 -lyaml-cpp
 
+# ===========================================================================
+
+SHELL := /bin/bash
+
 format = markdown+fenced_code_attributes
 pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
 pd_list = $(call pd_call,list)
@@ -25,12 +29,21 @@ tests_cc_files = $(filter tests/%.cc, $(sources))
 tests_obj_files = $(tests_cc_files:%.cc=$(build_dir)/%.o)
 tests_dep_files = $(tests_obj_files:%.o=%.d)
 
+# ===========================================================================
+
+.PHONY: clean tangle adhesion run-tests
+# .SILENT: test
+
 adhesion: $(build_dir)/adhesion
 
 run-tests: $(build_dir)/run-tests
 
-$(sources): $(input_files)
-	$(pd_tangle) $< | bash
+tangle: $(input_files)
+	mkdir -p $(build_dir)
+	$(pd_tangle) $< > $(build_dir)/tangle.sh
+	source $(build_dir)/tangle.sh
+
+$(sources): tangle
 
 # Include all .d files
 -include $(dep_files)
@@ -41,16 +54,15 @@ $(build_dir)/%.o : %.cc
 	mkdir -p $(@D)
 	$(compile) $(compile_flags) -MMD -c $< -o $@
 
+# Link main executable
 $(build_dir)/adhesion : $(obj_files) $(main_obj_file)
 	mkdir -p $(@D)
-	$(link) $(link_flags) $^ -o $@
+	$(link) $^ $(link_flags) -o $@
 
+# Link testing exectuable
 $(build_dir)/run-tests : $(obj_files) $(tests_obj_files)
 	mkdir -p $(@D)
 	$(link) $^ $(link_flags) -lgtest -lgmock -lpthread -o $@
-
-.PHONY: clean
-.SILENT: test
 
 clean:
 	-rm $(sources)
