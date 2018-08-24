@@ -4,21 +4,27 @@ build_dir = ./build
 hdf5_cflags = $(shell pkg-config --cflags hdf5)
 hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
 
+cgal_cflags = -frounding-math
+cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
+
 compile = g++
-compile_flags = -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags)
+compile_flags = -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags) $(cgal_cflags)
 
 link = g++
-link_flags = -lfftw3 -lyaml-cpp $(hdf5_libs)
+link_flags = -lfftw3 -lyaml-cpp $(hdf5_libs) $(cgal_libs)
 
 # ===========================================================================
 
 SHELL := /bin/bash
 
 format = markdown+fenced_code_attributes
+report_args = --toc
+
 pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
 pd_list = $(call pd_call,list)
 pd_tangle = $(call pd_call,tangle)
 
+pdf_files = $(input_files:%.md=$(build_dir)/%.pdf)
 sources = $(shell $(pd_list) $(input_files))
 
 cc_files = $(filter-out src/main.cc, $(filter src/%.cc, $(sources)))
@@ -45,6 +51,11 @@ tangle: $(input_files)
 	mkdir -p $(build_dir)
 	$(pd_tangle) $< > $(build_dir)/tangle.sh
 	source $(build_dir)/tangle.sh
+
+report: $(pdf_files)
+
+$(build_dir)/%.pdf : %.md
+	pandoc $< -f $(format) $(report_args) -t latex -o $@ --pdf-engine=xelatex
 
 $(sources): tangle
 

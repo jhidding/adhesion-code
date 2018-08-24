@@ -1,14 +1,20 @@
-# Computing the adhesion model using C++ and CGAL
+---
+title: Computing the adhesion model using C++ and CGAL
+author: Johan Hidding
+date: September 1, 2018
+---
+
+# Abstract
 
 We present a (relatively) small example of using the CGAL library to run the adhesion model. A basic CGAL program can seem intimidating to start with. The CGAL manual provides basic examples that offer a good starting point. In our case we are interested in creating regular triangulations. We adapted the example from the manual.
 
-### Version
+## Version
 
 ``` {.cpp #version}
 #define VERSION "0.1"
 ```
 
-## Introduction
+# Introduction
 
 This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. A significant fraction of the code in here is dealing with generating initial conditions for the actual model.
 
@@ -16,9 +22,9 @@ We've tried to limit the involvement of too much boilerplate code by using exist
 
 If you are only interested only in the CGAL parts, it should be safe to skip the section on generating cosmological initial conditions.
 
-### Literate programming
+## Literate programming
 
-This example is written in a style of *literate programming*. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don't always give the listing of an entire source file. In stead, we use a system of references known as *noweb*.
+This example is written in a style of *literate programming*. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don't always give the listing of an entire source file in one go. In stead, we use a system of references known as *noweb*.
 
 Inside source fragments you may encounter a line like,
 
@@ -46,7 +52,7 @@ return std::make_pair(
     (-b + d)/(2*a));
 ```
 
-### Prerequisites
+## Prerequisites
 
 - C++ 14 compiler
 - CGAL 4.12 - The Computational Geometry Algorithm Library
@@ -71,23 +77,26 @@ We collect those type definitions in a separate header file:
 
 ``` {.cpp file=src/cgal_base.hh}
 #pragma once
-
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Regular_triangulation_euclidean_traits_3.h>
-#include <CGAL/Regular_triangulation_3.h>
+#include <CGAL/Periodic_3_regular_triangulation_traits_3.h>
+#include <CGAL/Periodic_3_regular_triangulation_3.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Regular_triangulation_euclidean_traits_3<K>   Traits;
-typedef Traits::RT                                          Weight;
-typedef Traits::Bare_point                                  Point;
-typedef Traits::Vector_3                                    Vector;
-typedef Traits::Weighted_point                              Weighted_point;
-typedef CGAL::Regular_triangulation_3<Traits>               Rt;
+typedef CGAL::Periodic_3_regular_triangulation_traits_3<K>  Gt;
+typedef CGAL::Periodic_3_regular_triangulation_3<Gt>        RT;
+
+typedef K::Vector_3           Vector;
+typedef RT::Bare_point        Point;
+typedef RT::Edge              Edge;
+typedef RT::Iso_cuboid        Iso_cuboid;
+typedef RT::Weighted_point    Weighted_point;
+typedef RT::Segment           Segment;
+typedef RT::Tetrahedron       Tetrahedron;
 ```
 
 Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they may have the same numerical representation, but this may not strictly be the case for all geometry kernels.
 
-## Initial conditions
+# Initial conditions
 
 The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
 
@@ -128,7 +137,7 @@ extern void compute_potential(
     PowerSpectrum const &P);
 ```
 
-### The simulation box
+## The simulation box
 
 Next, we need to define the box that we will use. We collect the required parameters, box size in pixels and the physical length, in a structure called `BoxParam`.
 
@@ -185,7 +194,7 @@ Point point(size_t i) const
 
 Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. Later on, we will be adding more methods to the `BoxParam` structure.
 
-#### Fourier properties
+### Fourier properties
 
 These functions we'll need when we compute Fourier transforms. The real FFT algorithm saves precious memory by using only half the space of the complex FFT. With the exception of the Nyquist frequencies that makes $N/2 + 1$ for the last axis.
 
@@ -218,7 +227,7 @@ double k_abs(std::array<size_t, 3> const &loc) const {
 }
 ```
 
-#### Iterating multi-dimensional arrays
+### Iterating multi-dimensional arrays
 
 We'll be indexing multi-dimensional arrays. To prevent having to write nested for-loops, we use the `increment_index` helper function.
 
@@ -240,7 +249,7 @@ inline unsigned increment_index(
 }
 ```
 
-### White noise
+## White noise
 
 The `white_noise` function fills a newly created array with random values, following a normal distribution with $\sigma = 1$.
 
@@ -265,7 +274,7 @@ generate_white_noise(
 }
 ```
 
-### Power spectrum
+## Power spectrum
 
 A power spectrum is a function taking in a value of $k$ in units of $h {\rm Mpc}^{-1}$ giving an amplitude.
 
@@ -282,7 +291,7 @@ extern PowerSpectrum normalize_power_spectrum(
     Config const &cosmology);
 ```
 
-#### Eisenstein-Hu power spectrum
+### Eisenstein-Hu power spectrum
 
 The power spectrum for CDM is given by an almost scale-free spectrum modified by a *transfer function* $T_0$ which embodies post-inflation physics.
 
@@ -327,9 +336,9 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
 }
 ```
 
-#### Normalisation
+### Normalisation
 
-### Applying the power spectrum
+## Applying the power spectrum
 
 This takes some Fourier wizardry.
 
@@ -360,17 +369,120 @@ void compute_potential(
 }
 ```
 
-## Lloyd Iteration
+# The Adhesion model
 
-## Detecting Structures
+``` {.cpp file=src/adhesion.hh}
+#pragma once
+#include "boxparam.hh"
+#include "cgal_base.hh"
+#include <memory>
 
-### Computing the triangulation
+class Adhesion
+{
+  RT                          rt;
+  std::vector<Weighted_point> vertices;
+  double                      time;
 
-### Filtering for structures
+public:
+  <<adhesion-constructor>>
 
-## The main program
+  int edge_count(RT::Cell_handle h, double threshold);
+  Vector velocity(RT::Cell_handle c);
+};
+```
 
-### Configuration
+## Computing the triangulation
+
+``` {.cpp #adhesion-constructor}
+template <typename Array>
+Adhesion(BoxParam const &box, Array &&potential, double t)
+  : rt(Iso_cuboid(0, 0, 0, box.L, box.L, box.L))
+  , time(t)
+{
+  for (size_t i = 0; i < box.size; ++i)
+  {
+    vertices.emplace_back(
+      box.point<Point>(i),
+      potential[i] * 2 * time);
+  }
+
+  rt.insert(
+    vertices.begin(),
+    vertices.end());
+}
+```
+
+## Filtering for structures
+
+``` {.cpp file=src/adhesion_edge_count.cc}
+#include "adhesion.hh"
+
+int Adhesion::edge_count(RT::Cell_handle h, double threshold)
+{
+  int count = 0;
+  for (unsigned i = 1; i < 4; ++i) {
+    for (unsigned j = 0; j < i; ++j) {
+      auto segment = rt.periodic_segment(h, i, j);
+      double l = rt.construct_segment(segment)
+                   .squared_length();
+      if (l > threshold) {
+        ++count;
+      }
+    }
+  }
+  return count;
+}
+```
+
+## Velocity
+
+``` {.cpp file=src/adhesion_velocity.cc}
+#include "adhesion.hh"
+#include <limits>
+// #include <CGAL/Epick_d.h>
+#include <CGAL/Cartesian_d.h>
+#include <CGAL/Kernel_d/Hyperplane_d.h>
+
+// typedef CGAL::Epick_d<4>             LiftedK;
+typedef CGAL::Cartesian_d<double>    LiftedK;
+// typedef LiftedK::Poind_d             LiftedPoint;
+typedef CGAL::Point_d<LiftedK>       LiftedPoint;
+typedef CGAL::Hyperplane_d<LiftedK>  HyperPlane;
+
+constexpr double infinity
+  = std::numeric_limits<double>::infinity();
+
+inline LiftedPoint lifted_point(
+    double x, double y, double z, double w)
+{
+  double p[4] = { x, y, z, w };
+  return LiftedPoint(4, p, p + 4);
+}
+
+Vector Adhesion::velocity(RT::Cell_handle c)
+{
+  LiftedPoint points[4];
+  auto guide = lifted_point(0, 0, 0, -infinity);
+
+  for (unsigned i = 0; i < 4; ++i)
+  {
+    Weighted_point wp = rt.point(c, i);
+    auto p = wp.point();
+    auto w = wp.weight();
+    points[i] = lifted_point(p.x(), p.y(), p.z(), w);
+  }
+
+  HyperPlane h(points, points + 4, guide, CGAL::ON_NEGATIVE_SIDE);
+  auto normal = h.orthogonal_vector();
+  auto v  = normal / (2 * time * normal[3]);
+
+  return Vector(v[0], v[1], v[2]);
+}
+```
+
+# The main program
+
+## Configuration
 
 We read the configuration from a YAML file. Let's take the latest values from the Planck collaboration.
 
@@ -384,7 +496,7 @@ cosmology:
   h:        0.674   # Hubble parameter / 100
   ns:       0.965   # primordial power spectrum index
   Omega0:   1.0     # density in units of critical density
-  sigma8:   0.811   # amplitude over 8 h⁻¹ Mpc
+  sigma8:   0.811   # amplitude over 8 Mpc/h
 
 run:
   seed:     0
@@ -392,7 +504,7 @@ run:
   output:   lcdm150.h5
 ```
 
-### Run function
+## Run function
 
 ``` {.cpp file=src/run.hh}
 #pragma once
@@ -414,7 +526,7 @@ void run(YAML::Node const &config)
 }
 ```
 
-#### Create box
+### Create box
 
 ``` {.cpp #workflow}
 std::cerr << "Using box with parameters:\n"
@@ -424,7 +536,7 @@ BoxParam box(
   config["box"]["L"].as<double>());
 ```
 
-#### Generate initial conditions
+### Generate initial conditions
 
 ``` {.cpp #workflow}
 std::cerr << "Generating initial conditions:\n"
@@ -434,7 +546,7 @@ auto field = generate_white_noise(box, seed);
 compute_potential(box, *field, EisensteinHu(config["cosmology"]));
 ```
 
-#### Write initial conditions to file
+### Write initial conditions to file
 
 ``` {.cpp #workflow}
 std::string output_filename = config["run"]["output"].as<std::string>();
@@ -446,7 +558,7 @@ H5::DataSet dataset = file.createDataSet("potential", datatype, dataspace);
 dataset.write(field->data(), H5::PredType::NATIVE_DOUBLE);
 ```
 
-### Main function
+## Main function
 
 The main program has not many arguments. It reads configuration from standard input in the YAML format. Any binary data will be stored in an auxiliary HDF5 file.
 
@@ -514,6 +626,8 @@ int main(int argc, char **argv)
   return EXIT_SUCCESS;
 }
 ```
+
+# Appendix
 
 ## Fourier interface
 
