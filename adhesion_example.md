@@ -2,6 +2,12 @@
 
 We present a (relatively) small example of using the CGAL library to run the adhesion model. A basic CGAL program can seem intimidating to start with. The CGAL manual provides basic examples that offer a good starting point. In our case we are interested in creating regular triangulations. We adapted the example from the manual.
 
+### Version
+
+``` {.cpp #version}
+#define VERSION "0.1"
+```
+
 ## Introduction
 
 This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. A significant fraction of the code in here is dealing with generating initial conditions for the actual model.
@@ -49,6 +55,9 @@ return std::make_pair(
 - XTensor-FFTW - Tying FFTW3 to an XTensor interface
 - hdf5-cpp - [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data.
 - yaml-cpp - [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files.
+- argagg - [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser.
+
+All of these packages are available in the Debian GNU/Linux package repositories.
 
 ## CGAL Geometry kernels
 
@@ -106,15 +115,16 @@ $$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$
 #include <xtensor/xtensor.hpp>
 #include <yaml-cpp/yaml.h>
 
-extern std::unique_ptr<xt::xtensor<double, 3>> white_noise(
+extern std::unique_ptr<xt::xtensor<double, 3>>
+generate_white_noise(
     BoxParam const &box,
     unsigned long seed);
 
 <<power-spectra>>
 
-extern void apply_power_spectrum(
+extern void compute_potential(
     BoxParam const &box,
-    xt::xtensor<double, 3> &field,
+    xt::xtensor<double, 3> &white_noise,
     PowerSpectrum const &P);
 ```
 
@@ -167,7 +177,7 @@ Point point(size_t i) const
 {
   int x = i % N;
   int y = (i / N) % N;
-  int z = i / (N*N);
+  int z = i / (N * N);
 
   return Point(x * res, y * res, z * res);
 }
@@ -219,13 +229,11 @@ inline unsigned increment_index(
     std::array<size_t, R> &index)
 {
   for (unsigned i = 0; i < R; ++i) {
-    if (++index[i] < shape[i])
-      return i;
+    unsigned k = R - i - 1;
+    if (++index[k] < shape[k])
+      return k;
 
-    if (i == R - 1)
-      break;
-
-    index[i] = 0;
+    index[k] = 0;
   }
 
   return R;
@@ -240,7 +248,8 @@ The `white_noise` function fills a newly created array with random values, follo
 #include "initial_conditions.hh"
 #include <random>
 
-std::unique_ptr<xt::xtensor<double, 3>> white_noise(
+std::unique_ptr<xt::xtensor<double, 3>>
+generate_white_noise(
     BoxParam const &box, unsigned long seed)
 {
   auto result = std::make_unique<xt::xtensor<double, 3>>(box.shape());
@@ -275,7 +284,7 @@ extern PowerSpectrum normalize_power_spectrum(
 
 #### Eisenstein-Hu power spectrum
 
-The power spectrum for CDM is given by an almost scale-free spectrum modified by a *transfer function* $T_0$ which embodies post-inflation physics. 
+The power spectrum for CDM is given by an almost scale-free spectrum modified by a *transfer function* $T_0$ which embodies post-inflation physics.
 
 $$P(k) = A k^{n_s} T_0^2(k)$$
 
@@ -328,7 +337,7 @@ This takes some Fourier wizardry.
 #include "initial_conditions.hh"
 #include "fft.hh"
 
-void apply_power_spectrum(
+void compute_potential(
     BoxParam const &box,
     xt::xtensor<double, 3> &field,
     PowerSpectrum const &P)
@@ -339,9 +348,10 @@ void apply_power_spectrum(
   std::copy(field.begin(), field.end(), rfft.real_space.begin());
   rfft.forward_transform();
 
-  std::array<size_t, 3> loc = {0, 0, 0};
-  for (size_t i = 0; i < box.rfft_size(); ++i) {
-    rfft.fourier_space[i] *= sqrt(P(box.k_abs(loc)));
+  std::array<size_t, 3> loc = {0, 0, 1};
+  for (size_t i = 1; i < box.rfft_size(); ++i) {
+    double k = box.k_abs(loc);
+    rfft.fourier_space[i] *= sqrt(P(k)) / (k * k);
     increment_index<3>(f_shape, loc);
   }
 
@@ -358,13 +368,13 @@ void apply_power_spectrum(
 
 ### Filtering for structures
 
-## Input/Output
+## The main program
 
 ### Configuration
 
 We read the configuration from a YAML file. Let's take the latest values from the Planck collaboration.
 
-``` {.yaml file=examples/lcdm128.yaml}
+``` {.yaml #default-config file=examples/lcdm150.yaml}
 box:
   N:      128       # logical box size
   L:      150.0     # physical box size
@@ -379,17 +389,129 @@ cosmology:
 run:
   seed:     0
   time:     1.0
+  output:   lcdm150.h5
 ```
 
-## Main function
+### Run function
+
+``` {.cpp file=src/run.hh}
+#pragma once
+#include <yaml-cpp/yaml.h>
+
+extern void run(YAML::Node const &config);
+```
+
+``` {.cpp file=src/run.cc}
+#include <iostream>
+#include <H5Cpp.h>
+
+#include "run.hh"
+#include "initial_conditions.hh"
+
+void run(YAML::Node const &config)
+{
+  <<workflow>>
+}
+```
+
+#### Create box
+
+``` {.cpp #workflow}
+std::cerr << "Using box with parameters:\n"
+          << config["box"] << "\n";
+BoxParam box(
+  config["box"]["N"].as<int>(),
+  config["box"]["L"].as<double>());
+```
+
+#### Generate initial conditions
+
+``` {.cpp #workflow}
+std::cerr << "Generating initial conditions:\n"
+          << config["cosmology"] << "\n";
+auto seed = config["run"]["seed"].as<unsigned long>();
+auto field = generate_white_noise(box, seed);
+compute_potential(box, *field, EisensteinHu(config["cosmology"]));
+```
+
+#### Write initial conditions to file
+
+``` {.cpp #workflow}
+std::string output_filename = config["run"]["output"].as<std::string>();
+H5::H5File file(output_filename, H5F_ACC_TRUNC);
+std::array<hsize_t, 3> shape = { box.N, box.N, box.N };
+H5::DataSpace dataspace(3, shape.data());
+H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
+H5::DataSet dataset = file.createDataSet("potential", datatype, dataspace);
+dataset.write(field->data(), H5::PredType::NATIVE_DOUBLE);
+```
+
+### Main function
+
+The main program has not many arguments. It reads configuration from standard input in the YAML format. Any binary data will be stored in an auxiliary HDF5 file.
+
+``` {.cpp #main-arguments}
+argagg::parser argparser {{
+  { "help",    {"-h", "--help"},
+    "Show this help message.", 0 },
+  { "version", {"--version"},
+    "Show the software version.", 0 },
+  { "config",  {"-c", "--config"},
+	  "Supply configuration file.", 1 }
+}};
+```
+
+We include the default configuration as a fallback.
 
 ``` {.cpp file=src/main.cc}
 #include <iostream>
+#include <argagg/argagg.hpp>
+#include <yaml-cpp/yaml.h>
+
+#include "run.hh"
+
+<<version>>
+
+<<main-arguments>>
+
+const char *default_config = R"YAML(
+<<default-config>>
+)YAML";
 
 int main(int argc, char **argv)
 {
-  std::cout << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
-  return 0;
+  argagg::parser_results args;
+  try {
+    args = argparser.parse(argc, argv);
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (args["help"]) {
+    std::cerr << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
+    std::cerr << argparser;
+    return EXIT_SUCCESS;
+  }
+
+  if (args["version"]) {
+    std::cerr << "amec v" << VERSION << "\n";
+    return EXIT_SUCCESS;
+  }
+
+  YAML::Node config;
+  if (args["config"]) {
+    auto config_file = args["config"].as<std::string>();
+    std::cerr << "Reading `" << config_file << "` for input.\n";
+    config = YAML::LoadFile(config_file);
+  } else {
+    std::cerr << "No configuration given, proceeding with defaults.\n";
+    config = YAML::Load(default_config);
+  }
+
+  run(config);
+
+  return EXIT_SUCCESS;
 }
 ```
 
@@ -506,10 +628,21 @@ TEST(InitialConditions, BoxParam) {
 
 TEST(InitialConditions, GeneratingNoise) {
   BoxParam box(128, 100.0);
-  auto x = white_noise(box, 0);
+  auto x = generate_white_noise(box, 0);
   ASSERT_TRUE(x);
   EXPECT_EQ(x->size(), box.size);
   double total = xt::mean(*x)[0];
   EXPECT_NEAR(total, 0.0, 1e-2);
+}
+
+TEST(InitialConditions, Fourier) {
+  BoxParam box(128, 100.0);
+  std::array<size_t, 3> loc = {0, 0, 0};
+  double k1 = box.k_abs(loc);
+  EXPECT_FLOAT_EQ(k1, 0.0);
+  increment_index<3>(box.shape(), loc);
+  EXPECT_EQ(loc[2], 1);
+  double k2 = box.k_abs(loc);
+  EXPECT_FLOAT_EQ(k2, 2*M_PI/100.0);
 }
 ```

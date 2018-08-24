@@ -1,11 +1,14 @@
 input_files = adhesion_example.md
 build_dir = ./build
 
+hdf5_cflags = $(shell pkg-config --cflags hdf5)
+hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
+
 compile = g++
-compile_flags = -Wall -Isrc -I${HOME}/.local/include
+compile_flags = -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags)
 
 link = g++
-link_flags = -lfftw3 -lyaml-cpp
+link_flags = -lfftw3 -lyaml-cpp $(hdf5_libs)
 
 # ===========================================================================
 

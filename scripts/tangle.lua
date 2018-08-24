@@ -45,7 +45,7 @@ rm -rf ${tangle_dir}
 function CodeBlock (elem)
     if elem.identifier then
         t = vars[elem.identifier] or ""
-        vars[elem.identifier] = t .. elem.text
+        vars[elem.identifier] = t .. "\n" .. elem.text
     end
 
     for k, v in pairs(elem.attr[3]) do
