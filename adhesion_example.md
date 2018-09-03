@@ -78,17 +78,22 @@ We collect those type definitions in a separate header file:
 ``` {.cpp file=src/cgal_base.hh}
 #pragma once
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Periodic_3_regular_triangulation_traits_3.h>
-#include <CGAL/Periodic_3_regular_triangulation_3.h>
+// #include <CGAL/Periodic_3_regular_triangulation_traits_3.h>
+// #include <CGAL/Periodic_3_regular_triangulation_3.h>
+
+#include <CGAL/Regular_triangulation_3.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Periodic_3_regular_triangulation_traits_3<K>  Gt;
-typedef CGAL::Periodic_3_regular_triangulation_3<Gt>        RT;
+
+// typedef CGAL::Periodic_3_regular_triangulation_traits_3<K>  Gt;
+// typedef CGAL::Periodic_3_regular_triangulation_3<Gt>        RT;
+typedef CGAL::Regular_triangulation_3<K>               RT;
 
 typedef K::Vector_3           Vector;
-typedef RT::Bare_point        Point;
+typedef K::Point_3            Point;
+// typedef RT::Bare_point        Point;
 typedef RT::Edge              Edge;
-typedef RT::Iso_cuboid        Iso_cuboid;
+// typedef RT::Iso_cuboid        Iso_cuboid;
 typedef RT::Weighted_point    Weighted_point;
 typedef RT::Segment           Segment;
 typedef RT::Tetrahedron       Tetrahedron;
@@ -387,6 +392,7 @@ public:
   <<adhesion-constructor>>
 
   int edge_count(RT::Cell_handle h, double threshold);
+  size_t number_of_cells() const;
   Vector velocity(RT::Cell_handle c);
 };
 ```
@@ -396,8 +402,8 @@ public:
 ``` {.cpp #adhesion-constructor}
 template <typename Array>
 Adhesion(BoxParam const &box, Array &&potential, double t)
-  : rt(Iso_cuboid(0, 0, 0, box.L, box.L, box.L))
-  , time(t)
+  : // rt(Iso_cuboid(0, 0, 0, box.L, box.L, box.L))
+   time(t)
 {
   for (size_t i = 0; i < box.size; ++i)
   {
@@ -412,6 +418,17 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
 }
 ```
 
+### Numbers
+
+``` {.cpp file=src/adhesion_numbers.cc}
+#include "adhesion.hh"
+
+size_t Adhesion::number_of_cells() const
+{
+  return rt.number_of_cells();
+}
+```
+
 ## Filtering for structures
 
 ``` {.cpp file=src/adhesion_edge_count.cc}
@@ -422,9 +439,13 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold)
   int count = 0;
   for (unsigned i = 1; i < 4; ++i) {
     for (unsigned j = 0; j < i; ++j) {
-      auto segment = rt.periodic_segment(h, i, j);
-      double l = rt.construct_segment(segment)
-                   .squared_length();
+      // auto segment = rt.periodic_segment(h, i, j);
+      // double l = rt.construct_segment(segment)
+      //              .squared_length();
+
+      auto segment = rt.segment(h, i, j);
+      double l = segment.squared_length();
+
       if (l > threshold) {
         ++count;
       }
@@ -519,6 +540,7 @@ extern void run(YAML::Node const &config);
 
 #include "run.hh"
 #include "initial_conditions.hh"
+#include "adhesion.hh"
 
 void run(YAML::Node const &config)
 {
@@ -563,11 +585,13 @@ dataset.write(field->data(), H5::PredType::NATIVE_DOUBLE);
 ``` {.cpp #workflow}
 std::cerr << "Computing regular triangulation ...\n";
 double time = config["run"]["time"].as<double>();
-Adhesion adhesion(box, field, time);
+std::cerr << "time: " << time << " \n";
+Adhesion adhesion(box, *field, time);
 
-size_t n_cells = 
-std::cerr << "  number of cells: " << 
+size_t n_cells = adhesion.number_of_cells();
+std::cerr << "  number of cells: " << n_cells << "\n";
 ```
+
 
 ## Main function
 
