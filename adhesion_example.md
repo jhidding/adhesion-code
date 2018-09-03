@@ -558,6 +558,17 @@ H5::DataSet dataset = file.createDataSet("potential", datatype, dataspace);
 dataset.write(field->data(), H5::PredType::NATIVE_DOUBLE);
 ```
 
+### Compute adhesion model
+
+``` {.cpp #workflow}
+std::cerr << "Computing regular triangulation ...\n";
+double time = config["run"]["time"].as<double>();
+Adhesion adhesion(box, field, time);
+
+size_t n_cells = 
+std::cerr << "  number of cells: " << 
+```
+
 ## Main function
 
 The main program has not many arguments. It reads configuration from standard input in the YAML format. Any binary data will be stored in an auxiliary HDF5 file.
