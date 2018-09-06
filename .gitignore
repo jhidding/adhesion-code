@@ -3,3 +3,5 @@ examples
 tests
 build
 *.pdf
+output
+.ipynb_checkpoints

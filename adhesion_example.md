@@ -62,6 +62,7 @@ return std::make_pair(
 - hdf5-cpp - [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data.
 - yaml-cpp - [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files.
 - argagg - [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser.
+- fmt - [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's.
 
 All of these packages are available in the Debian GNU/Linux package repositories.
 
@@ -380,6 +381,7 @@ void compute_potential(
 #pragma once
 #include "boxparam.hh"
 #include "cgal_base.hh"
+#include "mesh.hh"
 #include <memory>
 
 class Adhesion
@@ -391,9 +393,11 @@ class Adhesion
 public:
   <<adhesion-constructor>>
 
-  int edge_count(RT::Cell_handle h, double threshold);
+  int edge_count(RT::Cell_handle h, double threshold) const;
   size_t number_of_cells() const;
-  Vector velocity(RT::Cell_handle c);
+  Vector velocity(RT::Cell_handle c) const;
+
+  Mesh<Point, double> get_walls(double threshold) const;
 };
 ```
 
@@ -434,7 +438,7 @@ size_t Adhesion::number_of_cells() const
 ``` {.cpp file=src/adhesion_edge_count.cc}
 #include "adhesion.hh"
 
-int Adhesion::edge_count(RT::Cell_handle h, double threshold)
+int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
 {
   int count = 0;
   for (unsigned i = 1; i < 4; ++i) {
@@ -480,7 +484,7 @@ inline LiftedPoint lifted_point(
   return LiftedPoint(4, p, p + 4);
 }
 
-Vector Adhesion::velocity(RT::Cell_handle c)
+Vector Adhesion::velocity(RT::Cell_handle c) const
 {
   LiftedPoint points[4];
   auto guide = lifted_point(0, 0, 0, -infinity);
@@ -501,16 +505,97 @@ Vector Adhesion::velocity(RT::Cell_handle c)
 }
 ```
 
+## Getting the power diagram
+
+``` {.cpp file=src/adhesion_get_walls.cc}
+#include "adhesion.hh"
+#include "power_diagram.hh"
+
+Mesh<Point, double> Adhesion::get_walls(
+    double threshold) const
+{
+  return power_diagram_faces(rt, threshold);
+}
+```
+
+``` {.cpp file=src/power_diagram.hh}
+#include "cgal_base.hh"
+#include "mesh.hh"
+
+extern Mesh<Point, double> power_diagram_faces(
+  RT const &rt, double threshold);
+```
+
+``` {.cpp file=src/power_diagram.cc}
+#include "power_diagram.hh"
+
+Mesh<Point, double> power_diagram_faces(
+  RT const &rt,
+  double threshold)
+{
+  Mesh<Point, double> mesh;
+
+  <<power-diagram-dual-vertex>>
+
+  for (auto e = rt.finite_edges_begin();
+       e != rt.finite_edges_end();
+       ++e)
+  {
+    std::vector<unsigned> vs;
+
+    double l = rt.segment(*e).squared_length();
+    if (l < threshold) continue;
+
+    auto first = rt.incident_cells(*e), c = first;
+    bool ok = true;
+    do {
+      if (rt.is_infinite(++c)) {
+          ok = false;
+          break;
+      }
+
+      vs.push_back(get_dual_vertex(c));
+    } while (c != first);
+
+    if (ok) {
+      mesh.polygons.emplace_back(vs, sqrt(l));
+    }
+  }
+
+  return mesh;
+}
+```
+
+### Dual vertex
+
+Every cell in the regular triangulation is associated with a vertex in the power diagram. We write a small helper function that obtains this dual vertex and caches it in a map.
+
+``` {.cpp #power-diagram-dual-vertex}
+std::map<RT::Cell_handle, unsigned> cell_index;
+
+auto get_dual_vertex = [&rt, &cell_index, &mesh] (
+    RT::Cell_handle const &h) -> unsigned
+{
+  if (cell_index.count(h) == 0)
+  {
+    cell_index[h] = mesh.vertices.size();
+    mesh.vertices.push_back(rt.dual(h));
+  }
+
+  return cell_index[h];
+};
+```
+
 # The main program
 
 ## Configuration
 
 We read the configuration from a YAML file. Let's take the latest values from the Planck collaboration.
 
-``` {.yaml #default-config file=examples/lcdm150.yaml}
+``` {.yaml #default-config file=examples/lcdm.yaml}
 box:
-  N:      128       # logical box size
-  L:      150.0     # physical box size
+  N:      128      # logical box size
+  L:      32.0     # physical box size
 
 cosmology:
   power-spectrum: Eisenstein & Hu
@@ -520,9 +605,13 @@ cosmology:
   sigma8:   0.811   # amplitude over 8 Mpc/h
 
 run:
-  seed:     0
-  time:     1.0
-  output:   lcdm150.h5
+  seed:     8
+  time:     [1.0, 2.0, 3.0]
+
+output:
+  hdf5:            output/lcdm.h5
+  walls:           output/lcdm-{time:02.1f}-walls.obj
+  wall-threshold:  10.0
 ```
 
 ## Run function
@@ -530,17 +619,21 @@ run:
 ``` {.cpp file=src/run.hh}
 #pragma once
 #include <yaml-cpp/yaml.h>
+#include <fmt/format.h>
 
 extern void run(YAML::Node const &config);
 ```
 
 ``` {.cpp file=src/run.cc}
 #include <iostream>
+#include <exception>
 #include <H5Cpp.h>
 
 #include "run.hh"
 #include "initial_conditions.hh"
 #include "adhesion.hh"
+#include "sphere.hh"
+#include "write_selection_to_obj.hh"
 
 void run(YAML::Node const &config)
 {
@@ -571,7 +664,7 @@ compute_potential(box, *field, EisensteinHu(config["cosmology"]));
 ### Write initial conditions to file
 
 ``` {.cpp #workflow}
-std::string output_filename = config["run"]["output"].as<std::string>();
+std::string output_filename = config["output"]["hdf5"].as<std::string>();
 H5::H5File file(output_filename, H5F_ACC_TRUNC);
 std::array<hsize_t, 3> shape = { box.N, box.N, box.N };
 H5::DataSpace dataspace(3, shape.data());
@@ -583,15 +676,40 @@ dataset.write(field->data(), H5::PredType::NATIVE_DOUBLE);
 ### Compute adhesion model
 
 ``` {.cpp #workflow}
-std::cerr << "Computing regular triangulation ...\n";
-double time = config["run"]["time"].as<double>();
-std::cerr << "time: " << time << " \n";
-Adhesion adhesion(box, *field, time);
+std::vector<double> time;
+auto time_cfg = config["run"]["time"];
+switch (time_cfg.Type()) {
+  case YAML::NodeType::Scalar:
+    time.push_back(time_cfg.as<double>());
+    break;
+  case YAML::NodeType::Sequence:
+    time = time_cfg.as<std::vector<double>>();
+    break;
+  default: throw std::runtime_error("No time given.");
+}
 
-size_t n_cells = adhesion.number_of_cells();
-std::cerr << "  number of cells: " << n_cells << "\n";
+double threshold = config["output"]["wall-threshold"].as<double>(0.0);
+std::string walls_filename = config["output"]["walls"].as<std::string>();
+Sphere<K> sphere(Point(box.L/2, box.L/2, box.L/2), 0.4 * box.L);
+
+for (double t : time) {
+  std::cerr << "Computing regular triangulation ...\n";
+  std::cerr << "time: " << t << " \n";
+  Adhesion adhesion(box, *field, t);
+
+  <<run-write-obj>>
+}
 ```
 
+### Write a sphere to OBJ
+
+``` {.cpp #run-write-obj}
+auto walls = adhesion.get_walls(threshold);
+std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.polygons.size() << " polygons.\n";
+std::string filename = fmt::format(walls_filename, fmt::arg("time", t));
+std::cerr << "writing to " << filename << "\n";
+write_selection_to_obj(filename, walls, sphere);
+```
 
 ## Main function
 
@@ -663,6 +781,296 @@ int main(int argc, char **argv)
 ```
 
 # Appendix
+
+## Keeping a mesh in memory
+
+``` {.cpp file=src/mesh.hh}
+#pragma once
+
+#include <tuple>
+#include <memory>
+#include <vector>
+
+template <typename T, typename Info>
+class Decorated: public T
+{
+    Info _info;
+
+public:
+    using T::T;
+
+    Decorated(T const &t, Info const &info_):
+        T(t), _info(info_) {}
+
+    Decorated(Info const &info_):
+        _info(info_) {}
+
+    Info const &info() const
+    {
+        return _info;
+    }
+};
+
+template <typename Point>
+using Polygon = std::tuple<
+                  std::vector<Point> *,
+                  std::vector<unsigned>>;
+
+template <typename Point>
+using PolygonPair = std::tuple<
+                      std::vector<Point> *,
+                      std::vector<unsigned>,
+                      std::vector<unsigned>>;
+
+template <typename Point, typename Info>
+struct Mesh
+{
+  using PolygonData = Decorated<std::vector<unsigned>, Info>;
+
+  std::vector<Point> vertices;
+  std::vector<PolygonData> polygons;
+};
+```
+
+## Cutting polygons
+
+``` {.cpp file=src/split_polygon.hh}
+#pragma once
+
+#include "mesh.hh"
+#include <algorithm>
+
+template <typename Point, typename Surface>
+PolygonPair<Point> split_polygon(
+    Polygon<Point> const &polygon,
+    Surface const &surface,
+    bool closed = true)
+{
+  std::vector<Point> *vertices = std::get<0>(polygon);
+  std::vector<unsigned> orig = std::get<1>(polygon), r1, r2;
+
+  auto is_below = [&vertices, &surface] (unsigned i) -> bool {
+    return (surface.oriented_side((*vertices)[i]) == -1);
+  };
+
+  if (closed)
+    orig.push_back(orig.front());
+
+  auto i = orig.begin();
+  auto j = i; ++j;
+  bool below = is_below(*i);
+
+  while (j != orig.end())
+  {
+    if (below != is_below(*j)) // surface crossed
+    {
+      if (auto q = surface.intersect(
+            (*vertices)[*i], (*vertices)[*j])) {
+        r1.push_back(vertices->size());
+        r2.push_back(vertices->size());
+        vertices->push_back(*q);
+        std::swap(r1, r2);
+      }
+
+      below = not below;
+    } else {
+      r1.push_back(*j);
+      ++i; ++j;
+    }
+  }
+
+  if (below)
+    return PolygonPair<Point>(vertices, r1, r2);
+  else
+    return PolygonPair<Point>(vertices, r2, r1);
+}
+```
+
+### Cutting a spherical region
+
+``` {.cpp file=src/sphere.hh}
+#pragma once
+#include <optional>
+
+template <typename K>
+class Sphere
+{
+  using Point   = typename K::Point_3;
+  using Vector  = typename K::Vector_3;
+
+  Point origin;
+  double radius_squared;
+
+public:
+  Sphere(Point const &p, double r):
+      origin(p), radius_squared(r*r) {}
+
+  int oriented_side(Point const &p) const
+  {
+    double d = (p - origin).squared_length();
+
+    if (d < radius_squared)
+      return -1;
+
+    if (d > radius_squared)
+      return +1;
+
+    return 0;
+  }
+
+  std::optional<Point> intersect(Point const &a, Point const &b) const
+  {
+    if (oriented_side(a) * oriented_side(b) >= 0)
+      return std::nullopt;
+
+    Vector m = b - a, n = a - origin;
+    double m_sqr = m.squared_length(),
+           n_sqr = n.squared_length(),
+           mn    = m*n;
+  
+    double D = mn*mn - (m_sqr * (n_sqr - radius_squared));
+
+    if (D < 0)
+      return std::nullopt;               // shouldn't happen
+
+    double sol_m = (- mn - sqrt(D)) / m_sqr,
+           sol_p = (- mn + sqrt(D)) / m_sqr;
+
+    if ((sol_m >= 0) and (sol_m <= 1.0))
+        return a + m*sol_m;
+
+    if ((sol_p >= 0) and (sol_p <= 1.0))
+        return a + m*sol_p;
+
+    return std::nullopt;                 // shouldn't happen
+  }
+};
+```
+
+### Writing an OBJ file
+
+``` {.cpp file=src/write_obj.hh}
+#pragma once
+#include <iostream>
+
+#include "mesh.hh"
+
+template <typename Point>
+void write_obj(std::ostream &out, Mesh<Point, double> const &mesh)
+{
+  for (Point const &p : mesh.vertices) {
+    out << "v " << p << " 1.0\n";
+  }
+  out << "\n";
+
+  std::vector<double> val;
+  double min = 1e6, max = 0.0;
+  for (auto const &p : mesh.polygons) {
+    double a = p.info();
+    if (a < min) min = a;
+    if (a > max) max = a;
+  }
+
+  unsigned i = 0;
+  for (auto const &p : mesh.polygons) {
+    double a = p.info();
+    // out << "vt " << (a - min)/(max - min) << " 0\n";
+    out << "vt " << a << " 0\n";
+    ++i;
+  }
+  out << "\n";
+
+  i = 1;
+  for (auto const &p : mesh.polygons) {
+    out << "f";
+    for (unsigned j : p)
+        out << " " << j+1 << "/" << i;
+    out << "\n";
+    ++i;
+  }
+}
+```
+
+### Clean mesh
+
+``` {.cpp file=src/clean_mesh.hh}
+#pragma once
+#include "mesh.hh"
+
+template <typename Point, typename Info>
+Mesh<Point, Info> clean(
+    Mesh<Point, Info> const &source)
+{
+  Mesh<Point, Info> result;
+  std::map<unsigned, unsigned> vertex_map;
+
+  for (auto const &v : source.polygons)
+  {
+    result.polygons.emplace_back(v.info());
+
+    for (unsigned i : v) {
+      if (vertex_map.count(i) == 0) {
+        vertex_map[i] = result.vertices.size();
+        result.vertices.push_back(source.vertices[i]);
+      }
+
+      result.polygons.back().push_back(vertex_map[i]);
+    }
+  }
+
+  return result;
+}
+```
+
+### Write selection
+
+``` {.cpp file=src/write_selection_to_obj.hh}
+#pragma once
+#include <iostream>
+#include <fstream>
+
+#include "write_obj.hh"
+#include "mesh.hh"
+#include "clean_mesh.hh"
+#include "split_polygon.hh"
+
+template <typename Point, typename Surface, typename Info>
+Mesh<Point, Info> select_mesh(
+    Mesh<Point, Info> const &mesh,
+    Surface const &surface)
+{
+  Mesh<Point, Info> result;
+  result.vertices = mesh.vertices;
+
+  for (auto const &v : mesh.polygons)
+  {
+      Info info  = v.info();
+      std::vector<unsigned> polygon_data(v);
+
+      auto below = std::get<1>(split_polygon(
+        Polygon<Point>(&result.vertices, polygon_data),
+        surface));
+
+      if (below.size() > 0) {
+        result.polygons.emplace_back(below, info);
+      }
+  }
+  
+  return clean(result);
+}
+
+template <typename Surface>
+void write_selection_to_obj(
+    std::string const &filename,
+    Mesh<Point, double> const &mesh,
+    Surface const &selector)
+{
+  std::cerr << "writing output to: " << filename << "\n";
+  std::ofstream fo(filename);
+  write_obj(fo, select_mesh(mesh, selector));
+  fo.close();
+}
+```
 
 ## Fourier interface
 

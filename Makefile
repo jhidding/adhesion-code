@@ -8,10 +8,10 @@ cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
 compile = g++
-compile_flags = -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags) $(cgal_cflags)
+compile_flags = -std=c++17 -O3 -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags) $(cgal_cflags)
 
 link = g++
-link_flags = -lfftw3 -lyaml-cpp $(hdf5_libs) $(cgal_libs)
+link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs)
 
 # ===========================================================================
 
