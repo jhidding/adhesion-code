@@ -346,7 +346,7 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
 
 ## Applying the power spectrum
 
-This takes some Fourier wizardry.
+We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again.
 
 ``` {.cpp file=src/apply_power_spectrum.cc}
 #include "initial_conditions.hh"
@@ -377,6 +377,19 @@ void compute_potential(
 
 # The Adhesion model
 
+We're solving the inviscid Burgers equation,
+$$\partial_t \vec{v} + (\vec{v} \cdot \vec{\nabla}) \vec{v} = \nu \nabla^2 \vec{v},$$
+in the limit of $\nu \to 0$. @hopf1950 gave the solution to this equation. 
+This solution is given by maximising the function
+$$G(\vec{q}, \vec{x}, t) = \Phi_0(\vec{q}) - \frac{(\vec{x} - \vec{q})^2}{2t},$$
+to obtain the Eulerian velocity potential
+$$\Phi(\vec{x}, t) = \max_q G(\vec{q}, \vec{x}, t).$$
+This solution can be computed through the power diagram, given a set of points $S \subset \mathbb{R}^n$, and a weight $w_u$ associated with each point $\vec{u} \in S$, the *power cell* is defined as,
+$$V_u = \left\{\vec{x} \in \mathbb{R}^n \big| (\vec{x} - \vec{u})^2 + w_u \le (\vec{x} - \vec{v})^2 + w_v\ \forall \vec{v} \in S\right\}.$$
+Setting the weights to,
+$$w(\vec{q}) = 2 t \Phi_0(\vec{q}),$$
+the adhesion model uses regular triangulations to compute structures directly from the initial conditions.
+
 ``` {.cpp file=src/adhesion.hh}
 #pragma once
 #include "boxparam.hh"
@@ -394,7 +407,6 @@ public:
   <<adhesion-constructor>>
 
   int edge_count(RT::Cell_handle h, double threshold) const;
-  size_t number_of_cells() const;
   Vector velocity(RT::Cell_handle c) const;
 
   Mesh<Point, double> get_walls(double threshold) const;
@@ -402,6 +414,10 @@ public:
 ```
 
 ## Computing the triangulation
+
+We give each point in the grid a weight proportional to the velocity potential,
+$$w_i = 2 t \Phi(q_i).$$
+Then we insert these weighted points into the triangulation.
 
 ``` {.cpp #adhesion-constructor}
 template <typename Array>
@@ -422,18 +438,17 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
 }
 ```
 
-### Numbers
-
-``` {.cpp file=src/adhesion_numbers.cc}
-#include "adhesion.hh"
-
-size_t Adhesion::number_of_cells() const
-{
-  return rt.number_of_cells();
-}
-```
-
 ## Filtering for structures
+
+When we want to select filaments or clusters we need to count how many edges of a certain cell in the regular triangulation exceeds a given threshold. The function `Adhesion::edge_count` takes a cell handle and a threshold and returns the number of long edges. This count determines if the cell is part of a void, wall, filament or node.
+
+| edge count | structure |
+|-----------:|-----------|
+|          0 | void      |
+|          1 | kurtoparabolic point |
+|          2 | wall      |
+|          3 | filament  |
+|          4 | node      |
 
 ``` {.cpp file=src/adhesion_edge_count.cc}
 #include "adhesion.hh"
@@ -461,51 +476,79 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
 
 ## Velocity
 
+To compute the velocity of a particle (a node in the power diagram), we need to compute the gradient of the velocity potential over the corresponding cell in the regular triangulation. We can use CGAL here to do the hard work for us. The d-dimensional geometry kernel lets us compute the hyperplane associated with the four vertices of the cell in the triangulation.
+
 ``` {.cpp file=src/adhesion_velocity.cc}
 #include "adhesion.hh"
 #include <limits>
-// #include <CGAL/Epick_d.h>
 #include <CGAL/Cartesian_d.h>
 #include <CGAL/Kernel_d/Hyperplane_d.h>
 
-// typedef CGAL::Epick_d<4>             LiftedK;
 typedef CGAL::Cartesian_d<double>    LiftedK;
-// typedef LiftedK::Poind_d             LiftedPoint;
 typedef CGAL::Point_d<LiftedK>       LiftedPoint;
 typedef CGAL::Hyperplane_d<LiftedK>  HyperPlane;
 
+<<velocity-define-infinity>>
+
+<<velocity-lifted-point>>
+
+Vector Adhesion::velocity(RT::Cell_handle c) const {
+  <<velocity-implementation>>
+}
+```
+
+We'll need a point at infinity to give the hyperplane an orientation.
+
+``` {.cpp #velocity-define-infinity}
 constexpr double infinity
   = std::numeric_limits<double>::infinity();
+```
 
+CGAL's d-dimensional kernel needs to be told how many coordinates there are in a point, so we write a little wrapper.
+
+``` {.cpp #velocity-lifted-point}
 inline LiftedPoint lifted_point(
     double x, double y, double z, double w)
 {
   double p[4] = { x, y, z, w };
   return LiftedPoint(4, p, p + 4);
 }
+```
 
-Vector Adhesion::velocity(RT::Cell_handle c) const
+We first need to convert the cell handle to its four lifted points.
+
+``` {.cpp #velocity-implementation}
+LiftedPoint points[4];
+
+for (unsigned i = 0; i < 4; ++i)
 {
-  LiftedPoint points[4];
-  auto guide = lifted_point(0, 0, 0, -infinity);
-
-  for (unsigned i = 0; i < 4; ++i)
-  {
-    Weighted_point wp = rt.point(c, i);
-    auto p = wp.point();
-    auto w = wp.weight();
-    points[i] = lifted_point(p.x(), p.y(), p.z(), w);
-  }
-
-  HyperPlane h(points, points + 4, guide, CGAL::ON_NEGATIVE_SIDE);
-  auto normal = h.orthogonal_vector();
-  auto v  = normal / (2 * time * normal[3]);
-
-  return Vector(v[0], v[1], v[2]);
+  Weighted_point wp = rt.point(c, i);
+  auto p = wp.point();
+  auto w = wp.weight();
+  points[i] = lifted_point(p.x(), p.y(), p.z(), w);
 }
 ```
 
+Then we create the hyperplane associated with these points, taking care to have the orientation such that the normal is pointing in possitive `w` direction. This is done by having the guide point $(0, 0, 0, -\infty)$ on the negative side of the hyperplane.
+
+``` {.cpp #velocity-implementation}
+auto guide = lifted_point(0, 0, 0, -infinity);
+HyperPlane h(points, points + 4, guide, CGAL::ON_NEGATIVE_SIDE);
+```
+
+Given the normal $\vec{n}$, the velocity vector is given by
+$$v_i = \frac{n_i}{2 t n_w},$$
+where $i$ indexes the $x$, $y$ and $z$ components.
+
+``` {.cpp #velocity-implementation}
+auto normal = h.orthogonal_vector();
+auto v  = normal / (2 * time * normal[3]);
+
+return Vector(v[0], v[1], v[2]);
+```
+
 ## Getting the power diagram
+
 
 ``` {.cpp file=src/adhesion_get_walls.cc}
 #include "adhesion.hh"
