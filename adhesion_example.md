@@ -176,12 +176,12 @@ struct BoxParam {
   double   res;       // resolution of the box
   double   res_sqr;   // square of the resolution
 
-  BoxParam(unsigned N_, double L_):
-    N(N_),
-    size(N*N*N),
-    L(L_),
-    res(L/N),
-    res_sqr(res*res)
+  BoxParam(unsigned N_, double L_)
+    : N(N_)
+    , size(N*N*N)
+    , L(L_)
+    , res(L/N)
+    , res_sqr(res*res)
   {}
 
   std::array<size_t, 3> shape() const
