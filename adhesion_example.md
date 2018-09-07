@@ -2,7 +2,11 @@
 title: Computing the adhesion model using C++ and CGAL
 author: Johan Hidding
 date: September 1, 2018
+bibliography: ref.bib
+reference-section-title: References
 ---
+
+\pagebreak
 
 # Abstract
 
@@ -14,7 +18,9 @@ We present a (relatively) small example of using the CGAL library to run the adh
 #define VERSION "0.1"
 ```
 
-# Introduction
+\pagebreak
+
+# Introduction  
 
 This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. A significant fraction of the code in here is dealing with generating initial conditions for the actual model.
 
@@ -22,39 +28,9 @@ We've tried to limit the involvement of too much boilerplate code by using exist
 
 If you are only interested only in the CGAL parts, it should be safe to skip the section on generating cosmological initial conditions.
 
-## Literate programming
-
-This example is written in a style of *literate programming*. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don't always give the listing of an entire source file in one go. In stead, we use a system of references known as *noweb*.
-
-Inside source fragments you may encounter a line like,
-
-``` {.cpp}
-#include <cmath>
-
-std::pair<float, float> solve_quadratic(
-    float a, float b, float c)
-{
-  <<abc-formula>>
-}
-```
-
-which is elsewhere specified as:
-
-``` {.cpp #abc-formula}
-float d = sqrt(b*b - 4*a*c);
-```
-
-A definition can be appended with more code as follows:
-
-``` {.cpp #abc-formula append=true}
-return std::make_pair(
-    (-b - d)/(2*a),
-    (-b + d)/(2*a));
-```
-
 ## Prerequisites
 
-- C++ 14 compiler
+- C++ 17 compiler
 - CGAL 4.12 - The Computational Geometry Algorithm Library
 - XTensor 0.17 - A template library for handling array data in C++
 - FFTW3 3.3 - The Fastest Fourier Transform in the West
@@ -63,8 +39,51 @@ return std::make_pair(
 - yaml-cpp - [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files.
 - argagg - [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser.
 - fmt - [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's.
+- Pandoc - [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2 or higher and the `pandoc-citeproc` extension.
 
 All of these packages are available in the Debian GNU/Linux package repositories.
+
+\pagebreak
+
+## Literate programming
+
+This example is written in a style of *literate programming* [@Knuth1984]. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don't always give the listing of an entire source file in one go. In stead, we use a system of references known as *noweb* [@Ramsey1994].
+
+Inside source fragments you may encounter a line with `<<...>>` marks like,
+
+``` {.cpp file=examples/hello_world.cc}
+#include <cstdlib>
+#include <iostream>
+
+<<example-main-function>>
+```
+
+which is then elsewhere specified. Order doesn't matter,
+
+``` {.cpp #hello-world}
+std::cout << "Hello, World!" << std::endl;
+```
+
+So we can reference the `<<hello-world>>` code block later on.
+
+``` {.cpp #example-main-function}
+int main(int argc, char **argv) {
+  <<hello-world>>
+}
+```
+
+A definition can be appended with more code as follows (in this case, order does matter!):
+
+``` {.cpp #hello-world}
+return EXIT_SUCCESS;
+```
+
+These blocks of code can be *tangled* into source files. The source code presented in this report combine into a fully working example of the adhesion model!
+
+
+\pagebreak
+
+# Introduction to CGAL
 
 ## CGAL Geometry kernels
 
@@ -79,28 +98,20 @@ We collect those type definitions in a separate header file:
 ``` {.cpp file=src/cgal_base.hh}
 #pragma once
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-// #include <CGAL/Periodic_3_regular_triangulation_traits_3.h>
-// #include <CGAL/Periodic_3_regular_triangulation_3.h>
-
 #include <CGAL/Regular_triangulation_3.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-
-// typedef CGAL::Periodic_3_regular_triangulation_traits_3<K>  Gt;
-// typedef CGAL::Periodic_3_regular_triangulation_3<Gt>        RT;
-typedef CGAL::Regular_triangulation_3<K>               RT;
+typedef CGAL::Regular_triangulation_3<K>                    RT;
 
 typedef K::Vector_3           Vector;
 typedef K::Point_3            Point;
-// typedef RT::Bare_point        Point;
 typedef RT::Edge              Edge;
-// typedef RT::Iso_cuboid        Iso_cuboid;
 typedef RT::Weighted_point    Weighted_point;
 typedef RT::Segment           Segment;
 typedef RT::Tetrahedron       Tetrahedron;
 ```
 
-Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they may have the same numerical representation, but this may not strictly be the case for all geometry kernels.
+Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they can have the same numerical representation, but this may not strictly be the case for all geometry kernels.
 
 # Initial conditions
 
@@ -375,11 +386,13 @@ void compute_potential(
 }
 ```
 
+\pagebreak
+
 # The Adhesion model
 
 We're solving the inviscid Burgers equation,
 $$\partial_t \vec{v} + (\vec{v} \cdot \vec{\nabla}) \vec{v} = \nu \nabla^2 \vec{v},$$
-in the limit of $\nu \to 0$. @hopf1950 gave the solution to this equation. 
+in the limit of $\nu \to 0$. @Hopf1950 gave the solution to this equation. 
 This solution is given by maximising the function
 $$G(\vec{q}, \vec{x}, t) = \Phi_0(\vec{q}) - \frac{(\vec{x} - \vec{q})^2}{2t},$$
 to obtain the Eulerian velocity potential
@@ -422,8 +435,7 @@ Then we insert these weighted points into the triangulation.
 ``` {.cpp #adhesion-constructor}
 template <typename Array>
 Adhesion(BoxParam const &box, Array &&potential, double t)
-  : // rt(Iso_cuboid(0, 0, 0, box.L, box.L, box.L))
-   time(t)
+  : time(t)
 {
   for (size_t i = 0; i < box.size; ++i)
   {
@@ -549,17 +561,11 @@ return Vector(v[0], v[1], v[2]);
 
 ## Getting the power diagram
 
+The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges. 
 
-``` {.cpp file=src/adhesion_get_walls.cc}
-#include "adhesion.hh"
-#include "power_diagram.hh"
+In this case we'll store them as Wavefront OBJ files. This is a text based file format, so we can't store too large amounts of data. However, it is well supported by most visualisation toolkits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, $u$ and $v$. We'll only use the $u$ coordinate to store the density of the walls. The procedure for saving OBJ files is given in the [Appendix](#obj-file-format).
 
-Mesh<Point, double> Adhesion::get_walls(
-    double threshold) const
-{
-  return power_diagram_faces(rt, threshold);
-}
-```
+We'll define the function that computes the duals of the regular triangulation and stores it in a structure we call `Mesh<Point, double>`.
 
 ``` {.cpp file=src/power_diagram.hh}
 #include "cgal_base.hh"
@@ -569,51 +575,50 @@ extern Mesh<Point, double> power_diagram_faces(
   RT const &rt, double threshold);
 ```
 
-``` {.cpp file=src/power_diagram.cc}
-#include "power_diagram.hh"
+The `Mesh` structure contains a vector of points `vertices` and a vector of vector of unsigned integers `polygons` indexing into the `vertices` vector. We have decorated each polygon in the `polygons` vector with a value of type `double` to give the surface density of that polygon, hence `Mesh<Point, double>`.
 
-Mesh<Point, double> power_diagram_faces(
-  RT const &rt,
-  double threshold)
+``` {.cpp #mesh-definition}
+template <typename Point, typename Info>
+struct Mesh
 {
-  Mesh<Point, double> mesh;
+  using PolygonData = Decorated<std::vector<unsigned>, Info>;
 
-  <<power-diagram-dual-vertex>>
+  std::vector<Point> vertices;
+  std::vector<PolygonData> polygons;
+};
+```
 
-  for (auto e = rt.finite_edges_begin();
-       e != rt.finite_edges_end();
-       ++e)
-  {
-    std::vector<unsigned> vs;
+The `Mesh` structure and `Decorated` helper class are defined in the `mesh.hh` header file.
 
-    double l = rt.segment(*e).squared_length();
-    if (l < threshold) continue;
+The implementation of `power_diagram_faces` loops over all edges in the regular triangulation. We then check if the squared length of the edge `e` is larger than the given threshold:
 
-    auto first = rt.incident_cells(*e), c = first;
-    bool ok = true;
-    do {
-      if (rt.is_infinite(++c)) {
-          ok = false;
-          break;
-      }
+``` {.cpp #pd-check-threshold}
+double l = rt.segment(*e).squared_length();
+if (l < threshold) continue;
+```
 
-      vs.push_back(get_dual_vertex(c));
-    } while (c != first);
+Next we extract the power diagram vertices of the wall by looping over all *incident cells* of the edge. We need to take care not to include the infinite cell that represents everything outside the triangulation. Because the iteration of the incident cells is circular we cannot use a normal for-loop.
 
-    if (ok) {
-      mesh.polygons.emplace_back(vs, sqrt(l));
-    }
+``` {.cpp #pd-incident-faces}
+std::vector<unsigned> vs;
+auto first = rt.incident_cells(*e), c = first;
+bool ok = true;
+
+do {
+  if (rt.is_infinite(++c)) {
+      ok = false;
+      break;
   }
 
-  return mesh;
-}
+  vs.push_back(get_dual_vertex(c));
+} while (c != first);
 ```
 
 ### Dual vertex
 
 Every cell in the regular triangulation is associated with a vertex in the power diagram. We write a small helper function that obtains this dual vertex and caches it in a map.
 
-``` {.cpp #power-diagram-dual-vertex}
+``` {.cpp #pd-dual-vertex}
 std::map<RT::Cell_handle, unsigned> cell_index;
 
 auto get_dual_vertex = [&rt, &cell_index, &mesh] (
@@ -629,7 +634,57 @@ auto get_dual_vertex = [&rt, &cell_index, &mesh] (
 };
 ```
 
+### Main loop
+
+Collecting these steps, the rest of the implementation of `power_diagram_faces` is as follows:
+
+``` {.cpp file=src/power_diagram.cc}
+#include "power_diagram.hh"
+
+Mesh<Point, double> power_diagram_faces(
+  RT const &rt,
+  double threshold)
+{
+  Mesh<Point, double> mesh;
+
+  <<pd-dual-vertex>>
+
+  for (auto e = rt.finite_edges_begin();
+       e != rt.finite_edges_end();
+       ++e)
+  {
+    <<pd-check-threshold>>
+    <<pd-incident-faces>>
+
+    if (ok) {
+      mesh.polygons.emplace_back(vs, sqrt(l));
+    }
+  }
+
+  return mesh;
+}
+```
+
+### Retrieving the walls
+
+We think it is important to make the step from abstract mathematics to physical model explicit. The implementation of the `get_walls` method is now trivial though.
+
+``` {.cpp file=src/adhesion_get_walls.cc}
+#include "adhesion.hh"
+#include "power_diagram.hh"
+
+Mesh<Point, double> Adhesion::get_walls(
+    double threshold) const
+{
+  return power_diagram_faces(rt, threshold);
+}
+```
+
+\pagebreak
+
 # The main program
+
+We're now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly.
 
 ## Configuration
 
@@ -823,6 +878,8 @@ int main(int argc, char **argv)
 }
 ```
 
+\pagebreak
+
 # Appendix
 
 ## Keeping a mesh in memory
@@ -865,14 +922,7 @@ using PolygonPair = std::tuple<
                       std::vector<unsigned>,
                       std::vector<unsigned>>;
 
-template <typename Point, typename Info>
-struct Mesh
-{
-  using PolygonData = Decorated<std::vector<unsigned>, Info>;
-
-  std::vector<Point> vertices;
-  std::vector<PolygonData> polygons;
-};
+<<mesh-definition>>
 ```
 
 ## Cutting polygons
@@ -990,7 +1040,7 @@ public:
 };
 ```
 
-### Writing an OBJ file
+### Writing an OBJ file {#obj-file-format}
 
 ``` {.cpp file=src/write_obj.hh}
 #pragma once
@@ -1202,47 +1252,4 @@ public:
 };
 ```
 
-## Testing
-
-``` {.cpp file=tests/main.cc}
-#include <gtest/gtest.h>
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
-```
-
-``` {.cpp file=tests/initial_conditions.cc}
-#include <gtest/gtest.h>
-#include "initial_conditions.hh"
-#include "xtensor/xmath.hpp"
-
-TEST(InitialConditions, BoxParam) {
-  BoxParam box(128, 100.0);
-  EXPECT_EQ(box.N, 128);
-  EXPECT_EQ(box.size, 2097152);
-  EXPECT_FLOAT_EQ(box.L, 100.0);
-  EXPECT_FLOAT_EQ(box.res, 0.78125);
-}
-
-TEST(InitialConditions, GeneratingNoise) {
-  BoxParam box(128, 100.0);
-  auto x = generate_white_noise(box, 0);
-  ASSERT_TRUE(x);
-  EXPECT_EQ(x->size(), box.size);
-  double total = xt::mean(*x)[0];
-  EXPECT_NEAR(total, 0.0, 1e-2);
-}
-
-TEST(InitialConditions, Fourier) {
-  BoxParam box(128, 100.0);
-  std::array<size_t, 3> loc = {0, 0, 0};
-  double k1 = box.k_abs(loc);
-  EXPECT_FLOAT_EQ(k1, 0.0);
-  increment_index<3>(box.shape(), loc);
-  EXPECT_EQ(loc[2], 1);
-  double k2 = box.k_abs(loc);
-  EXPECT_FLOAT_EQ(k2, 2*M_PI/100.0);
-}
-```
+\pagebreak

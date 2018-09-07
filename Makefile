@@ -17,8 +17,8 @@ link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs)
 
 SHELL := /bin/bash
 
-format = markdown+fenced_code_attributes
-report_args = --toc
+format = markdown+fenced_code_attributes+citations
+report_args = --toc --filter pandoc-citeproc --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings
 
 pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
 pd_list = $(call pd_call,list)
