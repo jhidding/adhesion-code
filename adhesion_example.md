@@ -20,7 +20,7 @@ We present a (relatively) small example of using the CGAL library to run the adh
 
 \pagebreak
 
-# Introduction  
+# Introduction
 
 This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. A significant fraction of the code in here is dealing with generating initial conditions for the actual model.
 
@@ -392,8 +392,7 @@ void compute_potential(
 
 We're solving the inviscid Burgers equation,
 $$\partial_t \vec{v} + (\vec{v} \cdot \vec{\nabla}) \vec{v} = \nu \nabla^2 \vec{v},$$
-in the limit of $\nu \to 0$. @Hopf1950 gave the solution to this equation. 
-This solution is given by maximising the function
+in the limit of $\nu \to 0$. @Hopf1950 gave the solution to this equation. This solution is given by maximising the function
 $$G(\vec{q}, \vec{x}, t) = \Phi_0(\vec{q}) - \frac{(\vec{x} - \vec{q})^2}{2t},$$
 to obtain the Eulerian velocity potential
 $$\Phi(\vec{x}, t) = \max_q G(\vec{q}, \vec{x}, t).$$
@@ -409,6 +408,9 @@ the adhesion model uses regular triangulations to compute structures directly fr
 #include "cgal_base.hh"
 #include "mesh.hh"
 #include <memory>
+#include <array>
+#include <cstdint>
+#include <H5Cpp.h>
 
 class Adhesion
 {
@@ -417,12 +419,16 @@ class Adhesion
   double                      time;
 
 public:
+  <<adhesion-node-type>>
+  <<adhesion-node-struct>>
   <<adhesion-constructor>>
 
   int edge_count(RT::Cell_handle h, double threshold) const;
   Vector velocity(RT::Cell_handle c) const;
 
   Mesh<Point, double> get_walls(double threshold) const;
+  Mesh<Point, double> get_filaments(double threshold) const;
+  std::vector<Node> get_nodes(double threshold) const;
 };
 ```
 
@@ -450,6 +456,33 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
 }
 ```
 
+## Node properties
+
+Any node in the power diagram can be of the type *void*, *kurtoparabolic*, *wall*, *filament*, *cluster* or *undefined*. This last category is a catch-all that really shouldn't happen.
+
+A *kurtoparabolic* [@Frisch2001] is a point where a wall ends in a void. In the Zeldovich approximation we would see a cusp here, so the kurtoparabolic points are equivalent to $A_3$ singularities in Arnold's ADE classification [@Arnold1982,@Hidding2014].
+
+``` {.cpp #adhesion-node-type}
+enum NodeType : uint32_t {
+  VOID, KURTOPARABOLIC, WALL, FILAMENT, CLUSTER, UNDEFINED_NODE_TYPE
+};
+```
+
+Other properties that we can ascribe to a node are its *position*, *velocity* and *mass*.
+
+``` {.cpp #adhesion-node-struct}
+struct Node {
+  std::array<double, 3> position;
+  std::array<double, 3> velocity;
+  double    mass;
+  NodeType  node_type;
+
+  static H5::CompType h5_type();
+};
+```
+
+Note that the masses of any cell other then the cluster cells carry no physical meaning, unless corrected for the resolution of the box. If we double the resolution, the average mass of a void particle drops by a factor eight, the average mass of a wall particle by a factor four, and the average mass of a filament particle by a factor two. Also we know that the total mass is conserved.
+
 ## Filtering for structures
 
 When we want to select filaments or clusters we need to count how many edges of a certain cell in the regular triangulation exceeds a given threshold. The function `Adhesion::edge_count` takes a cell handle and a threshold and returns the number of long edges. This count determines if the cell is part of a void, wall, filament or node.
@@ -457,10 +490,32 @@ When we want to select filaments or clusters we need to count how many edges of 
 | edge count | structure |
 |-----------:|-----------|
 |          0 | void      |
-|          1 | kurtoparabolic point |
-|          2 | wall      |
-|          3 | filament  |
-|          4 | node      |
+|      1 - 2 | kurtoparabolic point |
+|      3 - 4 | wall      |
+|          5 | filament  |
+|          6 | node      |
+
+This table translates to the following helper function:
+
+``` {.cpp #adhesion-type-from-edge-count}
+inline Adhesion::NodeType type_from_edge_count(int n)
+{
+  switch (n) {
+    case 0: return Adhesion::VOID;
+    case 1:
+    case 2: return Adhesion::KURTOPARABOLIC;
+    case 3:
+    case 4: return Adhesion::WALL;
+    case 5: return Adhesion::FILAMENT;
+    case 6: return Adhesion::CLUSTER;
+  }
+  return Adhesion::UNDEFINED_NODE_TYPE;
+}
+```
+
+### Counting edges
+
+We count the number of edges that are incident to the cell `h` and exceed the distance squared `threshould`.
 
 ``` {.cpp file=src/adhesion_edge_count.cc}
 #include "adhesion.hh"
@@ -470,10 +525,6 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
   int count = 0;
   for (unsigned i = 1; i < 4; ++i) {
     for (unsigned j = 0; j < i; ++j) {
-      // auto segment = rt.periodic_segment(h, i, j);
-      // double l = rt.construct_segment(segment)
-      //              .squared_length();
-
       auto segment = rt.segment(h, i, j);
       double l = segment.squared_length();
 
@@ -484,6 +535,14 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
   }
   return count;
 }
+```
+
+## Counting equivalent groups
+
+Another way to detect the type of a node is by counting the number of groups in the vertices of a cell in the regular triangulation, going by an equivalence relation between the vertices based on their connectivity in the non-weighted Delaunay triangulation.
+
+``` {.cpp #adhesion-vertex-equivalence}
+// NYI
 ```
 
 ## Velocity
@@ -541,7 +600,7 @@ for (unsigned i = 0; i < 4; ++i)
 }
 ```
 
-Then we create the hyperplane associated with these points, taking care to have the orientation such that the normal is pointing in possitive `w` direction. This is done by having the guide point $(0, 0, 0, -\infty)$ on the negative side of the hyperplane.
+Then we create the hyperplane associated with these points, taking care to have the orientation such that the normal is pointing in positive `w` direction. This is done by having the guide point $(0, 0, 0, -\infty)$ on the negative side of the hyperplane.
 
 ``` {.cpp #velocity-implementation}
 auto guide = lifted_point(0, 0, 0, -infinity);
@@ -559,9 +618,44 @@ auto v  = normal / (2 * time * normal[3]);
 return Vector(v[0], v[1], v[2]);
 ```
 
+## Getting all nodes
+
+We will retrieve the position, mass, velocity and node type of each dual vertex in the regular triangulation.
+
+``` {.cpp file=src/adhesion_get_nodes.cc}
+#include "adhesion.hh"
+
+<<adhesion-type-from-edge-count>>
+
+std::vector<Adhesion::Node>
+Adhesion::get_nodes(double threshold) const
+{
+  std::vector<Adhesion::Node> result;
+
+  for (auto c  = rt.finite_cells_begin();
+            c != rt.finite_cells_end();
+            ++c) {
+    std::array<double, 3>  ps, vs;
+    Point    p = rt.dual(c);
+    Vector   v = velocity(c);
+    for (unsigned i = 0; i < 3; ++i) {
+      ps[i] = p[i];
+      vs[i] = v[i];
+    }
+    NodeType n = type_from_edge_count(
+                   edge_count(c, threshold));
+    double   m = rt.tetrahedron(c).volume();
+
+    result.push_back(Adhesion::Node({ps, vs, m, n}));
+  }
+
+  return result;
+}
+```
+
 ## Getting the power diagram
 
-The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges. 
+The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges.
 
 In this case we'll store them as Wavefront OBJ files. This is a text based file format, so we can't store too large amounts of data. However, it is well supported by most visualisation toolkits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, $u$ and $v$. We'll only use the $u$ coordinate to store the density of the walls. The procedure for saving OBJ files is given in the [Appendix](#obj-file-format).
 
@@ -572,6 +666,9 @@ We'll define the function that computes the duals of the regular triangulation a
 #include "mesh.hh"
 
 extern Mesh<Point, double> power_diagram_faces(
+  RT const &rt, double threshold);
+
+extern Mesh<Point, double> power_diagram_edges(
   RT const &rt, double threshold);
 ```
 
@@ -634,7 +731,7 @@ auto get_dual_vertex = [&rt, &cell_index, &mesh] (
 };
 ```
 
-### Main loop
+### Main loop (walls)
 
 Collecting these steps, the rest of the implementation of `power_diagram_faces` is as follows:
 
@@ -665,6 +762,70 @@ Mesh<Point, double> power_diagram_faces(
 }
 ```
 
+### Main loop (filaments)
+
+``` {.cpp file=src/power_diagram_edges.cc}
+#include "power_diagram.hh"
+
+<<pd-is-big-facet>>
+
+Mesh<Point, double> power_diagram_edges(
+  RT const &rt,
+  double threshold)
+{
+  Mesh<Point, double> mesh;
+  <<pd-dual-vertex>>
+
+  for (auto f = rt.finite_facets_begin();
+       f != rt.finite_facets_end();
+       ++f)
+  {
+    if (!is_big_facet(rt, *f, threshold)) {
+      continue;
+    }
+
+    double area = sqrt(rt.triangle(*f).squared_area());
+    auto mirror = rt.mirror_facet(*f);
+
+    if (rt.is_infinite(f->first) || rt.is_infinite(mirror.first)) {
+      continue;
+    }
+
+    unsigned i = get_dual_vertex(f->first),
+             j = get_dual_vertex(mirror.first);
+    mesh.polygons.emplace_back(std::vector<unsigned>{i, j}, area);
+  }
+
+  return mesh;
+}
+```
+
+``` {.cpp #pd-is-big-facet}
+bool is_big_facet(RT const &rt, RT::Facet const &f, bool threshold)
+{
+  RT::Cell_handle c = f.first;
+  unsigned        k = f.second;
+
+  for (unsigned i = 0; i < 4; ++i) {
+    if (i == k) {
+      continue;
+    }
+
+    for (unsigned j = 0; j < i; ++j) {
+      if (j == k) {
+        continue;
+      }
+
+      if (rt.segment(c, i, j).squared_length() < threshold) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+```
+
 ### Retrieving the walls
 
 We think it is important to make the step from abstract mathematics to physical model explicit. The implementation of the `get_walls` method is now trivial though.
@@ -677,6 +838,12 @@ Mesh<Point, double> Adhesion::get_walls(
     double threshold) const
 {
   return power_diagram_faces(rt, threshold);
+}
+
+Mesh<Point, double> Adhesion::get_filaments(
+    double threshold) const
+{
+  return power_diagram_edges(rt, threshold);
 }
 ```
 
@@ -709,7 +876,8 @@ run:
 output:
   hdf5:            output/lcdm.h5
   walls:           output/lcdm-{time:02.1f}-walls.obj
-  wall-threshold:  10.0
+  filaments:       output/lcdm-{time:02.1f}-filaments.obj
+  threshold:       10.0
 ```
 
 ## Run function
@@ -786,8 +954,9 @@ switch (time_cfg.Type()) {
   default: throw std::runtime_error("No time given.");
 }
 
-double threshold = config["output"]["wall-threshold"].as<double>(0.0);
+double threshold = config["output"]["threshold"].as<double>(0.0);
 std::string walls_filename = config["output"]["walls"].as<std::string>();
+std::string filaments_filename = config["output"]["filaments"].as<std::string>();
 Sphere<K> sphere(Point(box.L/2, box.L/2, box.L/2), 0.4 * box.L);
 
 for (double t : time) {
@@ -795,8 +964,21 @@ for (double t : time) {
   std::cerr << "time: " << t << " \n";
   Adhesion adhesion(box, *field, t);
 
+  <<run-write-nodes>>
   <<run-write-obj>>
 }
+```
+
+### Write nodes
+
+``` {.cpp #run-write-nodes}
+auto nodes = adhesion.get_nodes(threshold);
+hsize_t dim = nodes.size();
+H5::DataSpace dataspace(1, &dim);
+auto datatype = Adhesion::Node::h5_type();
+std::string name = fmt::format("nodes-{:2.1f}", t);
+H5::DataSet node_dataset = file.createDataSet(name, datatype, dataspace);
+node_dataset.write(nodes.data(), datatype);
 ```
 
 ### Write a sphere to OBJ
@@ -806,7 +988,16 @@ auto walls = adhesion.get_walls(threshold);
 std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.polygons.size() << " polygons.\n";
 std::string filename = fmt::format(walls_filename, fmt::arg("time", t));
 std::cerr << "writing to " << filename << "\n";
-write_selection_to_obj(filename, walls, sphere);
+write_selected_faces_to_obj(filename, walls, sphere);
+```
+
+``` {.cpp #run-write-obj}
+auto filaments = adhesion.get_filaments(threshold);
+std::cerr << "Filaments: " << filaments.vertices.size() << " vertices and " << filaments.polygons.size() << " polygons.\n";
+filename = fmt::format(filaments_filename, fmt::arg("time", t));
+std::cerr << "writing to " << filename << "\n";
+// std::ofstream ff(filename);
+write_selected_edges_to_obj(filename, filaments, sphere);
 ```
 
 ## Main function
@@ -925,6 +1116,29 @@ using PolygonPair = std::tuple<
 <<mesh-definition>>
 ```
 
+## Saving to HDF5
+
+``` {.cpp file=src/adhesion_node_h5_type.cc}
+#include "adhesion.hh"
+#include <cstddef>
+
+H5::CompType Adhesion::Node::h5_type()
+{
+  hsize_t dim = 3;
+
+  H5::FloatType ft(H5::PredType::NATIVE_DOUBLE);
+  H5::IntType   it(H5::PredType::NATIVE_UINT32);
+  H5::ArrayType at(ft, 1, &dim);
+  H5::CompType  ct(sizeof(Adhesion::Node));
+
+  ct.insertMember("position",  0, at);
+  ct.insertMember("velocity",  offsetof(Adhesion::Node, velocity), at);
+  ct.insertMember("mass",      offsetof(Adhesion::Node, mass), ft);
+  ct.insertMember("node_type", offsetof(Adhesion::Node, node_type), it);
+  return ct;
+}
+```
+
 ## Cutting polygons
 
 ``` {.cpp file=src/split_polygon.hh}
@@ -932,6 +1146,46 @@ using PolygonPair = std::tuple<
 
 #include "mesh.hh"
 #include <algorithm>
+
+template <typename Point, typename Surface>
+PolygonPair<Point> split_edge(
+    Polygon<Point> const &polygon,
+    Surface const &surface)
+{
+  std::vector<Point> *vertices = std::get<0>(polygon);
+  auto is_below = [&vertices, &surface] (unsigned i) -> bool {
+    return (surface.oriented_side((*vertices)[i]) == -1);
+  };
+
+  std::vector<unsigned> orig = std::get<1>(polygon), r1, r2;
+  bool below_0 = is_below(orig[0]);
+  bool below_1 = is_below(orig[1]);
+
+  if (below_0 && below_1) {
+    return PolygonPair<Point>(vertices, orig, r2);
+  }
+
+  if (!below_0 && !below_1) {
+    return PolygonPair<Point>(vertices, r1, orig);
+  }
+
+  auto p = surface.intersect((*vertices)[0], (*vertices)[1]);
+  if (!p) {
+    return PolygonPair<Point>(vertices, r1, r2);
+  }
+
+  r1.push_back(orig[0]);
+  r1.push_back(vertices->size());
+  r2.push_back(vertices->size());
+  r2.push_back(orig[1]);
+  vertices->push_back(*p);
+
+  if (below_0) {
+    return PolygonPair<Point>(vertices, r1, r2);
+  }
+
+  return PolygonPair<Point>(vertices, r2, r1);
+}
 
 template <typename Point, typename Surface>
 PolygonPair<Point> split_polygon(
@@ -1020,7 +1274,7 @@ public:
     double m_sqr = m.squared_length(),
            n_sqr = n.squared_length(),
            mn    = m*n;
-  
+
     double D = mn*mn - (m_sqr * (n_sqr - radius_squared));
 
     if (D < 0)
@@ -1040,6 +1294,10 @@ public:
 };
 ```
 
+### Writing a VTK file
+
+There is [an example code](https://lorensen.github.io/VTKExamples/site/Cxx/IO/WriteVTP/) explaining how to write VTK geometry files.
+
 ### Writing an OBJ file {#obj-file-format}
 
 ``` {.cpp file=src/write_obj.hh}
@@ -1049,31 +1307,45 @@ public:
 #include "mesh.hh"
 
 template <typename Point>
-void write_obj(std::ostream &out, Mesh<Point, double> const &mesh)
+void write_edges_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
 {
   for (Point const &p : mesh.vertices) {
     out << "v " << p << " 1.0\n";
   }
   out << "\n";
 
-  std::vector<double> val;
-  double min = 1e6, max = 0.0;
-  for (auto const &p : mesh.polygons) {
-    double a = p.info();
-    if (a < min) min = a;
-    if (a > max) max = a;
-  }
-
   unsigned i = 0;
   for (auto const &p : mesh.polygons) {
     double a = p.info();
-    // out << "vt " << (a - min)/(max - min) << " 0\n";
     out << "vt " << a << " 0\n";
     ++i;
   }
   out << "\n";
 
   i = 1;
+  for (auto const &p : mesh.polygons) {
+    out << "l";
+    for (unsigned j : p)
+        out << " " << j+1 << "/" << i;
+    out << "\n";
+    ++i;
+  }
+}
+
+template <typename Point>
+void write_faces_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
+{
+  for (Point const &p : mesh.vertices) {
+    out << "v " << p << " 1.0\n";
+  }
+  out << "\n";
+
+  for (auto const &p : mesh.polygons) {
+    out << "vt " << p.info() << " 0\n";
+  }
+  out << "\n";
+
+  unsigned i = 1;
   for (auto const &p : mesh.polygons) {
     out << "f";
     for (unsigned j : p)
@@ -1128,7 +1400,7 @@ Mesh<Point, Info> clean(
 #include "split_polygon.hh"
 
 template <typename Point, typename Surface, typename Info>
-Mesh<Point, Info> select_mesh(
+Mesh<Point, Info> select_edges(
     Mesh<Point, Info> const &mesh,
     Surface const &surface)
 {
@@ -1137,30 +1409,68 @@ Mesh<Point, Info> select_mesh(
 
   for (auto const &v : mesh.polygons)
   {
-      Info info  = v.info();
-      std::vector<unsigned> polygon_data(v);
+    Info info  = v.info();
+    std::vector<unsigned> polygon_data(v);
 
-      auto below = std::get<1>(split_polygon(
-        Polygon<Point>(&result.vertices, polygon_data),
-        surface));
+    auto below = std::get<1>(split_edge(
+      Polygon<Point>(&result.vertices, polygon_data),
+      surface));
 
-      if (below.size() > 0) {
-        result.polygons.emplace_back(below, info);
-      }
+    if (below.size() > 0) {
+      result.polygons.emplace_back(below, info);
+    }
   }
-  
+
+  return clean(result);
+}
+
+template <typename Point, typename Surface, typename Info>
+Mesh<Point, Info> select_mesh(
+    Mesh<Point, Info> const &mesh,
+    Surface const &surface,
+    bool closed=true)
+{
+  Mesh<Point, Info> result;
+  result.vertices = mesh.vertices;
+
+  for (auto const &v : mesh.polygons)
+  {
+    Info info  = v.info();
+    std::vector<unsigned> polygon_data(v);
+
+    auto below = std::get<1>(split_polygon(
+      Polygon<Point>(&result.vertices, polygon_data),
+      surface, closed));
+
+    if (below.size() > 0) {
+      result.polygons.emplace_back(below, info);
+    }
+  }
+
   return clean(result);
 }
 
 template <typename Surface>
-void write_selection_to_obj(
+void write_selected_edges_to_obj(
     std::string const &filename,
     Mesh<Point, double> const &mesh,
     Surface const &selector)
 {
   std::cerr << "writing output to: " << filename << "\n";
   std::ofstream fo(filename);
-  write_obj(fo, select_mesh(mesh, selector));
+  write_edges_to_obj(fo, select_edges(mesh, selector));
+  fo.close();
+}
+
+template <typename Surface>
+void write_selected_faces_to_obj(
+    std::string const &filename,
+    Mesh<Point, double> const &mesh,
+    Surface const &selector)
+{
+  std::cerr << "writing output to: " << filename << "\n";
+  std::ofstream fo(filename);
+  write_faces_to_obj(fo, select_mesh(mesh, selector));
   fo.close();
 }
 ```
