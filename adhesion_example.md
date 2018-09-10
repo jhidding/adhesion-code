@@ -678,10 +678,10 @@ The `Mesh` structure contains a vector of points `vertices` and a vector of vect
 template <typename Point, typename Info>
 struct Mesh
 {
-  using PolygonData = Decorated<std::vector<unsigned>, Info>;
-
-  std::vector<Point> vertices;
-  std::vector<PolygonData> polygons;
+  std::vector<Point>    vertices;
+  std::vector<unsigned> data;
+  std::vector<unsigned> sizes;
+  std::vector<Info>     info;
 };
 ```
 
@@ -754,7 +754,9 @@ Mesh<Point, double> power_diagram_faces(
     <<pd-incident-faces>>
 
     if (ok) {
-      mesh.polygons.emplace_back(vs, sqrt(l));
+      mesh.data.insert(mesh.data.end(), vs.begin(), vs.end());
+      mesh.info.push_back(sqrt(l));
+      mesh.sizes.push_back(vs.size());
     }
   }
 
@@ -793,7 +795,11 @@ Mesh<Point, double> power_diagram_edges(
 
     unsigned i = get_dual_vertex(f->first),
              j = get_dual_vertex(mirror.first);
-    mesh.polygons.emplace_back(std::vector<unsigned>{i, j}, area);
+
+    mesh.data.push_back(i);
+    mesh.data.push_back(j);
+    mesh.sizes.push_back(2);
+    mesh.info.push_back(area);
   }
 
   return mesh;
@@ -900,6 +906,7 @@ extern void run(YAML::Node const &config);
 #include "adhesion.hh"
 #include "sphere.hh"
 #include "write_selection_to_obj.hh"
+#include "writers.hh"
 
 void run(YAML::Node const &config)
 {
@@ -1116,7 +1123,26 @@ using PolygonPair = std::tuple<
 <<mesh-definition>>
 ```
 
-## Saving to HDF5
+## Writing to disk
+
+### Interface
+
+``` {.cpp file=src/writers.hh}
+#pragma once
+#include "cgal_base.hh"
+#include "mesh.hh"
+
+extern void write_faces(H5::File &file, Mesh<Point, double> mesh)
+{
+  H5::DataSpace dataspace(1, &dim);
+auto datatype = Adhesion::Node::h5_type();
+std::string name = fmt::format("nodes-{:2.1f}", t);
+H5::DataSet node_dataset = file.createDataSet(name, datatype, dataspace);
+node_dataset.write(nodes.data(), datatype);
+}
+```
+
+### Saving to HDF5
 
 ``` {.cpp file=src/adhesion_node_h5_type.cc}
 #include "adhesion.hh"
@@ -1136,6 +1162,55 @@ H5::CompType Adhesion::Node::h5_type()
   ct.insertMember("mass",      offsetof(Adhesion::Node, mass), ft);
   ct.insertMember("node_type", offsetof(Adhesion::Node, node_type), it);
   return ct;
+}
+```
+
+### Writing an OBJ file {#obj-file-format}
+
+``` {.cpp file=src/write_obj.hh}
+#pragma once
+#include <iostream>
+
+#include "mesh.hh"
+
+template <typename Point>
+void write_to_obj(
+    std::ostream &out, std::string const &pre,
+    Mesh<Point, double> const &mesh)
+{
+  for (Point const &p : mesh.vertices) {
+    out << "v " << p << " 1.0\n";
+  }
+  out << "\n";
+
+  for (double a : mesh.info) {
+    out << "vt " << a << " 0\n";
+  }
+  out << "\n";
+
+  unsigned i = 1, j = 0;
+  for (unsigned s : mesh.sizes) {
+    out << pre;
+    for (unsigned k = 0; k < s; ++k, ++j) {
+        out << " " << mesh.data[j] << "/" << i;
+    }
+    out << "\n";
+    ++i;
+  }
+}
+
+template <typename Point>
+void write_edges_to_obj(
+    std::ostream &out,
+    Mesh<Point, double> const &mesh)
+{
+  write_to_obj(out, "l", mesh);
+}
+
+template <typename Point>
+void write_faces_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
+{
+  write_to_obj(out, "f", mesh);
 }
 ```
 
@@ -1294,68 +1369,6 @@ public:
 };
 ```
 
-### Writing a VTK file
-
-There is [an example code](https://lorensen.github.io/VTKExamples/site/Cxx/IO/WriteVTP/) explaining how to write VTK geometry files.
-
-### Writing an OBJ file {#obj-file-format}
-
-``` {.cpp file=src/write_obj.hh}
-#pragma once
-#include <iostream>
-
-#include "mesh.hh"
-
-template <typename Point>
-void write_edges_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
-{
-  for (Point const &p : mesh.vertices) {
-    out << "v " << p << " 1.0\n";
-  }
-  out << "\n";
-
-  unsigned i = 0;
-  for (auto const &p : mesh.polygons) {
-    double a = p.info();
-    out << "vt " << a << " 0\n";
-    ++i;
-  }
-  out << "\n";
-
-  i = 1;
-  for (auto const &p : mesh.polygons) {
-    out << "l";
-    for (unsigned j : p)
-        out << " " << j+1 << "/" << i;
-    out << "\n";
-    ++i;
-  }
-}
-
-template <typename Point>
-void write_faces_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
-{
-  for (Point const &p : mesh.vertices) {
-    out << "v " << p << " 1.0\n";
-  }
-  out << "\n";
-
-  for (auto const &p : mesh.polygons) {
-    out << "vt " << p.info() << " 0\n";
-  }
-  out << "\n";
-
-  unsigned i = 1;
-  for (auto const &p : mesh.polygons) {
-    out << "f";
-    for (unsigned j : p)
-        out << " " << j+1 << "/" << i;
-    out << "\n";
-    ++i;
-  }
-}
-```
-
 ### Clean mesh
 
 ``` {.cpp file=src/clean_mesh.hh}
@@ -1369,20 +1382,17 @@ Mesh<Point, Info> clean(
   Mesh<Point, Info> result;
   std::map<unsigned, unsigned> vertex_map;
 
-  for (auto const &v : source.polygons)
-  {
-    result.polygons.emplace_back(v.info());
-
-    for (unsigned i : v) {
-      if (vertex_map.count(i) == 0) {
-        vertex_map[i] = result.vertices.size();
-        result.vertices.push_back(source.vertices[i]);
-      }
-
-      result.polygons.back().push_back(vertex_map[i]);
+  for (unsigned i : source.data) {
+    if (vertex_map.count(i) == 0) {
+      vertex_map[i] = result.vertices.size();
+      result.vertices.push_back(source.vertices[i]);
     }
+
+    result.data.push_back(vertex_map[i]);
   }
 
+  result.info = source.info;
+  result.sizes = source.sizes;
   return result;
 }
 ```
