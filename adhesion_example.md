@@ -682,6 +682,8 @@ struct Mesh
   std::vector<unsigned> data;
   std::vector<unsigned> sizes;
   std::vector<Info>     info;
+
+  <<mesh-methods>>
 };
 ```
 
@@ -737,6 +739,8 @@ Collecting these steps, the rest of the implementation of `power_diagram_faces` 
 
 ``` {.cpp file=src/power_diagram.cc}
 #include "power_diagram.hh"
+#include <algorithm>
+#include <iterator>
 
 Mesh<Point, double> power_diagram_faces(
   RT const &rt,
@@ -754,7 +758,8 @@ Mesh<Point, double> power_diagram_faces(
     <<pd-incident-faces>>
 
     if (ok) {
-      mesh.data.insert(mesh.data.end(), vs.begin(), vs.end());
+      std::copy(vs.begin(), vs.end(), std::back_inserter(mesh.data));
+      // mesh.data.insert(mesh.data.end(), vs.begin(), vs.end());
       mesh.info.push_back(sqrt(l));
       mesh.sizes.push_back(vs.size());
     }
@@ -992,15 +997,17 @@ node_dataset.write(nodes.data(), datatype);
 
 ``` {.cpp #run-write-obj}
 auto walls = adhesion.get_walls(threshold);
-std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.polygons.size() << " polygons.\n";
+std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.size() << " polygons.\n";
 std::string filename = fmt::format(walls_filename, fmt::arg("time", t));
 std::cerr << "writing to " << filename << "\n";
+// std::ofstream ff(filename);
 write_selected_faces_to_obj(filename, walls, sphere);
+// write_faces_to_obj(ff, walls);
 ```
 
 ``` {.cpp #run-write-obj}
 auto filaments = adhesion.get_filaments(threshold);
-std::cerr << "Filaments: " << filaments.vertices.size() << " vertices and " << filaments.polygons.size() << " polygons.\n";
+std::cerr << "Filaments: " << filaments.vertices.size() << " vertices and " << filaments.size() << " polygons.\n";
 filename = fmt::format(filaments_filename, fmt::arg("time", t));
 std::cerr << "writing to " << filename << "\n";
 // std::ofstream ff(filename);
@@ -1123,6 +1130,10 @@ using PolygonPair = std::tuple<
 <<mesh-definition>>
 ```
 
+``` {.cpp #mesh-methods}
+size_t size() const { return sizes.size(); }
+```
+
 ## Writing to disk
 
 ### Interface
@@ -1131,15 +1142,16 @@ using PolygonPair = std::tuple<
 #pragma once
 #include "cgal_base.hh"
 #include "mesh.hh"
+#include <H5Cpp.h>
 
-extern void write_faces(H5::File &file, Mesh<Point, double> mesh)
-{
+extern void write_faces(H5::H5File &file, Mesh<Point, double> const &mesh);
+/*{
   H5::DataSpace dataspace(1, &dim);
 auto datatype = Adhesion::Node::h5_type();
 std::string name = fmt::format("nodes-{:2.1f}", t);
 H5::DataSet node_dataset = file.createDataSet(name, datatype, dataspace);
 node_dataset.write(nodes.data(), datatype);
-}
+}*/
 ```
 
 ### Saving to HDF5
@@ -1191,8 +1203,9 @@ void write_to_obj(
   unsigned i = 1, j = 0;
   for (unsigned s : mesh.sizes) {
     out << pre;
-    for (unsigned k = 0; k < s; ++k, ++j) {
-        out << " " << mesh.data[j] << "/" << i;
+    for (unsigned k = 0; k < s; ++k) {
+      out << " " << mesh.data[j] + 1 << "/" << i;
+      ++j;
     }
     out << "\n";
     ++i;
@@ -1417,17 +1430,19 @@ Mesh<Point, Info> select_edges(
   Mesh<Point, Info> result;
   result.vertices = mesh.vertices;
 
-  for (auto const &v : mesh.polygons)
+  auto k = mesh.data.begin();
+  for (unsigned i = 0; i < mesh.size(); k+=mesh.sizes[i], ++i)
   {
-    Info info  = v.info();
-    std::vector<unsigned> polygon_data(v);
+    std::vector<unsigned> vs(k, k + mesh.sizes[i]);
 
     auto below = std::get<1>(split_edge(
-      Polygon<Point>(&result.vertices, polygon_data),
+      Polygon<Point>(&result.vertices, vs),
       surface));
 
     if (below.size() > 0) {
-      result.polygons.emplace_back(below, info);
+      result.data.insert(result.data.end(), below.begin(), below.end());
+      result.info.push_back(mesh.info[i]);
+      result.sizes.push_back(below.size());
     }
   }
 
@@ -1443,17 +1458,19 @@ Mesh<Point, Info> select_mesh(
   Mesh<Point, Info> result;
   result.vertices = mesh.vertices;
 
-  for (auto const &v : mesh.polygons)
+  auto k = mesh.data.begin();
+  for (unsigned i = 0; i < mesh.size(); k+=mesh.sizes[i], ++i)
   {
-    Info info  = v.info();
-    std::vector<unsigned> polygon_data(v);
+    std::vector<unsigned> vs(k, k + mesh.sizes[i]);
 
     auto below = std::get<1>(split_polygon(
-      Polygon<Point>(&result.vertices, polygon_data),
-      surface, closed));
+      Polygon<Point>(&result.vertices, vs),
+      surface));
 
     if (below.size() > 0) {
-      result.polygons.emplace_back(below, info);
+      result.data.insert(result.data.end(), below.begin(), below.end());
+      result.info.push_back(mesh.info[i]);
+      result.sizes.push_back(below.size());
     }
   }
 
