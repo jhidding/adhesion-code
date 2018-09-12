@@ -31,6 +31,7 @@ If you are only interested only in the CGAL parts, it should be safe to skip the
 ## Prerequisites
 
 - C++ 17 compiler
+- GNU Make
 - CGAL 4.12 - The Computational Geometry Algorithm Library
 - XTensor 0.17 - A template library for handling array data in C++
 - FFTW3 3.3 - The Fastest Fourier Transform in the West
