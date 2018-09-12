@@ -47,16 +47,18 @@ Some components of this package are bleeding edge. There is a `Dockerfile` in th
 
 ### Prerequisites
 
-- C++ 17 compiler, tested with GCC 8.
-- GNU Make
-- CGAL ≥4.12 - The Computational Geometry Algorithm Library
-- XTensor ≥0.17 - A template library for handling array data in C++
-- FFTW3 ≥3.3 - The Fastest Fourier Transform in the West
-- hdf5-cpp ≥1.8.13 - [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data.
-- yaml-cpp ≥0.5 - [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files.
-- argagg ≥0.4.6 - [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser.
-- fmt ≥4.1 - [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's.
-- Pandoc ≥2.2.3 - [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.3 or higher and the `pandoc-citeproc` extension.
+| Package  | version | description |
+|----------|---------|-------------|
+| C++ compiler | C++17 standard | Tested with GCC 8. |
+| GNU Make | - | - |
+| CGAL     | ≥4.12   | [The Computational Geometry Algorithm Library](http://cgal.org) |
+| XTensor  | ≥0.17   | [XTensor](http://quantstack.net/xtensor) is a template library for handling array data in C++. |
+| FFTW3    | ≥3.3    | [The Fastest Fourier Transform in the West](http://www.fftw.org/) |
+| hdf5-cpp | ≥1.8.13 | [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data. |
+| yaml-cpp | ≥0.5    | [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files. |
+| argagg   | ≥0.4.6  | [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser. |
+| fmt      | ≥4.1    | [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's. |
+| Pandoc   | ≥2.2.3  | [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.3 or higher and the `pandoc-citeproc` extension. |
 
 These requirements are available in Debian testing, except for XTensor, which you need to install manually from [the XTensor github page](https://github.com/quantstack/xtensor).
 
@@ -64,7 +66,7 @@ These requirements are available in Debian testing, except for XTensor, which yo
 
 To create the PDF version of the report, `xelatex` and a good many fonts are needed.
 
-### Running on Debian
+### Running on Debian (testing)
 
 (as root) Get the following packages
 
