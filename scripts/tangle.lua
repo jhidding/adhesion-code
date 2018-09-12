@@ -39,6 +39,7 @@ cd "${target_dir}"
 
 echo -e "\nSyncronising source files ..."
 rsync -vrcup ${tangle_dir}/* .
+sync
 rm -rf ${tangle_dir}
 ]]
 
