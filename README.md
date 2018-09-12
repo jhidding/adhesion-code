@@ -9,7 +9,7 @@ This example is written in a style of *literate programming* [@Knuth1984]. This 
 Inside source fragments you may encounter a line with `<<...>>` marks like,
 
 *file: «examples/hello_world.cc»=*
-``` {.cpp file=examples/hello_world.cc}
+```cpp
 #include <cstdlib>
 #include <iostream>
 
@@ -19,14 +19,14 @@ Inside source fragments you may encounter a line with `<<...>>` marks like,
 which is then elsewhere specified. Order doesn't matter,
 
 *«hello-world»=*
-``` {.cpp #hello-world}
+```cpp
 std::cout << "Hello, World!" << std::endl;
 ```
 
 So we can reference the `<<hello-world>>` code block later on.
 
 *«example-main-function»=*
-``` {.cpp #example-main-function}
+```cpp
 int main(int argc, char **argv) {
   <<hello-world>>
 }
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
 A definition can be appended with more code as follows (in this case, order does matter!):
 
 *«hello-world»+*
-``` {.cpp #hello-world}
+```cpp
 return EXIT_SUCCESS;
 ```
 
