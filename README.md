@@ -2,13 +2,13 @@
 
 We present a (relatively) small example of using the CGAL library to run the adhesion model. The adhesion model is a model of cosmic structure formation. It computes the shape of emerging structures in the cosmic web straight from an initial potential.
 
-<figure class="video_container">
-  <video controls="true" allowfullscreen="false" poster="figures/orbit.png">
-    <source src="figures/orbit.mp4" type="video/mp4">
-    <!-- <source src="path/to/video.ogg" type="video/ogg">
-    <source src="path/to/video.webm" type="video/webm"> -->
-  </video>
-</figure>
+<!--<figure class="video_container">-->
+<video controls="true" allowfullscreen="false" poster="figures/orbit.png">
+<source src="figures/orbit.mp4" type="video/mp4">
+<!-- <source src="path/to/video.ogg" type="video/ogg">
+<source src="path/to/video.webm" type="video/webm"> -->
+</video>
+<!--</figure>-->
 
 ## Literate programming
 
