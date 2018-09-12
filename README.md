@@ -58,7 +58,7 @@ Some components of this package are bleeding edge. There is a `Dockerfile` in th
 - fmt ≥4.1 - [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's.
 - Pandoc ≥2.2.3 - [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.3 or higher and the `pandoc-citeproc` extension.
 
-These requirements are available in Debian testing, except for XTensor, which you need to install manually from (the XTensor github page)[https://github.com/quantstack/xtensor].
+These requirements are available in Debian testing, except for XTensor, which you need to install manually from [the XTensor github page](https://github.com/quantstack/xtensor).
 
 ### LaTeX
 
