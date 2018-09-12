@@ -80,7 +80,6 @@ return EXIT_SUCCESS;
 
 These blocks of code can be *tangled* into source files. The source code presented in this report combine into a fully working example of the adhesion model!
 
-
 \pagebreak
 
 # Introduction to CGAL
@@ -476,8 +475,6 @@ struct Node {
   std::array<double, 3> velocity;
   double    mass;
   NodeType  node_type;
-
-  static H5::CompType h5_type();
 };
 ```
 
@@ -653,7 +650,7 @@ Adhesion::get_nodes(double threshold) const
 }
 ```
 
-## Getting the power diagram
+## The power diagram
 
 The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges.
 
@@ -672,6 +669,8 @@ extern Mesh<Point, double> power_diagram_edges(
   RT const &rt, double threshold);
 ```
 
+### The `Mesh` data structure
+
 The `Mesh` structure contains a vector of points `vertices` and a vector of vector of unsigned integers `polygons` indexing into the `vertices` vector. We have decorated each polygon in the `polygons` vector with a value of type `double` to give the surface density of that polygon, hence `Mesh<Point, double>`.
 
 ``` {.cpp #mesh-definition}
@@ -689,17 +688,33 @@ struct Mesh
 
 The `Mesh` structure and `Decorated` helper class are defined in the `mesh.hh` header file.
 
-The implementation of `power_diagram_faces` loops over all edges in the regular triangulation. We then check if the squared length of the edge `e` is larger than the given threshold:
+### Obtaining duals
 
-``` {.cpp #pd-check-threshold}
-double l = rt.segment(*e).squared_length();
-if (l < threshold) continue;
+The implementation of `power_diagram_faces` loops over all edges in the regular triangulation.
+
+``` {.cpp #pd-walls-loop}
+for (auto e = rt.finite_edges_begin();
+      e != rt.finite_edges_end();
+      ++e)
+{
+  <<pd-edge-check>>
+  <<pd-collect-dual>>
+  <<pd-add-to-mesh>>
+}
+```
+
+In each iteration, we check if the edge is significant.
+
+``` {.cpp #pd-edge-check}
+if (is_big_edge(rt, *e, threshold)) {
+  continue;
+}
 ```
 
 Next we extract the power diagram vertices of the wall by looping over all *incident cells* of the edge. We need to take care not to include the infinite cell that represents everything outside the triangulation. Because the iteration of the incident cells is circular we cannot use a normal for-loop.
 
-``` {.cpp #pd-incident-faces}
-std::vector<unsigned> vs;
+``` {.cpp #pd-collect-dual}
+std::vector<unsigned> polygon;
 auto first = rt.incident_cells(*e), c = first;
 bool ok = true;
 
@@ -709,11 +724,20 @@ do {
       break;
   }
 
-  vs.push_back(get_dual_vertex(c));
+  polygon.push_back(get_dual_vertex(c));
 } while (c != first);
 ```
 
-### Dual vertex
+When all dual vertices have been added to the mesh (and the infinite cell was not encountered) we can add the resulting polygon to the mesh.
+
+``` {.cpp #pd-add-to-mesh}
+if (ok) {
+  double l = sqrt(rt.segment(*e).squared_length());
+  mesh.push_back(polygon, l);
+}
+```
+
+#### Dual vertex
 
 Every cell in the regular triangulation is associated with a vertex in the power diagram. We write a small helper function that obtains this dual vertex and caches it in a map.
 
@@ -733,45 +757,71 @@ auto get_dual_vertex = [&rt, &cell_index, &mesh] (
 };
 ```
 
-### Main loop (walls)
+### Testing significance
+
+We do not want to get the dual of all edges in the regular triangulation. Only those edges that exceed a given length are 'physical' objects. We check if the squared length of the edge `e` is larger than the given threshold:
+
+``` {.cpp #pd-is-big-edge}
+inline bool is_big_edge(RT const &rt, RT::Edge const &e, double threshold)
+{
+  double l = rt.segment(e).squared_length();
+  return l < threshold;
+}
+```
+
+For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex.
+
+``` {.cpp #pd-is-big-facet}
+inline bool is_big_facet(RT const &rt, RT::Facet const &f, double threshold)
+{
+  RT::Cell_handle c = f.first;
+  unsigned        k = f.second;
+
+  for (unsigned i = 0; i < 4; ++i) {
+    if (i == k) {
+      continue;
+    }
+
+    for (unsigned j = 0; j < i; ++j) {
+      if (j == k) {
+        continue;
+      }
+
+      if (rt.segment(c, i, j).squared_length() < threshold) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+```
+
+### Function body (walls)
 
 Collecting these steps, the rest of the implementation of `power_diagram_faces` is as follows:
 
-``` {.cpp file=src/power_diagram.cc}
+``` {.cpp file=src/power_diagram/faces.cc}
 #include "power_diagram.hh"
-#include <algorithm>
-#include <iterator>
+
+<<pd-is-big-edge>>
 
 Mesh<Point, double> power_diagram_faces(
   RT const &rt,
   double threshold)
 {
   Mesh<Point, double> mesh;
-
   <<pd-dual-vertex>>
-
-  for (auto e = rt.finite_edges_begin();
-       e != rt.finite_edges_end();
-       ++e)
-  {
-    <<pd-check-threshold>>
-    <<pd-incident-faces>>
-
-    if (ok) {
-      std::copy(vs.begin(), vs.end(), std::back_inserter(mesh.data));
-      // mesh.data.insert(mesh.data.end(), vs.begin(), vs.end());
-      mesh.info.push_back(sqrt(l));
-      mesh.sizes.push_back(vs.size());
-    }
-  }
-
+  <<pd-walls-loop>>
   return mesh;
 }
 ```
 
-### Main loop (filaments)
+### Filaments
 
-``` {.cpp file=src/power_diagram_edges.cc}
+The implementation for the filaments is very similar. In the case of a facet in the regular triangulation, we only need to compute the dual of the two co-faces of the facet. Again, in CGAL the facet is represented as one of the two co-faces and the vertex opposite the facet. This means there are two 'mirror' representations of the same facet. To get the other co-facet we can query the triangulation for the mirror facet.
+
+``` {.cpp file=src/power_diagram/edges.cc}
 #include "power_diagram.hh"
 
 <<pd-is-big-facet>>
@@ -798,42 +848,13 @@ Mesh<Point, double> power_diagram_edges(
       continue;
     }
 
-    unsigned i = get_dual_vertex(f->first),
-             j = get_dual_vertex(mirror.first);
-
-    mesh.data.push_back(i);
-    mesh.data.push_back(j);
-    mesh.sizes.push_back(2);
-    mesh.info.push_back(area);
+    std::vector<unsigned> polygon;
+    polygon.push_back(get_dual_vertex(f->first));
+    polygon.push_back(get_dual_vertex(mirror.first));
+    mesh.push_back(polygon, area);
   }
 
   return mesh;
-}
-```
-
-``` {.cpp #pd-is-big-facet}
-bool is_big_facet(RT const &rt, RT::Facet const &f, bool threshold)
-{
-  RT::Cell_handle c = f.first;
-  unsigned        k = f.second;
-
-  for (unsigned i = 0; i < 4; ++i) {
-    if (i == k) {
-      continue;
-    }
-
-    for (unsigned j = 0; j < i; ++j) {
-      if (j == k) {
-        continue;
-      }
-
-      if (rt.segment(c, i, j).squared_length() < threshold) {
-        return false;
-      }
-    }
-  }
-
-  return true;
 }
 ```
 
@@ -903,6 +924,7 @@ extern void run(YAML::Node const &config);
 
 ``` {.cpp file=src/run.cc}
 #include <iostream>
+#include <fstream>
 #include <exception>
 #include <H5Cpp.h>
 
@@ -910,8 +932,8 @@ extern void run(YAML::Node const &config);
 #include "initial_conditions.hh"
 #include "adhesion.hh"
 #include "sphere.hh"
-#include "write_selection_to_obj.hh"
 #include "writers.hh"
+#include "write_obj.hh"
 
 void run(YAML::Node const &config)
 {
@@ -971,13 +993,20 @@ std::string walls_filename = config["output"]["walls"].as<std::string>();
 std::string filaments_filename = config["output"]["filaments"].as<std::string>();
 Sphere<K> sphere(Point(box.L/2, box.L/2, box.L/2), 0.4 * box.L);
 
+unsigned iteration = 0;
 for (double t : time) {
   std::cerr << "Computing regular triangulation ...\n";
   std::cerr << "time: " << t << " \n";
   Adhesion adhesion(box, *field, t);
+  auto h5_group = file.createGroup(fmt::format("{}", iteration));
+  auto time_attr = h5_group.createAttribute(
+    "time", H5TypeFactory<double>::get(), H5::DataSpace());
+  time_attr.write(H5TypeFactory<double>::get(), &t);
 
   <<run-write-nodes>>
   <<run-write-obj>>
+
+  ++iteration;
 }
 ```
 
@@ -985,33 +1014,37 @@ for (double t : time) {
 
 ``` {.cpp #run-write-nodes}
 auto nodes = adhesion.get_nodes(threshold);
-hsize_t dim = nodes.size();
-H5::DataSpace dataspace(1, &dim);
-auto datatype = Adhesion::Node::h5_type();
-std::string name = fmt::format("nodes-{:2.1f}", t);
-H5::DataSet node_dataset = file.createDataSet(name, datatype, dataspace);
-node_dataset.write(nodes.data(), datatype);
+write_vector(h5_group, "nodes", nodes);
 ```
 
 ### Write a sphere to OBJ
 
 ``` {.cpp #run-write-obj}
-auto walls = adhesion.get_walls(threshold);
-std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.size() << " polygons.\n";
-std::string filename = fmt::format(walls_filename, fmt::arg("time", t));
-std::cerr << "writing to " << filename << "\n";
-// std::ofstream ff(filename);
-write_selected_faces_to_obj(filename, walls, sphere);
-// write_faces_to_obj(ff, walls);
+{
+  auto walls = adhesion.get_walls(threshold);
+  std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.size() << " polygons.\n";
+  std::string filename = fmt::format(walls_filename, fmt::arg("time", t));
+  std::cerr << "writing to " << filename << "\n";
+
+  std::ofstream ff(filename);
+  auto selected_faces = select_mesh(walls, sphere);
+  write_faces_to_obj(ff, selected_faces);
+  write_mesh(h5_group, "faces", selected_faces);
+}
 ```
 
 ``` {.cpp #run-write-obj}
-auto filaments = adhesion.get_filaments(threshold);
-std::cerr << "Filaments: " << filaments.vertices.size() << " vertices and " << filaments.size() << " polygons.\n";
-filename = fmt::format(filaments_filename, fmt::arg("time", t));
-std::cerr << "writing to " << filename << "\n";
-// std::ofstream ff(filename);
-write_selected_edges_to_obj(filename, filaments, sphere);
+{
+  auto filaments = adhesion.get_filaments(threshold);
+  std::cerr << "Filaments: " << filaments.vertices.size() << " vertices and " << filaments.size() << " polygons.\n";
+  std::string filename = fmt::format(filaments_filename, fmt::arg("time", t));
+  std::cerr << "writing to " << filename << "\n";
+
+  std::ofstream ff(filename);
+  auto selected_edges = select_mesh(filaments, sphere, false);
+  write_edges_to_obj(ff, selected_edges);
+  write_mesh(h5_group, "edges", selected_edges);
+}
 ```
 
 ## Main function
@@ -1087,7 +1120,7 @@ int main(int argc, char **argv)
 
 # Appendix
 
-## Keeping a mesh in memory
+## Meshes
 
 ``` {.cpp file=src/mesh.hh}
 #pragma once
@@ -1095,26 +1128,6 @@ int main(int argc, char **argv)
 #include <tuple>
 #include <memory>
 #include <vector>
-
-template <typename T, typename Info>
-class Decorated: public T
-{
-    Info _info;
-
-public:
-    using T::T;
-
-    Decorated(T const &t, Info const &info_):
-        T(t), _info(info_) {}
-
-    Decorated(Info const &info_):
-        _info(info_) {}
-
-    Info const &info() const
-    {
-        return _info;
-    }
-};
 
 template <typename Point>
 using Polygon = std::tuple<
@@ -1128,10 +1141,256 @@ using PolygonPair = std::tuple<
                       std::vector<unsigned>>;
 
 <<mesh-definition>>
+<<clean-mesh>>
 ```
 
 ``` {.cpp #mesh-methods}
 size_t size() const { return sizes.size(); }
+
+void push_back(
+  std::vector<unsigned> const &vertices,
+  Info const &i)
+{
+  data.insert(data.end(), vertices.begin(), vertices.end());
+  sizes.push_back(vertices.size());
+  info.push_back(i);
+}
+```
+
+
+
+## Manipulating meshes
+
+To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.
+
+To select parts of a mesh we need to define a surface that can tell us on what side a point lies, and if we have two points, if and where the segment between those points intersects. This concept of a `Surface` is embodied by the following abstract base class:
+
+``` {.cpp file=src/surface.hh}
+#pragma once
+#include <optional>
+#include "mesh.hh"
+
+template <typename Point>
+class Surface
+{
+public:
+  virtual int oriented_side(Point const &p) const = 0;
+  virtual std::optional<Point> intersect(
+    Point const &a, Point const &b) const = 0;
+};
+
+<<split-polygon>>
+<<select-mesh>>
+```
+
+Given an implementation of such a class, we  can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.
+
+``` {.cpp #split-polygon}
+template <typename Point>
+PolygonPair<Point> split_polygon(
+    Polygon<Point> const &polygon,
+    Surface<Point> const &surface,
+    bool closed = true)
+{
+  std::vector<Point> *vertices = std::get<0>(polygon);
+  std::vector<unsigned> orig = std::get<1>(polygon), r1, r2;
+
+  auto is_below = [&vertices, &surface] (unsigned i) -> bool {
+    return (surface.oriented_side((*vertices)[i]) == -1);
+  };
+
+  if (closed)
+    orig.push_back(orig.front());
+  else
+    r1.push_back(orig.front());
+
+  auto i = orig.begin();
+  auto j = i; ++j;
+  bool below = is_below(*i);
+
+  while (j != orig.end())
+  {
+    if (below != is_below(*j)) // surface crossed
+    {
+      if (auto q = surface.intersect(
+            (*vertices)[*i], (*vertices)[*j])) {
+        r1.push_back(vertices->size());
+        r2.push_back(vertices->size());
+        vertices->push_back(*q);
+        std::swap(r1, r2);
+      } else {
+        return PolygonPair<Point>();
+      }
+
+      below = not below;
+    } else {
+      r1.push_back(*j);
+      ++i; ++j;
+    }
+  }
+
+  if (below)
+    return PolygonPair<Point>(vertices, r1, r2);
+  else
+    return PolygonPair<Point>(vertices, r2, r1);
+}
+```
+
+### The sphere
+
+Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do some algebraic geometry our selves. The `Sphere` data type will have two members:
+
+``` {.cpp #sphere-members}
+Point  origin;
+double radius_squared;
+```
+
+Now, any point will have an orientation with respect to this sphere,
+
+$${\rm orient}(\vec{o}, r, \vec{p}) = \begin{cases}
+-1 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 < r^2\\
+0 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 = r^2\\
+1 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 > r^2\\
+\end{cases}$$
+
+``` {.cpp #sphere-oriented-side}
+int oriented_side(Point const &p) const
+{
+  double d = (p - origin).squared_length();
+
+  if (d < radius_squared)
+    return -1;
+
+  if (d > radius_squared)
+    return +1;
+
+  return 0;
+}
+```
+
+Next, given a directed segment from $\vec{a}$ to $\vec{b}$, we'd like to know if and where the segment will intersect the sphere first. This is done by solving a quadratic equation in terms of the vector going from $\vec{a}$ to $\vec{b}$, $\vec{m} = \vec{b} - \vec{a}$, and the vector from the origin $\vec{o}$ to $\vec{a}$, $\vec{n} = \vec{a} - \vec{o}$.
+
+The points on the segment are given by the function
+$$s(t) = \vec{a} + t\vec{m}.$$
+And the sphere is defined by the equation
+$$(\vec{x} - \vec{o})^2 = r^2.$$
+Then the resulting equation is,
+$$s^2 = (\vec{a} + t\vec{m} - \vec{o})^2 = n^2 + 2t \vec{n} \vec{m} + m^2 t^2,$$
+which is solved by,
+$$t = \vec{m}\cdot\vec{n} \pm \sqrt{m^2 (n^2 - r^2)}.$$
+
+If the discriminant $D = m^2 (n^2 - r^2)$ is negative, there is no intersection. We reflect this by returning a `std::optional<Point>`. Also, we only return a point if the found solution is for $0 \le t \le 1$.
+
+``` {.cpp #sphere-intersect}
+std::optional<Point> intersect(Point const &a, Point const &b) const
+{
+  if (oriented_side(a) * oriented_side(b) >= 0)
+    return std::nullopt;
+
+  Vector m = b - a, n = a - origin;
+  double m_sqr = m.squared_length(),
+          n_sqr = n.squared_length(),
+          mn    = m*n;
+
+  double D = mn*mn - (m_sqr * (n_sqr - radius_squared));
+
+  if (D < 0)
+    return std::nullopt;               // shouldn't happen
+
+  double sol_m = (- mn - sqrt(D)) / m_sqr,
+         sol_p = (- mn + sqrt(D)) / m_sqr;
+
+  if ((sol_m >= 0) and (sol_m <= 1.0))
+      return a + m*sol_m;
+
+  if ((sol_p >= 0) and (sol_p <= 1.0))
+      return a + m*sol_p;
+
+  return std::nullopt;                 // shouldn't happen
+}
+```
+
+Now that we have implemented these two methods, we can tie them together in the following templated class definition.
+
+``` {.cpp file=src/sphere.hh}
+#pragma once
+#include "surface.hh"
+
+template <typename K>
+class Sphere: public Surface<typename K::Point_3>
+{
+  using Point   = typename K::Point_3;
+  using Vector  = typename K::Vector_3;
+
+  <<sphere-members>>
+
+public:
+  Sphere(Point const &p, double r):
+      origin(p), radius_squared(r*r) {}
+
+  <<sphere-oriented-side>>
+  <<sphere-intersect>>
+};
+```
+
+### Clean mesh
+
+Once we have selected a part of the mesh by cutting polygons, the mesh contains a lot of vertices that have no associated polygon. These vertices need to be removed. This also means that the vertex indices contained in the logical polygon data need to be remapped. The `clean` function takes a `Mesh`, only copies the vertices that are referenced in the polygons and remaps the polygons, creating a new `Mesh` instance.
+
+``` {.cpp #clean-mesh}
+template <typename Point, typename Info>
+Mesh<Point, Info> clean(
+    Mesh<Point, Info> const &source)
+{
+  Mesh<Point, Info> result;
+  std::map<unsigned, unsigned> vertex_map;
+
+  for (unsigned i : source.data) {
+    if (vertex_map.count(i) == 0) {
+      vertex_map[i] = result.vertices.size();
+      result.vertices.push_back(source.vertices[i]);
+    }
+
+    result.data.push_back(vertex_map[i]);
+  }
+
+  result.info = source.info;
+  result.sizes = source.sizes;
+  return result;
+}
+```
+
+### Split a mesh
+
+``` {.cpp #select-mesh}
+template <typename Point, typename Info>
+Mesh<Point, Info> select_mesh(
+    Mesh<Point, Info> const &mesh,
+    Surface<Point> const &surface,
+    bool closed=true)
+{
+  Mesh<Point, Info> result;
+  result.vertices = mesh.vertices;
+
+  unsigned i = 0, j = 0;
+  for (unsigned s : mesh.sizes)
+  {
+    std::vector<unsigned> vs(&mesh.data[j], &mesh.data[j+s]);
+
+    auto below = std::get<1>(split_polygon(
+      Polygon<Point>(&result.vertices, vs),
+      surface, closed));
+
+    if (below.size() > 0) {
+      result.push_back(below, mesh.info[i]);
+    }
+
+    ++i;
+    j += s;
+  }
+
+  return clean(result);
+}
 ```
 
 ## Writing to disk
@@ -1141,26 +1400,80 @@ size_t size() const { return sizes.size(); }
 ``` {.cpp file=src/writers.hh}
 #pragma once
 #include "cgal_base.hh"
+#include "adhesion.hh"
 #include "mesh.hh"
 #include <H5Cpp.h>
 
-extern void write_faces(H5::H5File &file, Mesh<Point, double> const &mesh);
-/*{
-  H5::DataSpace dataspace(1, &dim);
-auto datatype = Adhesion::Node::h5_type();
-std::string name = fmt::format("nodes-{:2.1f}", t);
-H5::DataSet node_dataset = file.createDataSet(name, datatype, dataspace);
-node_dataset.write(nodes.data(), datatype);
-}*/
+template <typename T>
+struct H5TypeFactory {};
+
+template <>
+struct H5TypeFactory<double>
+{
+  static H5::FloatType get()
+  {
+    return H5::FloatType(H5::PredType::NATIVE_DOUBLE);
+  }
+};
+
+template <>
+struct H5TypeFactory<unsigned>
+{
+  static H5::IntType get()
+  {
+    return H5::IntType(H5::PredType::NATIVE_UINT);
+  }
+};
+
+#include "writers/h5_node_type.ih"
+
+template <typename V>
+void write_vector_with_shape(
+    H5::Group &group,
+    std::string const &name,
+    V const &v,
+    std::vector<hsize_t> const &shape)
+{
+  auto          data_type = H5TypeFactory<typename V::value_type>::get();
+  H5::DataSpace data_space(shape.size(), shape.data());
+  auto          data_set = group.createDataSet(name, data_type, data_space);
+  data_set.write(v.data(), data_type);
+}
+
+template <typename V>
+void write_vector(
+    H5::Group &group,
+    std::string const &name,
+    V const &v)
+{
+  std::vector<hsize_t> shape { v.size() };
+  write_vector_with_shape(group, name, v, shape);
+}
+
+extern void write_mesh(H5::CommonFG &group, std::string const &name, Mesh<Point, double> const &mesh);
 ```
 
 ### Saving to HDF5
 
-``` {.cpp file=src/adhesion_node_h5_type.cc}
+``` {.cpp file=src/writers/h5_node_type.ih}
+extern H5::CompType h5_node_type();
+
+template <>
+struct H5TypeFactory<Adhesion::Node>
+{
+  static H5::CompType get()
+  {
+    return h5_node_type();
+  }
+};
+```
+
+``` {.cpp file=src/writers/h5_node_type.cc}
 #include "adhesion.hh"
+#include "writers.hh"
 #include <cstddef>
 
-H5::CompType Adhesion::Node::h5_type()
+H5::CompType h5_node_type()
 {
   hsize_t dim = 3;
 
@@ -1174,6 +1487,33 @@ H5::CompType Adhesion::Node::h5_type()
   ct.insertMember("mass",      offsetof(Adhesion::Node, mass), ft);
   ct.insertMember("node_type", offsetof(Adhesion::Node, node_type), it);
   return ct;
+}
+```
+
+### Writing meshes to HDF5
+
+``` {.cpp file=src/writers/hdf5-mesh.cc}
+#include "writers.hh"
+
+void write_mesh(
+    H5::CommonFG &file,
+    std::string const &name,
+    Mesh<Point, double> const &mesh)
+{
+  auto group = file.createGroup(name);
+
+  std::vector<double> vertex_data;
+  for (Point const &v : mesh.vertices) {
+    vertex_data.push_back(v[0]);
+    vertex_data.push_back(v[1]);
+    vertex_data.push_back(v[2]);
+  }
+
+  std::vector<hsize_t> vertex_shape { mesh.vertices.size(), 3 };
+  write_vector_with_shape(group, "vertices", vertex_data, vertex_shape);
+  write_vector(group, "info",  mesh.info);
+  write_vector(group, "sizes", mesh.sizes);
+  write_vector(group, "data",  mesh.data);
 }
 ```
 
@@ -1224,281 +1564,6 @@ template <typename Point>
 void write_faces_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
 {
   write_to_obj(out, "f", mesh);
-}
-```
-
-## Cutting polygons
-
-``` {.cpp file=src/split_polygon.hh}
-#pragma once
-
-#include "mesh.hh"
-#include <algorithm>
-
-template <typename Point, typename Surface>
-PolygonPair<Point> split_edge(
-    Polygon<Point> const &polygon,
-    Surface const &surface)
-{
-  std::vector<Point> *vertices = std::get<0>(polygon);
-  auto is_below = [&vertices, &surface] (unsigned i) -> bool {
-    return (surface.oriented_side((*vertices)[i]) == -1);
-  };
-
-  std::vector<unsigned> orig = std::get<1>(polygon), r1, r2;
-  bool below_0 = is_below(orig[0]);
-  bool below_1 = is_below(orig[1]);
-
-  if (below_0 && below_1) {
-    return PolygonPair<Point>(vertices, orig, r2);
-  }
-
-  if (!below_0 && !below_1) {
-    return PolygonPair<Point>(vertices, r1, orig);
-  }
-
-  auto p = surface.intersect((*vertices)[0], (*vertices)[1]);
-  if (!p) {
-    return PolygonPair<Point>(vertices, r1, r2);
-  }
-
-  r1.push_back(orig[0]);
-  r1.push_back(vertices->size());
-  r2.push_back(vertices->size());
-  r2.push_back(orig[1]);
-  vertices->push_back(*p);
-
-  if (below_0) {
-    return PolygonPair<Point>(vertices, r1, r2);
-  }
-
-  return PolygonPair<Point>(vertices, r2, r1);
-}
-
-template <typename Point, typename Surface>
-PolygonPair<Point> split_polygon(
-    Polygon<Point> const &polygon,
-    Surface const &surface,
-    bool closed = true)
-{
-  std::vector<Point> *vertices = std::get<0>(polygon);
-  std::vector<unsigned> orig = std::get<1>(polygon), r1, r2;
-
-  auto is_below = [&vertices, &surface] (unsigned i) -> bool {
-    return (surface.oriented_side((*vertices)[i]) == -1);
-  };
-
-  if (closed)
-    orig.push_back(orig.front());
-
-  auto i = orig.begin();
-  auto j = i; ++j;
-  bool below = is_below(*i);
-
-  while (j != orig.end())
-  {
-    if (below != is_below(*j)) // surface crossed
-    {
-      if (auto q = surface.intersect(
-            (*vertices)[*i], (*vertices)[*j])) {
-        r1.push_back(vertices->size());
-        r2.push_back(vertices->size());
-        vertices->push_back(*q);
-        std::swap(r1, r2);
-      }
-
-      below = not below;
-    } else {
-      r1.push_back(*j);
-      ++i; ++j;
-    }
-  }
-
-  if (below)
-    return PolygonPair<Point>(vertices, r1, r2);
-  else
-    return PolygonPair<Point>(vertices, r2, r1);
-}
-```
-
-### Cutting a spherical region
-
-``` {.cpp file=src/sphere.hh}
-#pragma once
-#include <optional>
-
-template <typename K>
-class Sphere
-{
-  using Point   = typename K::Point_3;
-  using Vector  = typename K::Vector_3;
-
-  Point origin;
-  double radius_squared;
-
-public:
-  Sphere(Point const &p, double r):
-      origin(p), radius_squared(r*r) {}
-
-  int oriented_side(Point const &p) const
-  {
-    double d = (p - origin).squared_length();
-
-    if (d < radius_squared)
-      return -1;
-
-    if (d > radius_squared)
-      return +1;
-
-    return 0;
-  }
-
-  std::optional<Point> intersect(Point const &a, Point const &b) const
-  {
-    if (oriented_side(a) * oriented_side(b) >= 0)
-      return std::nullopt;
-
-    Vector m = b - a, n = a - origin;
-    double m_sqr = m.squared_length(),
-           n_sqr = n.squared_length(),
-           mn    = m*n;
-
-    double D = mn*mn - (m_sqr * (n_sqr - radius_squared));
-
-    if (D < 0)
-      return std::nullopt;               // shouldn't happen
-
-    double sol_m = (- mn - sqrt(D)) / m_sqr,
-           sol_p = (- mn + sqrt(D)) / m_sqr;
-
-    if ((sol_m >= 0) and (sol_m <= 1.0))
-        return a + m*sol_m;
-
-    if ((sol_p >= 0) and (sol_p <= 1.0))
-        return a + m*sol_p;
-
-    return std::nullopt;                 // shouldn't happen
-  }
-};
-```
-
-### Clean mesh
-
-``` {.cpp file=src/clean_mesh.hh}
-#pragma once
-#include "mesh.hh"
-
-template <typename Point, typename Info>
-Mesh<Point, Info> clean(
-    Mesh<Point, Info> const &source)
-{
-  Mesh<Point, Info> result;
-  std::map<unsigned, unsigned> vertex_map;
-
-  for (unsigned i : source.data) {
-    if (vertex_map.count(i) == 0) {
-      vertex_map[i] = result.vertices.size();
-      result.vertices.push_back(source.vertices[i]);
-    }
-
-    result.data.push_back(vertex_map[i]);
-  }
-
-  result.info = source.info;
-  result.sizes = source.sizes;
-  return result;
-}
-```
-
-### Write selection
-
-``` {.cpp file=src/write_selection_to_obj.hh}
-#pragma once
-#include <iostream>
-#include <fstream>
-
-#include "write_obj.hh"
-#include "mesh.hh"
-#include "clean_mesh.hh"
-#include "split_polygon.hh"
-
-template <typename Point, typename Surface, typename Info>
-Mesh<Point, Info> select_edges(
-    Mesh<Point, Info> const &mesh,
-    Surface const &surface)
-{
-  Mesh<Point, Info> result;
-  result.vertices = mesh.vertices;
-
-  auto k = mesh.data.begin();
-  for (unsigned i = 0; i < mesh.size(); k+=mesh.sizes[i], ++i)
-  {
-    std::vector<unsigned> vs(k, k + mesh.sizes[i]);
-
-    auto below = std::get<1>(split_edge(
-      Polygon<Point>(&result.vertices, vs),
-      surface));
-
-    if (below.size() > 0) {
-      result.data.insert(result.data.end(), below.begin(), below.end());
-      result.info.push_back(mesh.info[i]);
-      result.sizes.push_back(below.size());
-    }
-  }
-
-  return clean(result);
-}
-
-template <typename Point, typename Surface, typename Info>
-Mesh<Point, Info> select_mesh(
-    Mesh<Point, Info> const &mesh,
-    Surface const &surface,
-    bool closed=true)
-{
-  Mesh<Point, Info> result;
-  result.vertices = mesh.vertices;
-
-  auto k = mesh.data.begin();
-  for (unsigned i = 0; i < mesh.size(); k+=mesh.sizes[i], ++i)
-  {
-    std::vector<unsigned> vs(k, k + mesh.sizes[i]);
-
-    auto below = std::get<1>(split_polygon(
-      Polygon<Point>(&result.vertices, vs),
-      surface));
-
-    if (below.size() > 0) {
-      result.data.insert(result.data.end(), below.begin(), below.end());
-      result.info.push_back(mesh.info[i]);
-      result.sizes.push_back(below.size());
-    }
-  }
-
-  return clean(result);
-}
-
-template <typename Surface>
-void write_selected_edges_to_obj(
-    std::string const &filename,
-    Mesh<Point, double> const &mesh,
-    Surface const &selector)
-{
-  std::cerr << "writing output to: " << filename << "\n";
-  std::ofstream fo(filename);
-  write_edges_to_obj(fo, select_edges(mesh, selector));
-  fo.close();
-}
-
-template <typename Surface>
-void write_selected_faces_to_obj(
-    std::string const &filename,
-    Mesh<Point, double> const &mesh,
-    Surface const &selector)
-{
-  std::cerr << "writing output to: " << filename << "\n";
-  std::ofstream fo(filename);
-  write_faces_to_obj(fo, select_mesh(mesh, selector));
-  fo.close();
 }
 ```
 
