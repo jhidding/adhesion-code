@@ -113,6 +113,15 @@ Go to the root folder of this package and inspect the `Makefile`. The `~/.local/
 
 A beta-tester has been found. More's to follow.
 
+### Getting coverage
+
+compile with `--coverage`, then run code, then:
+
+```shell
+lcov --capture --directory . --output coverage.info --no-external
+genhtml coverage.info --output-directory out
+```
+
 ## License
 
 This package is distributed under the Apache v2 license. See the `LICENSE` file for more information.

@@ -10,7 +10,7 @@ reference-section-title: References
 
 # Abstract
 
-We present a (relatively) small example of using the CGAL library to run the adhesion model. A basic CGAL program can seem intimidating to start with. The CGAL manual provides basic examples that offer a good starting point. In our case we are interested in creating regular triangulations. We adapted the example from the manual.
+We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code reads or generates an initial potential field and computes the *regular triangulation* to that potential, that is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for visualisation.
 
 ## Version
 
@@ -22,25 +22,32 @@ We present a (relatively) small example of using the CGAL library to run the adh
 
 # Introduction
 
-This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. A significant fraction of the code in here is dealing with generating initial conditions for the actual model.
+The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation.
+The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the *cosmic web*.
+The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn't reveal the halo structures that are shown in N-body simulations to form inside these structures.
 
-We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible.
+The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set.
 
-If you are only interested only in the CGAL parts, it should be safe to skip the section on generating cosmological initial conditions.
+This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with the main body of code, implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The appendix contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.
+
+![Example output of the program, rendered with ParaView.](figures/output.png)
 
 ## Prerequisites
 
-- C++ 17 compiler
-- GNU Make
-- CGAL 4.12 - The Computational Geometry Algorithm Library
-- XTensor 0.17 - A template library for handling array data in C++
-- FFTW3 3.3 - The Fastest Fourier Transform in the West
-- XTensor-FFTW - Tying FFTW3 to an XTensor interface
-- hdf5-cpp - [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data.
-- yaml-cpp - [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files.
-- argagg - [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser.
-- fmt - [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's.
-- Pandoc - [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2 or higher and the `pandoc-citeproc` extension.
+From the reader a basic knowledge of programming is required. Familiarity with C/C++ will help to understand the code samples. However, all the code is explained in detail. To run the code the following libraries should be present on the system:
+
+| Package  | version | description |
+|----------|---------|-------------|
+| C++ compiler | C++17 standard | Tested with GCC 8. |
+| GNU Make | - | - |
+| CGAL     | ≥4.12   | [The Computational Geometry Algorithm Library](http://cgal.org) |
+| XTensor  | ≥0.17   | [XTensor](http://quantstack.net/xtensor) is a template library for handling array data in C++. |
+| FFTW3    | ≥3.3    | [The Fastest Fourier Transform in the West](http://www.fftw.org/) |
+| hdf5-cpp | ≥1.8.13 | [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data. |
+| yaml-cpp | ≥0.5    | [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files. |
+| argagg   | ≥0.4.6  | [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser. |
+| fmt      | ≥4.1    | [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's. |
+| Pandoc   | ≥2.2.3  | [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.3 or higher and the `pandoc-citeproc` extension. |
 
 All of these packages are available in the Debian GNU/Linux package repositories.
 

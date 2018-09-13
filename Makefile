@@ -7,6 +7,8 @@ hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
 cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
+coverage_cflags = --coverage
+
 compile = g++
 compile_flags = -std=c++17 -O3 -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags) $(cgal_cflags)
 
