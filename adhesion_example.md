@@ -294,7 +294,7 @@ generate_white_noise(
     value = normal(random);
   }
 
-  return std::move(result);
+  return result;
 }
 ```
 
@@ -1603,9 +1603,6 @@ public:
       size_t n,
       std::allocator<void>::const_pointer hint = 0)
   {
-    if (hint != 0)
-        fftw_free(hint);
-
     return reinterpret_cast<T *>(fftw_malloc(n * sizeof(T)));
   }
 
