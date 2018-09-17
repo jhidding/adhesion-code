@@ -238,9 +238,9 @@ $$k_i = i \frac{2 \pi}{L},~{\rm for}~i \in [0, 1, \dots, N/2, -N/2 - 1, \dots, -
 
 ``` {.cpp #fourier-properties append=true}
 double wave_number(int i) const {
-  return (int(i) > int(N)/2
-          ? int(i) - int(N)
-          : int(i)) * (2*M_PI)/L;
+  return ( int(i) > int(N)/2
+         ? int(i) - int(N)
+         : int(i) ) * (2*M_PI)/L;
 }
 
 double k_abs(std::array<size_t, 3> const &loc) const {
@@ -346,7 +346,7 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
     Omega0    = cosmology["Omega0"].as<double>(),
     h         = cosmology["h"].as<double>(),
     ns        = cosmology["ns"].as<double>(),
-    A         = 1122670;
+    A         = 159285;
 
   return [=] (double k)
   {
@@ -361,6 +361,8 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
 ```
 
 ### Normalisation
+
+- [Sirko 2005](http://iopscience.iop.org/article/10.1086/497090/pdf)
 
 ## Applying the power spectrum
 
