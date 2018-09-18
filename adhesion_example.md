@@ -122,48 +122,21 @@ Since we'll be using bare (weightless) points, weighted points, and vectors we d
 
 # Initial conditions
 
-The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
+Throughout the sections of this report, we work through the workflow for running the adhesion model. Each time we append some code onto *«workflow»* and then dive into implementation. The lines in *«workflow»* will be put into a function taking a single argument giving the configuration, including cosmological parameters and output specification. We start with defining the `box` in which the initial conditions will be generated.
 
-$$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$
+## Creating the box
 
-We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
+The `box` section of the configuration should contain an entry for `N` and `L`, the logical and physical box sizes respectively. 
 
-To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function $f$ are positively correlated at the small scale. Taking any two positions $x_1$ and $x_2$, their correlation is
-
-$$\xi(x_1, x_2) = \langle f(x_1) f(x_2) \rangle.$$
-
-Often we write the correlation function $\xi(r)$ because our fields are isotropic and homogeneous. We can now ask the next question: what is the probability that the function $f$ at position $\vec{x}$ attains the value $f(\vec{x}) = y_1$ and at position $\vec{x} + \vec{r}$ attains the value $f(\vec{x} + \vec{r}) = y_2$,
-
-$$P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).$$
-
-Here, $\Sigma(r)$ is the corellation matrix,
-
-$$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$$
-
-``` {.cpp file=src/initial_conditions.hh}
-#pragma once
-#include "boxparam.hh"
-
-#include <memory>
-#include <xtensor/xtensor.hpp>
-#include <yaml-cpp/yaml.h>
-
-extern std::unique_ptr<xt::xtensor<double, 3>>
-generate_white_noise(
-    BoxParam const &box,
-    unsigned long seed);
-
-<<power-spectra>>
-
-extern void compute_potential(
-    BoxParam const &box,
-    xt::xtensor<double, 3> &white_noise,
-    PowerSpectrum const &P);
+``` {.cpp #workflow}
+std::clog << "# Using box with parameters:\n"
+          << config["box"] << "\n";
+BoxParam box(
+  config["box"]["N"].as<int>(),
+  config["box"]["L"].as<double>());
 ```
 
-## The simulation box
-
-Next, we need to define the box that we will use. We collect the required parameters, box size in pixels and the physical length, in a structure called `BoxParam`.
+These parameters are collected into an instance of `BoxParam`, which has several methods that support working with coordinates in the box both in real and frequency space.
 
 ``` {.cpp file=src/boxparam.hh}
 #pragma once
@@ -216,11 +189,11 @@ Point point(size_t i) const
 }
 ```
 
-Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. Later on, we will be adding more methods to the `BoxParam` structure.
+Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. This also means that when we use a `std::array<size_t,3>` as a 3-dimensional index into an array, the axes are reversed, so `{z, y, x}`. Later on, we will be adding more methods to the `BoxParam` structure.
 
 ### Fourier properties
 
-These functions we'll need when we compute Fourier transforms. The real FFT algorithm saves precious memory by using only half the space of the complex FFT. With the exception of the Nyquist frequencies that makes $N/2 + 1$ for the last axis.
+These functions we'll need when we compute Fourier transforms. The real FFT algorithm saves precious memory by using only half the space of the complex FFT. With the exception of the Nyquist frequencies that makes $N/2 + 1$ for the $x$-axis.
 
 ``` {.cpp #fourier-properties append=true}
 std::array<size_t, 3> rfft_shape() const {
@@ -242,7 +215,11 @@ double wave_number(int i) const {
          ? int(i) - int(N)
          : int(i) ) * (2*M_PI)/L;
 }
+```
 
+When we compute the power spectrum and the likes, we need the absolute value of $\vec{k}$.
+
+``` {.cpp #fourier-properties append=true}
 double k_abs(std::array<size_t, 3> const &loc) const {
   double x = 0.0;
   for (size_t i : loc)
@@ -253,7 +230,7 @@ double k_abs(std::array<size_t, 3> const &loc) const {
 
 ### Iterating multi-dimensional arrays
 
-We'll be indexing multi-dimensional arrays. To prevent having to write nested for-loops, we use the `increment_index` helper function.
+We'll be indexing multi-dimensional arrays. To prevent having to write nested for-loops, we use the `increment_index` helper function. This increments the last index first, if it caries, set it back to zero and increment the next to last index and so on.
 
 ``` {.cpp #increment-index}
 template <unsigned R>
@@ -272,6 +249,61 @@ inline unsigned increment_index(
   return R;
 }
 ```
+
+## White noise
+
+Having defined a `box` we need to fill it with initial density fluctuations, extending our workflow:
+
+``` {.cpp #workflow}
+std::clog << "# Generating white noise with seed:\n"
+          << config["run"]["seed"] << "\n";
+auto seed = config["run"]["seed"].as<unsigned long>();
+auto field = generate_white_noise(box, seed);
+```
+
+We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
+
+### Theory
+
+The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
+
+$$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$
+
+We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
+
+To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function $f$ are positively correlated at the small scale. Taking any two positions $x_1$ and $x_2$, their correlation is
+
+$$\xi(x_1, x_2) = \langle f(x_1) f(x_2) \rangle.$$
+
+Often we write the correlation function $\xi(r)$ because our fields are isotropic and homogeneous. We can now ask the next question: what is the probability that the function $f$ at position $\vec{x}$ attains the value $f(\vec{x}) = y_1$ and at position $\vec{x} + \vec{r}$ attains the value $f(\vec{x} + \vec{r}) = y_2$,
+
+$$P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).$$
+
+Here, $\Sigma(r)$ is the corellation matrix,
+
+$$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$$
+
+``` {.cpp file=src/initial_conditions.hh}
+#pragma once
+#include "boxparam.hh"
+
+#include <memory>
+#include <xtensor/xtensor.hpp>
+#include <yaml-cpp/yaml.h>
+
+extern std::unique_ptr<xt::xtensor<double, 3>>
+generate_white_noise(
+    BoxParam const &box,
+    unsigned long seed);
+
+<<power-spectra>>
+
+extern void compute_potential(
+    BoxParam const &box,
+    xt::xtensor<double, 3> &white_noise,
+    PowerSpectrum const &P);
+```
+
 
 ## White noise
 
@@ -299,6 +331,15 @@ generate_white_noise(
 ```
 
 ## Power spectrum
+
+``` {.cpp #workflow}
+std::clog << "Applying power spectrum with cosmology:\n"
+          << config["cosmology"] << "\n";
+auto cosmology = config["cosmology"];
+auto power_spectrum = normalize_power_spectrum(
+  box, EisensteinHu(cosmology), cosmology);
+compute_potential(box, *field, power_spectrum);
+```
 
 A power spectrum is a function taking in a value of $k$ in units of $h {\rm Mpc}^{-1}$ giving an amplitude.
 
@@ -361,19 +402,26 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
 
 ### Normalisation
 
+The power-spectrum needs to be normalised so that the amplitudes of the density perturbations match those in the observed Universe.
+Traditionally the chosen scaling is applied using a spherical top-hat filter of radius $8\ h^{-1}{\rm Mpc}$. It was long believed that density perturbations on this scale have a standard deviation $\sigma_8$ of around unity. The latest measurements from @Planck2018 give $\sigma_8 = 0.811 \pm 0.006$ of density perturbations linearly extrapolated to current epoch.
+
+Now, given a density field $f$ we may filter this field with a spherical top-hat function with radius of $8\ h^{-1}{\rm Mpc}$ by means of a convolution $f_R = f \ast W_{\rm th}$. Then $\sigma_8^2 \equiv \langle f_8^{\star}f_8 \rangle$ can be expressed in Fourier space as
+$$\sigma_R^2 = \int \mathcal{P}(\vec{k}) \hat{W}_{\rm th}^2(\vec{k}) \frac{{\rm d}^3 \vec{k}}{{(2\pi)}^3}.$$
+Because all terms in the integral only depend on $|\vec{k}|$, we may rewrite this as
+$$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2},$$ {#eq:normalisation}
+where the Fourier transform of the top-hat window function is given by
+$$\hat{W}_{th}(y) = \frac{3}{y^3}\left(\sin y - y \cos y\right).$$
+
+There's a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution. In practice, good results are obtained by normalising using a numerical integration of Equation [@eq:normalisation] from $2 \pi / L$ to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.
+
 ``` {.cpp file=src/normalize_power_spectrum.cc}
 #include "initial_conditions.hh"
-#include <gsl/gsl_integration.h>
+
+<<gsl-integrate-qagiu>>
 
 inline double W_th(double y)
 {
   return 3.0 / pow(y, 3) * (sin(y) - y * cos(y));
-}
-
-double integration_helper(double x, void *params)
-{
-  auto f = reinterpret_cast<std::function<double (double)> *>(params);
-  return (*f)(x);
 }
 
 PowerSpectrum normalize_power_spectrum(
@@ -381,34 +429,52 @@ PowerSpectrum normalize_power_spectrum(
     PowerSpectrum const &P,
     Config const &cosmology)
 {
-  size_t limit = 1024;
   double k_lower = 2 * M_PI / box.L;
   double epsabs = 1e-6, epsrel = 1e-6;
-  double x, abserr;
   double sigma8 = cosmology["sigma8"].as<double>();
 
+  double x = integrate_qagiu([&] (double k) {
+      return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
+    }, k_lower, epsabs, epsrel);
+
+  double A = sigma8 * sigma8 / x;
+  std::cout << "Normalised power spectrum, A = " << A << ".\n";
+
+  return [=] (double k) {
+    return A * P(k);
+  };
+}
+```
+
+Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper.
+
+``` {.cpp #gsl-integrate-qagiu}
+#include <gsl/gsl_integration.h>
+
+double integration_helper(double x, void *params)
+{
+  auto f = reinterpret_cast<std::function<double (double)> *>(params);
+  return (*f)(x);
+}
+
+template <typename F>
+double integrate_qagiu(F const &func, double lower, double epsabs, double epsrel, size_t limit=1024)
+{
+  double x, abserr;
+  std::function<double (double)> integrant = func;
   gsl_integration_workspace *workspace =
     gsl_integration_workspace_alloc(limit);
-
-  std::function<double (double)> integrant = [&] (double k)
-  {
-    return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
-  };
 
   gsl_function f;
   f.function = &integration_helper;
   f.params = reinterpret_cast<void *>(&integrant);
 
   gsl_integration_qagiu(
-    &f, k_lower, epsabs, epsrel, limit,
+    &f, lower, epsabs, epsrel, limit,
     workspace, &x, &abserr);
-  double A = sigma8 / sqrt(x);
 
   gsl_integration_workspace_free(workspace);
-
-  return [=] (double k) {
-    return A * P(k);
-  };
+  return x;
 }
 ```
 
@@ -435,7 +501,7 @@ void compute_potential(
   double V = pow(box.L / box.N, 3.0);
   for (size_t i = 1; i < box.rfft_size(); ++i) {
     double k = box.k_abs(loc);
-    rfft.fourier_space[i] *= sqrt(P(k)) / (V * k * k);
+    rfft.fourier_space[i] *= sqrt(P(k) / V) / (k * k);
     increment_index<3>(f_shape, loc);
   }
 
@@ -950,8 +1016,8 @@ We read the configuration from a YAML file. Let's take the latest values from th
 
 ``` {.yaml #default-config file=examples/lcdm.yaml}
 box:
-  N:      128      # logical box size
-  L:      32.0     # physical box size
+  N:      128       # logical box size
+  L:       50.0     # physical box size
 
 cosmology:
   power-spectrum: Eisenstein & Hu
@@ -962,7 +1028,7 @@ cosmology:
 
 run:
   seed:     8
-  time:     [1.0, 2.0, 3.0]
+  time:     [0.2, 0.5, 1.0]
 
 output:
   hdf5:            output/lcdm.h5
@@ -990,7 +1056,7 @@ extern void run(YAML::Node const &config);
 #include "run.hh"
 #include "initial_conditions.hh"
 #include "adhesion.hh"
-#include "sphere.hh"
+#include "shapes.hh"
 #include "writers.hh"
 #include "write_obj.hh"
 
@@ -1000,28 +1066,7 @@ void run(YAML::Node const &config)
 }
 ```
 
-### Create box
 
-``` {.cpp #workflow}
-std::cerr << "Using box with parameters:\n"
-          << config["box"] << "\n";
-BoxParam box(
-  config["box"]["N"].as<int>(),
-  config["box"]["L"].as<double>());
-```
-
-### Generate initial conditions
-
-``` {.cpp #workflow}
-std::cerr << "Generating initial conditions:\n"
-          << config["cosmology"] << "\n";
-auto seed = config["run"]["seed"].as<unsigned long>();
-auto field = generate_white_noise(box, seed);
-auto cosmology = config["cosmology"];
-auto power_spectrum = normalize_power_spectrum(
-  box, EisensteinHu(cosmology), cosmology);
-compute_potential(box, *field, power_spectrum);
-```
 
 ### Write initial conditions to file
 
@@ -1053,7 +1098,13 @@ switch (time_cfg.Type()) {
 double threshold = config["output"]["threshold"].as<double>(0.0);
 std::string walls_filename = config["output"]["walls"].as<std::string>();
 std::string filaments_filename = config["output"]["filaments"].as<std::string>();
-Sphere<K> sphere(Point(box.L/2, box.L/2, box.L/2), 0.4 * box.L);
+
+std::vector<std::unique_ptr<Surface<Point>>> mesh_shape;
+Point centre(box.L/2, box.L/2, box.L/2);
+Vector dz(box.L/10, 0.0, 0.0);
+mesh_shape.emplace_back(new Sphere<K>(centre, 0.4 * box.L));
+mesh_shape.emplace_back(new Plane<K>(centre + dz, dz));
+mesh_shape.emplace_back(new Plane<K>(centre - dz, -dz));
 
 unsigned iteration = 0;
 for (double t : time) {
@@ -1089,7 +1140,7 @@ write_vector(h5_group, "nodes", nodes);
   std::cerr << "writing to " << filename << "\n";
 
   std::ofstream ff(filename);
-  auto selected_faces = select_mesh(walls, sphere);
+  auto selected_faces = select_mesh(walls, mesh_shape);
   write_faces_to_obj(ff, selected_faces);
   write_mesh(h5_group, "faces", selected_faces);
 }
@@ -1103,7 +1154,7 @@ write_vector(h5_group, "nodes", nodes);
   std::cerr << "writing to " << filename << "\n";
 
   std::ofstream ff(filename);
-  auto selected_edges = select_mesh(filaments, sphere, false);
+  auto selected_edges = select_mesh(filaments, mesh_shape, false);
   write_edges_to_obj(ff, selected_edges);
   write_mesh(h5_group, "edges", selected_edges);
 }
@@ -1218,8 +1269,6 @@ void push_back(
   info.push_back(i);
 }
 ```
-
-
 
 ## Manipulating meshes
 
@@ -1374,10 +1423,7 @@ std::optional<Point> intersect(Point const &a, Point const &b) const
 
 Now that we have implemented these two methods, we can tie them together in the following templated class definition.
 
-``` {.cpp file=src/sphere.hh}
-#pragma once
-#include "surface.hh"
-
+``` {.cpp #shapes-sphere}
 template <typename K>
 class Sphere: public Surface<typename K::Point_3>
 {
@@ -1392,6 +1438,58 @@ public:
 
   <<sphere-oriented-side>>
   <<sphere-intersect>>
+};
+```
+
+### Plane
+
+``` {.cpp file=src/shapes.hh}
+#pragma once
+#include "surface.hh"
+
+template <typename T>
+inline int sign(T a)
+{
+  return (a < 0 ? -1 : (a == 0 ? 0 : 1));
+}
+
+<<shapes-sphere>>
+
+template <typename K>
+class Plane: public Surface<typename K::Point_3>
+{
+  using Point   = typename K::Point_3;
+  using Vector  = typename K::Vector_3;
+
+  Point  centre;
+  Vector normal;
+
+public:
+  Plane(Point const &centre, Vector const &normal)
+    : centre(centre)
+    , normal(normal)
+  {}
+
+  int oriented_side(Point const &a) const
+  {
+    return sign((a - centre) * normal);
+  }
+
+  std::optional<Point> intersect(Point const &a, Point const &b) const
+  {    
+    Vector u = centre - a,
+           v = b - a;
+    
+    if (v * normal == 0)
+      return std::nullopt;
+    
+    double t = (u * normal) / (v * normal);
+
+    if (t < 0 || t > 1)
+      return std::nullopt;
+
+    return a + t * v;
+  }
 };
 ```
 
@@ -1422,7 +1520,7 @@ Mesh<Point, Info> clean(
 }
 ```
 
-### Split a mesh
+### Select a mesh
 
 ``` {.cpp #select-mesh}
 template <typename Point, typename Info>
@@ -1452,6 +1550,18 @@ Mesh<Point, Info> select_mesh(
   }
 
   return clean(result);
+}
+
+template <typename Point, typename Info>
+Mesh<Point, Info> select_mesh(
+    Mesh<Point, Info> const &mesh,
+    std::vector<std::unique_ptr<Surface<Point>>> const &surfaces,
+    bool closed=true)
+{
+  Mesh<Point, Info> m = mesh;
+  for (auto const &s : surfaces)
+    m = select_mesh(m, *s, closed);
+  return m;
 }
 ```
 
