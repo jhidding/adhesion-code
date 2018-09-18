@@ -345,8 +345,7 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
     Theta_CMB = 2.7255/2.7,
     Omega0    = cosmology["Omega0"].as<double>(),
     h         = cosmology["h"].as<double>(),
-    ns        = cosmology["ns"].as<double>(),
-    A         = 159285;
+    ns        = cosmology["ns"].as<double>();
 
   return [=] (double k)
   {
@@ -355,14 +354,63 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
            C0 = 14.2 + 731.0/(1 + 62.5*q),
            T0 = L0 / (L0 + C0 * pow(q, 2));
 
-    return A * pow(k, ns) * pow(T0, 2);
+    return pow(k, ns) * pow(T0, 2);
   };
 }
 ```
 
 ### Normalisation
 
-- [Sirko 2005](http://iopscience.iop.org/article/10.1086/497090/pdf)
+``` {.cpp file=src/normalize_power_spectrum.cc}
+#include "initial_conditions.hh"
+#include <gsl/gsl_integration.h>
+
+inline double W_th(double y)
+{
+  return 3.0 / pow(y, 3) * (sin(y) - y * cos(y));
+}
+
+double integration_helper(double x, void *params)
+{
+  auto f = reinterpret_cast<std::function<double (double)> *>(params);
+  return (*f)(x);
+}
+
+PowerSpectrum normalize_power_spectrum(
+    BoxParam const &box,
+    PowerSpectrum const &P,
+    Config const &cosmology)
+{
+  size_t limit = 1024;
+  double k_lower = 2 * M_PI / box.L;
+  double epsabs = 1e-6, epsrel = 1e-6;
+  double x, abserr;
+  double sigma8 = cosmology["sigma8"].as<double>();
+
+  gsl_integration_workspace *workspace =
+    gsl_integration_workspace_alloc(limit);
+
+  std::function<double (double)> integrant = [&] (double k)
+  {
+    return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
+  };
+
+  gsl_function f;
+  f.function = &integration_helper;
+  f.params = reinterpret_cast<void *>(&integrant);
+
+  gsl_integration_qagiu(
+    &f, k_lower, epsabs, epsrel, limit,
+    workspace, &x, &abserr);
+  double A = sigma8 / sqrt(x);
+
+  gsl_integration_workspace_free(workspace);
+
+  return [=] (double k) {
+    return A * P(k);
+  };
+}
+```
 
 ## Applying the power spectrum
 
@@ -384,9 +432,10 @@ void compute_potential(
   rfft.forward_transform();
 
   std::array<size_t, 3> loc = {0, 0, 1};
+  double V = pow(box.L / box.N, 3.0);
   for (size_t i = 1; i < box.rfft_size(); ++i) {
     double k = box.k_abs(loc);
-    rfft.fourier_space[i] *= sqrt(P(k)) / (k * k);
+    rfft.fourier_space[i] *= sqrt(P(k)) / (V * k * k);
     increment_index<3>(f_shape, loc);
   }
 
@@ -968,7 +1017,10 @@ std::cerr << "Generating initial conditions:\n"
           << config["cosmology"] << "\n";
 auto seed = config["run"]["seed"].as<unsigned long>();
 auto field = generate_white_noise(box, seed);
-compute_potential(box, *field, EisensteinHu(config["cosmology"]));
+auto cosmology = config["cosmology"];
+auto power_spectrum = normalize_power_spectrum(
+  box, EisensteinHu(cosmology), cosmology);
+compute_potential(box, *field, power_spectrum);
 ```
 
 ### Write initial conditions to file
