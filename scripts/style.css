@@ -1,0 +1,67 @@
+body
+{
+    margin:		0 auto 0 250pt;
+    max-width:	600pt;
+    background:	#FFF;
+    padding:	0 10pt 0 0;
+    font-family: "Bitstream Charter";
+    font-size: 14pt;
+}
+
+a {
+    color: #333;
+    text-decoration: none;
+}
+
+#TOC
+{
+    font-size: 10pt;
+    position: fixed;
+    top: 0pt;
+    left: 0pt;
+    bottom: 0pt;
+    background: #eee;
+    border-right: solid thin black;
+    padding: 10pt;
+    padding-right: 25pt;
+    width: 150pt;
+}
+
+code
+{
+    font-family: "monofur for Powerline", Courier, monospace;
+}
+
+.sourceCode
+{
+    font-size: 10pt;
+    border: solid thin black;
+    border-radius: 5pt;
+    background: #eee;
+    padding: 10pt;
+    text-indent: 0pt;
+}
+
+.sourceCode pre, .sourceCode code
+{
+    padding: unset;
+    background: none;
+    border: none;
+}
+
+figure 
+{
+    border: solid thin black;
+    border-radius: 5pt;
+    padding: 10pt;
+}
+
+figcaption
+{
+    font-style: italic;
+}
+
+figure img
+{
+    width: 100%;
+}

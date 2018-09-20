@@ -41,13 +41,14 @@ From the reader a basic knowledge of programming is required. Familiarity with C
 | C++ compiler | C++17 standard | Tested with GCC 8. |
 | GNU Make | - | - |
 | CGAL     | ≥4.12   | [The Computational Geometry Algorithm Library](http://cgal.org) |
-| XTensor  | ≥0.17   | [XTensor](http://quantstack.net/xtensor) is a template library for handling array data in C++. |
 | FFTW3    | ≥3.3    | [The Fastest Fourier Transform in the West](http://www.fftw.org/) |
+| GSL      | ≥2.5    | [GNU Scientific Library](https://www.gnu.org/software/gsl/) |
 | hdf5-cpp | ≥1.8.13 | [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data. |
 | yaml-cpp | ≥0.5    | [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files. |
 | argagg   | ≥0.4.6  | [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser. |
 | fmt      | ≥4.1    | [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's. |
-| Pandoc   | ≥2.2.3  | [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.3 or higher and the `pandoc-citeproc` extension. |
+| Pandoc   | ≥2.2.1  | [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.1 or higher and the `pandoc-citeproc`, `pandoc-eqnos` and `pandoc-fignos` extensions. |
+| rsvg-convert | ≥2.40 | When converting to PDF or LaTeX, we need `rsvg-convert` to convert some of the images. |
 
 All of these packages are available in the Debian GNU/Linux package repositories.
 
@@ -263,35 +264,12 @@ auto field = generate_white_noise(box, seed);
 
 We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
 
-### Theory
-
-The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
-
-$$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$
-
-We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
-
-To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function $f$ are positively correlated at the small scale. Taking any two positions $x_1$ and $x_2$, their correlation is
-
-$$\xi(x_1, x_2) = \langle f(x_1) f(x_2) \rangle.$$
-
-Often we write the correlation function $\xi(r)$ because our fields are isotropic and homogeneous. We can now ask the next question: what is the probability that the function $f$ at position $\vec{x}$ attains the value $f(\vec{x}) = y_1$ and at position $\vec{x} + \vec{r}$ attains the value $f(\vec{x} + \vec{r}) = y_2$,
-
-$$P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).$$
-
-Here, $\Sigma(r)$ is the corellation matrix,
-
-$$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$$
-
 ``` {.cpp file=src/initial_conditions.hh}
 #pragma once
 #include "boxparam.hh"
+#include <vector>
 
-#include <memory>
-#include <xtensor/xtensor.hpp>
-#include <yaml-cpp/yaml.h>
-
-extern std::unique_ptr<xt::xtensor<double, 3>>
+extern std::vector<double>
 generate_white_noise(
     BoxParam const &box,
     unsigned long seed);
@@ -300,12 +278,15 @@ generate_white_noise(
 
 extern void compute_potential(
     BoxParam const &box,
-    xt::xtensor<double, 3> &white_noise,
+    std::vector<double> &white_noise,
     PowerSpectrum const &P);
 ```
 
+The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
 
-## White noise
+$$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$ {#eq:normal-distribution}
+
+A function following only this distribution, without any corellation between points, is also referred to as /white noise/. We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
 
 The `white_noise` function fills a newly created array with random values, following a normal distribution with $\sigma = 1$.
 
@@ -313,16 +294,16 @@ The `white_noise` function fills a newly created array with random values, follo
 #include "initial_conditions.hh"
 #include <random>
 
-std::unique_ptr<xt::xtensor<double, 3>>
+std::vector<double>
 generate_white_noise(
     BoxParam const &box, unsigned long seed)
 {
-  auto result = std::make_unique<xt::xtensor<double, 3>>(box.shape());
+  auto result = std::vector<double>(box.size);
 
   std::mt19937 random(seed);
   std::normal_distribution<double> normal;
 
-  for (double &value : *result) {
+  for (double &value : result) {
     value = normal(random);
   }
 
@@ -330,7 +311,31 @@ generate_white_noise(
 }
 ```
 
+## Introducing corellation
+
+To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function $f$ are positively correlated at the small scale. Taking any two positions $x_1$ and $x_2$, their correlation is
+
+$$\xi(x_1, x_2) = \langle f(x_1) f(x_2) \rangle.$$
+
+Often we write the correlation function $\xi(r)$ because our fields are isotropic and homogeneous. We can now ask the next question: what is the probability that the function $f$ at position $\vec{x}$ attains the value $f(\vec{x}) = y_1$ and at position $\vec{x} + \vec{r}$ attains the value $f(\vec{x} + \vec{r}) = y_2$,
+
+$$P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).$$ {#eq:two-point-function}
+
+Here, $\Sigma(r)$ is the corellation matrix,
+
+$$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$$
+
+Equation\ @eq:two-point-function (also known as the two-point distribution) can be generalised to a distribution of $N$ variates, the *multi-variate normal distribution*. It can be shown that, in the case of a statistically homogeneous and isotropic random field, this distribution can always be reduced to the two-point distribution. In that case we refer to the random field as a Gaussian random field.
+
+![The colours of noise. From left to right we change the power spectrum from $k^0$, to $k^{-1}$, to $k^{-2}$. The red noise can also be obtained by integrating a white noise signal.](figures/noise.svg){#fig:colours-of-noise}
+
 ## Power spectrum
+
+In stead of talking about a corellation function, we often use its Fourier transform, the *power spectrum* to specify the corellations in the random field,
+
+$$\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.$$
+
+In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions.
 
 ``` {.cpp #workflow}
 std::clog << "Applying power spectrum with cosmology:\n"
@@ -338,12 +343,14 @@ std::clog << "Applying power spectrum with cosmology:\n"
 auto cosmology = config["cosmology"];
 auto power_spectrum = normalize_power_spectrum(
   box, EisensteinHu(cosmology), cosmology);
-compute_potential(box, *field, power_spectrum);
+compute_potential(box, field, power_spectrum);
 ```
 
 A power spectrum is a function taking in a value of $k$ in units of $h {\rm Mpc}^{-1}$ giving an amplitude.
 
 ``` {.cpp #power-spectra}
+#include <yaml-cpp/yaml.h>
+
 using PowerSpectrum = std::function<double (double)>;
 using Config = YAML::Node;
 
@@ -400,6 +407,8 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
 }
 ```
 
+![The CDM power-spectrum (without baryons).](figures/power-spectrum.svg){#fig:cdm-power-spectrum}
+
 ### Normalisation
 
 The power-spectrum needs to be normalised so that the amplitudes of the density perturbations match those in the observed Universe.
@@ -412,10 +421,11 @@ $$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \fra
 where the Fourier transform of the top-hat window function is given by
 $$\hat{W}_{th}(y) = \frac{3}{y^3}\left(\sin y - y \cos y\right).$$
 
-There's a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution. In practice, good results are obtained by normalising using a numerical integration of Equation [@eq:normalisation] from $2 \pi / L$ to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.
+There's a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution. In practice, good results are obtained by normalising using a numerical integration of Equation\ @eq:normalisation from $2 \pi / L$ to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.
 
 ``` {.cpp file=src/normalize_power_spectrum.cc}
 #include "initial_conditions.hh"
+#include <iostream>
 
 <<gsl-integrate-qagiu>>
 
@@ -438,7 +448,7 @@ PowerSpectrum normalize_power_spectrum(
     }, k_lower, epsabs, epsrel);
 
   double A = sigma8 * sigma8 / x;
-  std::cout << "Normalised power spectrum, A = " << A << ".\n";
+  std::clog << "Normalised power spectrum, A = " << A << ".\n";
 
   return [=] (double k) {
     return A * P(k);
@@ -446,41 +456,11 @@ PowerSpectrum normalize_power_spectrum(
 }
 ```
 
-Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper.
-
-``` {.cpp #gsl-integrate-qagiu}
-#include <gsl/gsl_integration.h>
-
-double integration_helper(double x, void *params)
-{
-  auto f = reinterpret_cast<std::function<double (double)> *>(params);
-  return (*f)(x);
-}
-
-template <typename F>
-double integrate_qagiu(F const &func, double lower, double epsabs, double epsrel, size_t limit=1024)
-{
-  double x, abserr;
-  std::function<double (double)> integrant = func;
-  gsl_integration_workspace *workspace =
-    gsl_integration_workspace_alloc(limit);
-
-  gsl_function f;
-  f.function = &integration_helper;
-  f.params = reinterpret_cast<void *>(&integrant);
-
-  gsl_integration_qagiu(
-    &f, lower, epsabs, epsrel, limit,
-    workspace, &x, &abserr);
-
-  gsl_integration_workspace_free(workspace);
-  return x;
-}
-```
+Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper, specified in the appendix.
 
 ## Applying the power spectrum
 
-We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again.
+We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. Since we're working with a discrete Fourier transform and not the continuous used to normalise the power spectrum, we need to make sure not to lose any factors of $N$ or $L$. In practice this means we need to divide the power spectrum by the physical volume of a single voxel.
 
 ``` {.cpp file=src/apply_power_spectrum.cc}
 #include "initial_conditions.hh"
@@ -488,7 +468,7 @@ We now apply the desired power spectrum to the previously generated white noise.
 
 void compute_potential(
     BoxParam const &box,
-    xt::xtensor<double, 3> &field,
+    std::vector<double> &field,
     PowerSpectrum const &P)
 {
   RFFT3 rfft(box);
@@ -1077,7 +1057,7 @@ std::array<hsize_t, 3> shape = { box.N, box.N, box.N };
 H5::DataSpace dataspace(3, shape.data());
 H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 H5::DataSet dataset = file.createDataSet("potential", datatype, dataspace);
-dataset.write(field->data(), H5::PredType::NATIVE_DOUBLE);
+dataset.write(field.data(), H5::PredType::NATIVE_DOUBLE);
 ```
 
 ### Compute adhesion model
@@ -1110,7 +1090,7 @@ unsigned iteration = 0;
 for (double t : time) {
   std::cerr << "Computing regular triangulation ...\n";
   std::cerr << "time: " << t << " \n";
-  Adhesion adhesion(box, *field, t);
+  Adhesion adhesion(box, field, t);
   auto h5_group = file.createGroup(fmt::format("{}", iteration));
   auto time_attr = h5_group.createAttribute(
     "time", H5TypeFactory<double>::get(), H5::DataSpace());
@@ -1232,6 +1212,38 @@ int main(int argc, char **argv)
 \pagebreak
 
 # Appendix
+
+## Numerical integration
+
+``` {.cpp #gsl-integrate-qagiu}
+#include <gsl/gsl_integration.h>
+
+double integration_helper(double x, void *params)
+{
+  auto f = reinterpret_cast<std::function<double (double)> *>(params);
+  return (*f)(x);
+}
+
+template <typename F>
+double integrate_qagiu(F const &func, double lower, double epsabs, double epsrel, size_t limit=1024)
+{
+  double x, abserr;
+  std::function<double (double)> integrant = func;
+  gsl_integration_workspace *workspace =
+    gsl_integration_workspace_alloc(limit);
+
+  gsl_function f;
+  f.function = &integration_helper;
+  f.params = reinterpret_cast<void *>(&integrant);
+
+  gsl_integration_qagiu(
+    &f, lower, epsabs, epsrel, limit,
+    workspace, &x, &abserr);
+
+  gsl_integration_workspace_free(workspace);
+  return x;
+}
+```
 
 ## Meshes
 

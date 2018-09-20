@@ -21,14 +21,17 @@ link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs)
 
 SHELL := /bin/bash
 
-format = markdown+fenced_code_attributes+citations
-report_args = --toc --filter pandoc-citeproc --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings
+format = markdown+fenced_code_attributes+citations+all_symbols_escapable
+pandoc_filters = pandoc-eqnos pandoc-fignos pandoc-citeproc
+report_args = --toc $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings 
+html_args = -s --toc --toc-depth=2 $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --mathjax --css "style.css"
 
 pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
 pd_list = $(call pd_call,list)
 pd_tangle = $(call pd_call,tangle)
 
 pdf_files = $(input_files:%.md=$(build_dir)/%.pdf)
+html_files = $(input_files:%.md=$(build_dir)/html/%.html)
 sources = $(shell $(pd_list) $(input_files))
 
 cc_files = $(filter-out src/main.cc, $(filter src/%.cc, $(sources)))
@@ -57,6 +60,14 @@ tangle: $(input_files)
 	source $(build_dir)/tangle.sh
 
 report: $(pdf_files)
+
+html: $(html_files)
+	cp -r figures build/html
+	cp scripts/style.css build/html
+
+$(build_dir)/html/%.html: %.md
+	mkdir -p $(build_dir)/html
+	pandoc $< -f $(format) $(html_args) -t html5 -o $@
 
 $(build_dir)/%.pdf : %.md
 	pandoc $< -f $(format) $(report_args) -t latex -o $@ --pdf-engine=xelatex
