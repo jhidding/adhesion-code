@@ -4,8 +4,13 @@ body
     max-width:	600pt;
     background:	#FFF;
     padding:	0 10pt 0 0;
-    font-family: "Bitstream Charter";
+    font-family: "Cantarell", "Verdana", sans-serif;
+    /* font-family: "Bitstream Charter"; */
     font-size: 14pt;
+}
+
+p {
+    text-align: justify;
 }
 
 a {
@@ -20,16 +25,25 @@ a {
     top: 0pt;
     left: 0pt;
     bottom: 0pt;
-    background: #eee;
-    border-right: solid thin black;
-    padding: 10pt;
+    background: rgb(0, 0, 0);
+    border-right: solid thin rgb(255, 255, 255);
+    padding: 20pt;
     padding-right: 25pt;
     width: 150pt;
+    color: #FFF;
+}
+
+#TOC a {
+    color: #eee;
+}
+
+#TOC ul {
+    padding: 3pt 0 3pt 10pt;
 }
 
 code
 {
-    font-family: "monofur for Powerline", Courier, monospace;
+    font-family: Courier, monospace;
 }
 
 .sourceCode
@@ -39,7 +53,10 @@ code
     border-radius: 5pt;
     background: #eee;
     padding: 10pt;
-    text-indent: 0pt;
+
+    width: 40em;
+    position: relative;
+    left: 25pt;
 }
 
 .sourceCode pre, .sourceCode code
@@ -47,6 +64,8 @@ code
     padding: unset;
     background: none;
     border: none;
+    width: unset;
+    left: unset;
 }
 
 figure 
