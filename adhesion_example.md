@@ -286,7 +286,7 @@ The initial conditions are randomly generated on a grid. We suppose a platonic i
 
 $$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$ {#eq:normal-distribution}
 
-A function following only this distribution, without any corellation between points, is also referred to as /white noise/. We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
+A function following only this distribution, without any corellation between points, is also referred to as *white noise*. We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
 
 The `white_noise` function fills a newly created array with random values, following a normal distribution with $\sigma = 1$.
 
@@ -472,13 +472,15 @@ void compute_potential(
     PowerSpectrum const &P)
 {
   RFFT3 rfft(box);
-  std::copy(field.begin(), field.end(), rfft.real_space.begin());
+  std::copy(field.begin(), field.end(),
+            rfft.real_space.begin());
   rfft.forward_transform();
 
   <<apply-power-spectrum>>
 
   rfft.backward_transform();
-  std::copy(rfft.real_space.begin(), rfft.real_space.end(), field.begin());
+  std::copy(rfft.real_space.begin(), rfft.real_space.end(),
+            field.begin());
 }
 ```
 
@@ -503,6 +505,14 @@ for (size_t i = 1; i < box.rfft_size(); ++i) {
 \pagebreak
 
 # The Adhesion model
+
+Now that we have set up the initial conditions, we can run the adhesion model. Given a time $t$, which is an alias for the *growing mode* solution of the linearised equations of structure formation, we can compute the regular triangulation weighted by the potential.
+
+``` {.cpp #workflow-adhesion}
+std::clog << "Computing regular triangulation for t = "
+          << t << " ...\n";
+Adhesion adhesion(box, field, t);
+```
 
 We're solving the inviscid Burgers equation,
 $$\partial_t \vec{v} + (\vec{v} \cdot \vec{\nabla}) \vec{v} = \nu \nabla^2 \vec{v},$$
@@ -574,7 +584,7 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
 
 Any node in the power diagram can be of the type *void*, *kurtoparabolic*, *wall*, *filament*, *cluster* or *undefined*. This last category is a catch-all that really shouldn't happen.
 
-A *kurtoparabolic* [@Frisch2001] is a point where a wall ends in a void. In the Zeldovich approximation we would see a cusp here, so the kurtoparabolic points are equivalent to $A_3$ singularities in Arnold's ADE classification [@Arnold1982,@Hidding2014].
+A *kurtoparabolic* [@Frisch2001] is a point where a wall ends in a void. In the Zeldovich approximation we would see a cusp here, so the kurtoparabolic points are equivalent to $A_3$ singularities in Arnold's ADE classification [@Arnold1982; @Hidding2014].
 
 ``` {.cpp #adhesion-node-type}
 enum NodeType : uint32_t {
@@ -805,7 +815,7 @@ The `Mesh` structure and `Decorated` helper class are defined in the `mesh.hh` h
 
 ### Obtaining duals
 
-The implementation of `power_diagram_faces` loops over all edges in the regular triangulation.
+The implementation of `power_diagram_faces` loops over all edges in the regular triangulation. For each edge we check if its length exceeds the threshold, then collect the dual vertices and add the polygon to the mesh.
 
 ``` {.cpp #pd-walls-loop}
 for (auto e = rt.finite_edges_begin();
@@ -826,7 +836,7 @@ if (is_big_edge(rt, *e, threshold)) {
 }
 ```
 
-Next we extract the power diagram vertices of the wall by looping over all *incident cells* of the edge. We need to take care not to include the infinite cell that represents everything outside the triangulation. Because the iteration of the incident cells is circular we cannot use a normal for-loop.
+Next we extract the power diagram vertices of the wall by looping over all *incident cells* of the edge. Because the iteration of the incident cells is circular we cannot use a normal for-loop. In stead, we use a do-while loop where the predicate is evaluated *after* each iteration. We need to take care not to include the infinite cell that represents everything outside the triangulation. If the infinite cell is encountered, this means that the edge is on the boundary of the triangulation. In that case the entire facet is dropped from the output.
 
 ``` {.cpp #pd-collect-dual}
 std::vector<unsigned> polygon;
@@ -852,9 +862,11 @@ if (ok) {
 }
 ```
 
+Note that we have not yet defined the `get_dual_vertex` function in *«pd-collect-dual»*. We will do so now.
+
 #### Dual vertex
 
-Every cell in the regular triangulation is associated with a vertex in the power diagram. We write a small helper function that obtains this dual vertex and caches it in a map.
+Every cell in the regular triangulation is associated with a vertex in the power diagram. We write a small helper function that obtains this dual vertex and caches it in a map. This ensures that every cell in the triangulation is mapped to a single unique vertex in the resulting mesh.
 
 ``` {.cpp #pd-dual-vertex}
 std::map<RT::Cell_handle, unsigned> cell_index;
@@ -877,7 +889,8 @@ auto get_dual_vertex = [&rt, &cell_index, &mesh] (
 We do not want to get the dual of all edges in the regular triangulation. Only those edges that exceed a given length are 'physical' objects. We check if the squared length of the edge `e` is larger than the given threshold:
 
 ``` {.cpp #pd-is-big-edge}
-inline bool is_big_edge(RT const &rt, RT::Edge const &e, double threshold)
+inline bool is_big_edge(
+    RT const &rt, RT::Edge const &e, double threshold)
 {
   double l = rt.segment(e).squared_length();
   return l < threshold;
@@ -887,7 +900,8 @@ inline bool is_big_edge(RT const &rt, RT::Edge const &e, double threshold)
 For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex.
 
 ``` {.cpp #pd-is-big-facet}
-inline bool is_big_facet(RT const &rt, RT::Facet const &f, double threshold)
+inline bool is_big_facet(
+    RT const &rt, RT::Facet const &f, double threshold)
 {
   RT::Cell_handle c = f.first;
   unsigned        k = f.second;
@@ -1032,7 +1046,6 @@ output:
 ``` {.cpp file=src/run.hh}
 #pragma once
 #include <yaml-cpp/yaml.h>
-#include <fmt/format.h>
 
 extern void run(YAML::Node const &config);
 ```
@@ -1042,6 +1055,7 @@ extern void run(YAML::Node const &config);
 #include <fstream>
 #include <exception>
 #include <H5Cpp.h>
+#include <fmt/format.h>
 
 #include "run.hh"
 #include "initial_conditions.hh"
@@ -1055,8 +1069,6 @@ void run(YAML::Node const &config)
   <<workflow>>
 }
 ```
-
-
 
 ### Write initial conditions to file
 
@@ -1098,9 +1110,8 @@ mesh_shape.emplace_back(new Plane<K>(centre - dz, -dz));
 
 unsigned iteration = 0;
 for (double t : time) {
-  std::cerr << "Computing regular triangulation ...\n";
-  std::cerr << "time: " << t << " \n";
-  Adhesion adhesion(box, field, t);
+  <<workflow-adhesion>>
+
   auto h5_group = file.createGroup(fmt::format("{}", iteration));
   auto time_attr = h5_group.createAttribute(
     "time", H5TypeFactory<double>::get(), H5::DataSpace());
