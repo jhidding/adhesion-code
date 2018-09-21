@@ -421,7 +421,7 @@ $$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \fra
 where the Fourier transform of the top-hat window function is given by
 $$\hat{W}_{th}(y) = \frac{3}{y^3}\left(\sin y - y \cos y\right).$$
 
-There's a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution. In practice, good results are obtained by normalising using a numerical integration of Equation\ @eq:normalisation from $2 \pi / L$ to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.
+There's a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution [see e.g. @Sirko2005]. In practice, good results are obtained by normalising using a numerical integration of Equation\ @eq:normalisation from $2 \pi / L$ to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.
 
 ``` {.cpp file=src/normalize_power_spectrum.cc}
 #include "initial_conditions.hh"
@@ -460,7 +460,7 @@ Here we used some helper functions to encapsulate the GSL integration routines i
 
 ## Applying the power spectrum
 
-We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. Since we're working with a discrete Fourier transform and not the continuous used to normalise the power spectrum, we need to make sure not to lose any factors of $N$ or $L$. In practice this means we need to divide the power spectrum by the physical volume of a single voxel.
+We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. We use a C++ wrapper around the FFTW3 library [@FFTW3], which is listed in the appendix. The wrapper class `RFFT3` allocates two `vector`s of memory for the input and output data. This is done using the FFTW routines, which ensure proper memory alignment for optimal algorithm efficiency. Note that our wrapper divides the result of the FFT computation by $N^3$ to normalise the end result, an action which FFTW omits.
 
 ``` {.cpp file=src/apply_power_spectrum.cc}
 #include "initial_conditions.hh"
@@ -472,21 +472,31 @@ void compute_potential(
     PowerSpectrum const &P)
 {
   RFFT3 rfft(box);
-  auto f_shape = box.rfft_shape();
-
   std::copy(field.begin(), field.end(), rfft.real_space.begin());
   rfft.forward_transform();
 
-  std::array<size_t, 3> loc = {0, 0, 1};
-  double V = pow(box.L / box.N, 3.0);
-  for (size_t i = 1; i < box.rfft_size(); ++i) {
-    double k = box.k_abs(loc);
-    rfft.fourier_space[i] *= sqrt(P(k) / V) / (k * k);
-    increment_index<3>(f_shape, loc);
-  }
+  <<apply-power-spectrum>>
 
   rfft.backward_transform();
   std::copy(rfft.real_space.begin(), rfft.real_space.end(), field.begin());
+}
+```
+
+Since we're working with a discrete Fourier transform and not the continuous used to normalise the power spectrum, we need to make sure not to lose any factors of $N$ or $L$. In practice this means we need to divide the power spectrum by the physical volume of a single voxel.
+
+Also, we divide by $k^2$ to compute the Zeldovich velocity potential, whereas the power spectrum specifies the linearly extrapolated power in the density perturbations.
+
+We skip the first element of the array by starting on index `{0, 0, 1}` and iterating from 1 to ${\rm size} - 1$. The index of `{0, 0, 0}` coincides with $k^2 = 0$, sometimes referred to as the *DC component*. This amplitude gives the summed value of all the (real-space) values in the field. The potential is gauge invariant, so the DC component is of no influence. Moreover, it would give us a division by zero if we were to try to compute it, resulting in a potential containing only `NaN`s.
+
+``` {.cpp #apply-power-spectrum}
+auto f_shape = box.rfft_shape();
+std::array<size_t, 3> loc = {0, 0, 1};
+double v = pow(box.L / box.N, 3.0);
+
+for (size_t i = 1; i < box.rfft_size(); ++i) {
+  double k = box.k_abs(loc);
+  rfft.fourier_space[i] *= sqrt(P(k) / v) / (k * k);
+  increment_index<3>(f_shape, loc);
 }
 ```
 
