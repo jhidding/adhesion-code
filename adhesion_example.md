@@ -1412,7 +1412,16 @@ double integrate_qagiu(
 ``` {.cpp file=src/mesh_manipulation.hh}
 #pragma once
 #include <tuple>
+
+#if __GNUC__ == 6
+#include <experimental/optional>
+namespace std {
+using namespace std::experimental;
+}
+#else
 #include <optional>
+#endif
+
 #include "mesh.hh"
 
 template <typename Point>
@@ -1731,6 +1740,12 @@ Mesh<Point, Info> select_mesh(
 #include "mesh.hh"
 #include <H5Cpp.h>
 
+#if H5_VERSION_GE(1, 10, 0)
+using FileOrGroup = H5::Group;
+#else
+using FileOrGroup = H5::CommonFG;
+#endif
+
 template <typename T>
 struct H5TypeFactory {};
 
@@ -1756,7 +1771,7 @@ struct H5TypeFactory<unsigned>
 
 template <typename V, typename S>
 void write_vector_with_shape(
-    H5::CommonFG &group,
+    FileOrGroup &group,
     std::string const &name,
     V const &v,
     S const &shape)
@@ -1770,7 +1785,7 @@ void write_vector_with_shape(
 
 template <typename V>
 void write_vector(
-    H5::CommonFG &group,
+    FileOrGroup &group,
     std::string const &name,
     V const &v)
 {
@@ -1778,7 +1793,10 @@ void write_vector(
   write_vector_with_shape(group, name, v, shape);
 }
 
-extern void write_mesh(H5::CommonFG &group, std::string const &name, Mesh<Point, double> const &mesh);
+extern void write_mesh(
+    FileOrGroup &group,
+    std::string const &name,
+    Mesh<Point, double> const &mesh);
 ```
 
 ### Saving to HDF5
@@ -1824,7 +1842,7 @@ H5::CompType h5_node_type()
 #include "writers.hh"
 
 void write_mesh(
-    H5::CommonFG &file,
+    FileOrGroup &file,
     std::string const &name,
     Mesh<Point, double> const &mesh)
 {

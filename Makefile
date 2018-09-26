@@ -1,9 +1,16 @@
 input_files = adhesion_example.md
 build_dir = ./build
 
-hdf5_cflags = $(shell pkg-config --cflags hdf5)
-hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
+# Get HDF5 compilation flags using pkg-config
+# hdf5_cflags = $(shell pkg-config --cflags hdf5)
+# hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
 
+# Get HDF5 compilation flags manually if pkg-config does not work
+hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-)
+hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
+
+# CGAL compile flags when compiling with GCC
+# Note that CLANG does not support -frounding-math
 cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
@@ -11,11 +18,16 @@ gsl_libs = $(shell pkg-config --libs gsl)
 
 coverage_cflags = --coverage
 
-compile = g++
-compile_flags = -std=c++17 -O3 -Wall -Isrc -I${HOME}/.local/include $(hdf5_cflags) $(cgal_cflags)
+# In case we're compiling with GCC 6
+cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${CONDA_PREFIX}/include -I${HOME}/.local/include 
 
+# If some of the dependencies are installed locally
+libs = -L${HOME}/.local/lib -L${CONDA_PREFIX}/lib
+
+compile = g++
+compile_flags = -std=c++14 -O3 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(cflags)
 link = g++
-link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs)
+link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(libs)
 
 # ===========================================================================
 
