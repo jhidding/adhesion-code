@@ -21,10 +21,10 @@ link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs)
 
 SHELL := /bin/bash
 
-format = markdown+fenced_code_attributes+citations+all_symbols_escapable
+format = markdown+fenced_code_attributes+citations+all_symbols_escapable+multiline_tables
 pandoc_filters = pandoc-eqnos pandoc-fignos pandoc-citeproc
 report_args = --toc $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings 
-html_args = -s --toc --toc-depth=2 $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --mathjax --css "style.css"
+html_args = -s --toc --toc-depth=3 $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --mathjax --css "style.css" --base-header-level=2
 
 pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
 pd_list = $(call pd_call,list)

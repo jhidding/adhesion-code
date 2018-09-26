@@ -10,7 +10,7 @@ reference-section-title: References
 
 # Abstract
 
-We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code reads or generates an initial potential field and computes the *regular triangulation* to that potential, that is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for visualisation.
+We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code reads or generates an initial potential field and computes the *regular triangulation* to that potential, that is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
 
 ## Version
 
@@ -36,19 +36,50 @@ This document is aimed to be self-containing. This means that all the code to bu
 
 From the reader a basic knowledge of programming is required. Familiarity with C/C++ will help to understand the code samples. However, all the code is explained in detail. To run the code the following libraries should be present on the system:
 
-| Package  | version | description |
-|----------|---------|-------------|
-| C++ compiler | C++17 standard | Tested with GCC 8. |
-| GNU Make | - | - |
-| CGAL     | ≥4.12   | [The Computational Geometry Algorithm Library](http://cgal.org) |
-| FFTW3    | ≥3.3    | [The Fastest Fourier Transform in the West](http://www.fftw.org/) |
-| GSL      | ≥2.5    | [GNU Scientific Library](https://www.gnu.org/software/gsl/) |
-| hdf5-cpp | ≥1.8.13 | [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data. |
-| yaml-cpp | ≥0.5    | [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files. |
-| argagg   | ≥0.4.6  | [ArgAgg](https://github.com/vietjtnguyen/argagg) stands for Argument Aggregator and is a C++ command-line argument parser. |
-| fmt      | ≥4.1    | [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's. |
-| Pandoc   | ≥2.2.1  | [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.1 or higher and the `pandoc-citeproc`, `pandoc-eqnos` and `pandoc-fignos` extensions. |
-| rsvg-convert | ≥2.40 | When converting to PDF or LaTeX, we need `rsvg-convert` to convert some of the images. |
+------------------------------------------------------------------------------
+Package          Version   Description
+---------------- --------- ---------------------------------------------------
+C++ compiler     C++17     Tested with GCC 8 and LLVM 6.
+
+GNU Make         ≥4.0      Build everything.
+
+CGAL             ≥4.12     [The Computational Geometry Algorithm Library](http://cgal.org)
+
+FFTW3            ≥3.3      [The Fastest Fourier Transform in the West](http://www.fftw.org/)
+
+GSL              ≥2.5      [GNU Scientific Library](https://www.gnu.org/software/gsl/)
+
+hdf5-cpp         ≥1.8.13   [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html)
+                           is used to store large blobs of binary data and meta data.
+
+yaml-cpp         ≥0.5      [YAML-cpp](https://github.com/jbeder/yaml-cpp)
+                           is a YAML parser for C++. We use it to parse configuration files.
+
+argagg           ≥0.4.6    [ArgAgg](https://github.com/vietjtnguyen/argagg)
+                           stands for Argument Aggregator and is a C++ command-line argument parser.
+
+fmt              ≥4.1      [fmt](http://fmtlib.net/latest/index.html)
+                           is a string formatting library that has a similar interface as Python's.
+------------------------------------------------------------------------------
+
+Extracting the source code from the Markdown or building the report is done using the Pandoc document converter. Additional requirements are:
+
+------------------------------------------------------------------------------
+Package          Version   Description
+---------------- --------- ---------------------------------------------------
+Pandoc           ≥2.2.1    [Pandoc](http://pandoc.org/)
+                           is a universal document converter. You'll need a version with Lua filter support, which was added in Pandoc 2.0.
+
+pandoc-citeproc            BibTeX support for Pandoc.
+
+pandoc-eqnos     ≥1.3.0    Number and reference equations.
+                           This extension was written in Python, it can be installed using `pip install pandoc-eqnos`.
+
+pandoc-fignos    ≥1.3.0    Number and reference figures.
+                           Another Python extension, install with `pip install pandoc-fignos`.
+
+rsvg-convert     ≥2.40     Convert SVG files.
+------------------------------------------------------------------------------
 
 All of these packages are available in the Debian GNU/Linux package repositories.
 
@@ -91,35 +122,77 @@ These blocks of code can be *tangled* into source files. The source code present
 
 \pagebreak
 
-# Introduction to CGAL
+## Program outline
 
-## CGAL Geometry kernels
+The program reads a YAML configuration file and writes output data to HDF5. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages. HDF5 files can be read in all widely used data analysis frameworks, i.e. Python, GNU R, Julia or even Matlab if you're so inclined.
 
-CGAL comes with a set of *geometry kernels*. Each kernel bundles basic type definitions like `Point`, `Vector`, `Circle`, etc. and geometric operations on those types. Depending on the requirements of the programmer, we can choose different implementations of these concepts. These implementations vary in representation of real numbers, vector quantities, and how geometric operations are computed on them. Some abstract applications require an exact representation of numbers while other more cosmological applications can afford to be more liberal with regards to exactness.
+The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the $\Lambda$CDM cosmological model in the form of an initial velocity potential $\Phi_0$. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.
 
-The algorithms that actually do the advanced geometric computations, like the regular triangulations we use, are implemented in generic terms using C++ template techniques. We need to supply those algorithms the correct geometry kernel for our application. This is why all CGAL programs start with a list of template type definitions.
+Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.
 
-In our case, what we need is a double precision floating point representation of numbers, while retaining logical consistency in geometric predicates, of which the co-linearity test is the most obvious example. This is provided by the `Exact_predicates_inexact_constructions_kernel` kernel.
+### Configuration
 
-We collect those type definitions in a separate header file:
+We read the configuration from a YAML file. This file specifies the box size, cosmology and the requested output. For the cosmological parameters we took the latest values from the Planck collaboration [@Planck2018].
 
-``` {.cpp file=src/cgal_base.hh}
-#pragma once
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Regular_triangulation_3.h>
+``` {.yaml #default-config file=examples/lcdm.yaml}
+# Default configuration
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Regular_triangulation_3<K>                    RT;
+box:
+  N:      128       # logical box size
+  L:       50.0     # physical box size
 
-typedef K::Vector_3           Vector;
-typedef K::Point_3            Point;
-typedef RT::Edge              Edge;
-typedef RT::Weighted_point    Weighted_point;
-typedef RT::Segment           Segment;
-typedef RT::Tetrahedron       Tetrahedron;
+cosmology:
+  power-spectrum: Eisenstein & Hu (no baryons)
+  h:        0.674   # Hubble parameter / 100
+  ns:       0.965   # primordial power spectrum index
+  Omega0:   1.0     # density in units of critical density
+  sigma8:   0.811   # amplitude over 8 Mpc/h
+
+run:
+  seed:     8
+  time:     [0.2, 0.5, 1.0]
+
+output:
+  hdf5:            output/lcdm.h5
+  walls:           output/lcdm-{time:02.1f}-walls.obj
+  filaments:       output/lcdm-{time:02.1f}-filaments.obj
+  threshold:       1.0
 ```
 
-Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they can have the same numerical representation, but this may not strictly be the case for all geometry kernels.
+In the output specification we inserted some syntax for formatting the output filename based on the time step. The `{time:02.1f}` part in the output filenames for walls and filaments will be replaced with the `time` parameter of the run. The syntax of these format expressions is specified in [the documentation of the `fmt` library](http://fmtlib.net/dev/syntax.html).
+
+The `threshold` parameter is the square of the length at which we consider an edge to span a collapsed structure. In a triangulated grid edges can have a length of $\sqrt{3} l_p$, where $l_p$ is the resolution of the box $l_p = L/N$. This means that the threshold should be set higher than $3 L^2/N^2$. In this case, with $L = 50.0 h^{-1} {\rm Mpc}$ and $N = 128$, a threshold length of $1.0$ is a safe choice.
+
+### Command line arguments
+
+The main program has only few arguments. It reads configuration from a specified input file. We include the above configuration as a fallback if no arguments are given.
+
+``` {.cpp #main-arguments}
+argagg::parser argparser {{
+  { "help",    {"-h", "--help"},
+    "Show this help message.", 0 },
+  { "version", {"--version"},
+    "Show the software version.", 0 },
+  { "config",  {"-c", "--config"},
+    "Supply configuration file.", 1 },
+  { "defaults", {"-d", "--defaults"},
+    "Show default configuration.", 0 }
+}};
+```
+
+The `ArgAgg` library parses command-line arguments and even composes a help message when the user passes the `--help` flag.
+
+```
+Adhesion model example code -- (C) 2018 Johan Hidding
+    -h, --help
+        Show this help message.
+    --version
+        Show the software version.
+    -c, --config
+        Supply configuration file.
+    -d, --defaults
+        Show default configuration.
+```
 
 # Initial conditions
 
@@ -152,23 +225,12 @@ inline T sqr(T x) { return x*x; }
 
 struct BoxParam {
   unsigned N;         // number of grid points in a row
-  size_t   size;      // number of points in the entire box
   double   L;         // physical size of the box
-  double   res;       // resolution of the box
-  double   res_sqr;   // square of the resolution
 
   BoxParam(unsigned N_, double L_)
     : N(N_)
-    , size(N*N*N)
     , L(L_)
-    , res(L/N)
-    , res_sqr(res*res)
   {}
-
-  std::array<size_t, 3> shape() const
-  {
-    return std::array<size_t, 3>{ N, N, N };
-  }
 
   <<fourier-properties>>
 
@@ -180,17 +242,28 @@ We add a method to compute the $n$-th point on a grid.
 
 ``` {.cpp #boxparam-methods}
 template <typename Point>
-Point point(size_t i) const
-{
+Point point(size_t i) const {
   int x = i % N;
   int y = (i / N) % N;
   int z = i / (N * N);
 
-  return Point(x * res, y * res, z * res);
+  return Point(x * L/N, y * L/N, z * L/N);
 }
 ```
 
-Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. This also means that when we use a `std::array<size_t,3>` as a 3-dimensional index into an array, the axes are reversed, so `{z, y, x}`. Later on, we will be adding more methods to the `BoxParam` structure.
+Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. This also means that when we use a `std::array<size_t,3>` as a 3-dimensional index into an array, the axes are reversed, so `{z, y, x}`.
+
+Some essential helper functions we'll need are the `shape` and `size` of the box.
+
+``` {.cpp #boxparam-methods}
+std::array<size_t, 3> shape() const {
+  return std::array<size_t, 3>{ N, N, N };
+}
+
+size_t size() const {
+  return N * N * N;
+}
+```
 
 ### Fourier properties
 
@@ -298,7 +371,7 @@ std::vector<double>
 generate_white_noise(
     BoxParam const &box, unsigned long seed)
 {
-  auto result = std::vector<double>(box.size);
+  auto result = std::vector<double>(box.size());
 
   std::mt19937 random(seed);
   std::normal_distribution<double> normal;
@@ -458,7 +531,7 @@ PowerSpectrum normalize_power_spectrum(
 
 Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper, specified in the appendix.
 
-## Applying the power spectrum
+### Applying the power spectrum
 
 We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. We use a C++ wrapper around the FFTW3 library [@FFTW3], which is listed in the appendix. The wrapper class `RFFT3` allocates two `vector`s of memory for the input and output data. This is done using the FFTW routines, which ensure proper memory alignment for optimal algorithm efficiency. Note that our wrapper divides the result of the FFT computation by $N^3$ to normalise the end result, an action which FFTW omits.
 
@@ -502,6 +575,19 @@ for (size_t i = 1; i < box.rfft_size(); ++i) {
 }
 ```
 
+## Write initial conditions to file
+
+When we're all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the appendix.
+
+``` {.cpp #workflow}
+std::string output_filename
+  = config["output"]["hdf5"].as<std::string>();
+H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
+
+write_vector_with_shape(
+  output_file, "potential", field, box.shape());
+```
+
 \pagebreak
 
 # The Adhesion model
@@ -514,8 +600,17 @@ std::clog << "Computing regular triangulation for t = "
 Adhesion adhesion(box, field, t);
 ```
 
-We're solving the inviscid Burgers equation,
-$$\partial_t \vec{v} + (\vec{v} \cdot \vec{\nabla}) \vec{v} = \nu \nabla^2 \vec{v},$$
+Normally, we derive the fact that we can solve the adhesion model using regular triangulations from existing solutions [@Hopf1950] of the equation of motion, Burgers equation,
+$$\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.$${#eq:burgers-equation}
+We may also understand this idea from a more kinematic point of view.
+
+We assume an ensemble of particles moving by a potential $\Phi_0({\bf q})$ from their starting position ${\bf q}$ to a target position ${\bf x}$,
+$${\bf x} = {\bf q} + t {\bf \nabla} \Phi_0({\bf q}).$$
+This is known as the Zeldovich approximation [@Zeldovich1970; @Shandarin1989]. This has the problem that particles continue to move in a straight line, even after structures form. We'd like to have particles adhere together once they form structures, hence the name: *adhesion model*.
+
+Suppose the velocity field ${\bf \nabla}\Phi_0$ can be described as a series of shock fronts expanding from a finite set of points $\{{\bf q_i}\}$.
+Let's turn around the question, and see where does a particle come from if it is found at time $t$ at position ${\bf x}$? We may answer this question if we assume a set of 
+
 in the limit of $\nu \to 0$. @Hopf1950 gave the solution to this equation. This solution is given by maximising the function
 $$G(\vec{q}, \vec{x}, t) = \Phi_0(\vec{q}) - \frac{(\vec{x} - \vec{q})^2}{2t},$$
 to obtain the Eulerian velocity potential
@@ -556,6 +651,34 @@ public:
 };
 ```
 
+## CGAL Geometry kernels
+
+CGAL comes with a set of *geometry kernels*. Each kernel bundles basic type definitions like `Point`, `Vector`, `Circle`, etc. and geometric operations on those types. Depending on the requirements of the programmer, we can choose different implementations of these concepts. These implementations vary in representation of real numbers, vector quantities, and how geometric operations are computed on them. Some abstract applications require an exact representation of numbers while other more cosmological applications can afford to be more liberal with regards to exactness.
+
+The algorithms that actually do the advanced geometric computations, like the regular triangulations we use, are implemented in generic terms using C++ template techniques. We need to supply those algorithms the correct geometry kernel for our application. This is why all CGAL programs start with a list of template type definitions.
+
+In our case, what we need is a double precision floating point representation of numbers, while retaining logical consistency in geometric predicates, of which the co-linearity test is the most obvious example. This is provided by the `Exact_predicates_inexact_constructions_kernel` kernel.
+
+We collect those type definitions in a separate header file:
+
+``` {.cpp file=src/cgal_base.hh}
+#pragma once
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Regular_triangulation_3.h>
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef CGAL::Regular_triangulation_3<K>                    RT;
+
+typedef K::Vector_3           Vector;
+typedef K::Point_3            Point;
+typedef RT::Edge              Edge;
+typedef RT::Weighted_point    Weighted_point;
+typedef RT::Segment           Segment;
+typedef RT::Tetrahedron       Tetrahedron;
+```
+
+Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they can have the same numerical representation, but this may not strictly be the case for all geometry kernels.
+
 ## Computing the triangulation
 
 We give each point in the grid a weight proportional to the velocity potential,
@@ -567,7 +690,7 @@ template <typename Array>
 Adhesion(BoxParam const &box, Array &&potential, double t)
   : time(t)
 {
-  for (size_t i = 0; i < box.size; ++i)
+  for (size_t i = 0; i < box.size(); ++i)
   {
     vertices.emplace_back(
       box.point<Point>(i),
@@ -581,6 +704,20 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
 ```
 
 ## Node properties
+
+We will first see how to extract properties of *nodes* from the regular triangulation. Later on, we'll look at the duals of edges and faces to visualise the walls and filaments more directly.
+
+To understand how we get to the shape of a tetrahedron, we first have to understand how triangulations in CGAL are stored and accessed.
+
+### CGAL Triangulation data structures
+
+First of all, the points in a triangulation are stored in a separate list. We can retrieve the actual point belonging to a vertex by indexing that list. The triangulation data structure then only deals with *vertex handles*, which is just an alias for an integer.
+
+Second, the triangulation itself stores a list of cells. Each cell has four vertex handles and four *cell handles* pointing to the neighbours of the cell. Again a cell handle may be implemented with as little as an integer index into the list of cells. The neighbouring cell handles are stored in the same order as the vertices, that is, each neighbouring cell corresponds to its opposite vertex.
+
+Edges are not stored, but represented as a cell handle and two indices between zero and three (inclusive). Similarly, facets are represented as a cell handle and the opposite vertex. More about the CGAL triangulation data structure can be read in the [CGAL manual](https://doc.cgal.org/latest/TDS_3/index.html).
+
+### Node types
 
 Any node in the power diagram can be of the type *void*, *kurtoparabolic*, *wall*, *filament*, *cluster* or *undefined*. This last category is a catch-all that really shouldn't happen.
 
@@ -603,9 +740,19 @@ struct Node {
 };
 ```
 
-Note that the masses of any cell other then the cluster cells carry no physical meaning, unless corrected for the resolution of the box. If we double the resolution, the average mass of a void particle drops by a factor eight, the average mass of a wall particle by a factor four, and the average mass of a filament particle by a factor two. Also we know that the total mass is conserved.
+Note that the masses of any cell other then the cluster cells carry no physical meaning, unless somehow corrected for the resolution of the box. If we double the resolution, the average mass of a void particle drops by a factor eight, the average mass of a wall particle by a factor four, and the average mass of a filament particle by a factor two. Also we know that the total mass is conserved.
 
-## Filtering for structures
+On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure\ @fig:node-classes.
+
+![Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.](figures/node-classes.svg){#fig:node-classes}
+
+Note that there are many species of kurtoparabolic points. The ones listed under 'kurto-parabolics' have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurto-parabolic *e*, which has a filament (and three wall segments) ending in a void.
+
+There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type *c*. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.
+
+The filament and cluster classifications are completely unambiguous. Their number of long edges and number of components connected by short edges both uniquely determine their type.
+
+### Filtering for structures
 
 When we want to select filaments or clusters we need to count how many edges of a certain cell in the regular triangulation exceeds a given threshold. The function `Adhesion::edge_count` takes a cell handle and a threshold and returns the number of long edges. This count determines if the cell is part of a void, wall, filament or node.
 
@@ -637,7 +784,7 @@ inline Adhesion::NodeType type_from_edge_count(int n)
 
 ### Counting edges
 
-We count the number of edges that are incident to the cell `h` and exceed the distance squared `threshould`.
+We count the number of edges that are incident to the cell `h` and exceed the distance squared `threshold`.
 
 ``` {.cpp file=src/adhesion_edge_count.cc}
 #include "adhesion.hh"
@@ -657,14 +804,6 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
   }
   return count;
 }
-```
-
-## Counting equivalent groups
-
-Another way to detect the type of a node is by counting the number of groups in the vertices of a cell in the regular triangulation, going by an equivalence relation between the vertices based on their connectivity in the non-weighted Delaunay triangulation.
-
-``` {.cpp #adhesion-vertex-equivalence}
-// NYI
 ```
 
 ## Velocity
@@ -796,9 +935,12 @@ extern Mesh<Point, double> power_diagram_edges(
 
 ### The `Mesh` data structure
 
-The `Mesh` structure contains a vector of points `vertices` and a vector of vector of unsigned integers `polygons` indexing into the `vertices` vector. We have decorated each polygon in the `polygons` vector with a value of type `double` to give the surface density of that polygon, hence `Mesh<Point, double>`.
+The `Mesh` structure contains a vector of points `vertices`, a vector of integers `data` indexing into the `vertices` vector, and a vector of integers indicating the size of each polygon. Additional information on the polygons is stored in an vector of `Info`. In our application the `Info` datatype will be a `double` value indicating the density of the walls or filaments stored in the mesh.
 
-``` {.cpp #mesh-definition}
+``` {.cpp file=src/mesh.hh}
+#pragma once
+#include <vector>
+
 template <typename Point, typename Info>
 struct Mesh
 {
@@ -811,7 +953,26 @@ struct Mesh
 };
 ```
 
-The `Mesh` structure and `Decorated` helper class are defined in the `mesh.hh` header file.
+This definition of `Mesh` is slightly more involved than using a `vector<vector<unsigned>>` to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.
+
+We defined two methods to the `Mesh` structure. The `size()` method gives the amount of polygons in the mesh.
+
+``` {.cpp #mesh-methods}
+size_t size() const { return sizes.size(); }
+```
+
+Similar to a `vector::push_back()`, `Mesh::push_back()` adds a polygon to the mesh.
+
+``` {.cpp #mesh-methods}
+void push_back(
+  std::vector<unsigned> const &vertices,
+  Info const &i)
+{
+  data.insert(data.end(), vertices.begin(), vertices.end());
+  sizes.push_back(vertices.size());
+  info.push_back(i);
+}
+```
 
 ### Obtaining duals
 
@@ -1014,32 +1175,6 @@ Mesh<Point, double> Adhesion::get_filaments(
 
 We're now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly.
 
-## Configuration
-
-We read the configuration from a YAML file. Let's take the latest values from the Planck collaboration.
-
-``` {.yaml #default-config file=examples/lcdm.yaml}
-box:
-  N:      128       # logical box size
-  L:       50.0     # physical box size
-
-cosmology:
-  power-spectrum: Eisenstein & Hu
-  h:        0.674   # Hubble parameter / 100
-  ns:       0.965   # primordial power spectrum index
-  Omega0:   1.0     # density in units of critical density
-  sigma8:   0.811   # amplitude over 8 Mpc/h
-
-run:
-  seed:     8
-  time:     [0.2, 0.5, 1.0]
-
-output:
-  hdf5:            output/lcdm.h5
-  walls:           output/lcdm-{time:02.1f}-walls.obj
-  filaments:       output/lcdm-{time:02.1f}-filaments.obj
-  threshold:       10.0
-```
 
 ## Run function
 
@@ -1060,6 +1195,7 @@ extern void run(YAML::Node const &config);
 #include "run.hh"
 #include "initial_conditions.hh"
 #include "adhesion.hh"
+#include "mesh_manipulation.hh"
 #include "shapes.hh"
 #include "writers.hh"
 #include "write_obj.hh"
@@ -1070,19 +1206,12 @@ void run(YAML::Node const &config)
 }
 ```
 
-### Write initial conditions to file
+### Opening the output file
 
-``` {.cpp #workflow}
-std::string output_filename = config["output"]["hdf5"].as<std::string>();
-H5::H5File file(output_filename, H5F_ACC_TRUNC);
-std::array<hsize_t, 3> shape = { box.N, box.N, box.N };
-H5::DataSpace dataspace(3, shape.data());
-H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
-H5::DataSet dataset = file.createDataSet("potential", datatype, dataspace);
-dataset.write(field.data(), H5::PredType::NATIVE_DOUBLE);
-```
 
-### Compute adhesion model
+### Loop over times
+
+We read the time specification from the configuration. Either a single time output is given, or a list of times.
 
 ``` {.cpp #workflow}
 std::vector<double> time;
@@ -1096,23 +1225,39 @@ switch (time_cfg.Type()) {
     break;
   default: throw std::runtime_error("No time given.");
 }
+```
 
-double threshold = config["output"]["threshold"].as<double>(0.0);
-std::string walls_filename = config["output"]["walls"].as<std::string>();
-std::string filaments_filename = config["output"]["filaments"].as<std::string>();
+### Selection volume
 
+``` {.cpp #workflow}
 std::vector<std::unique_ptr<Surface<Point>>> mesh_shape;
 Point centre(box.L/2, box.L/2, box.L/2);
 Vector dz(box.L/10, 0.0, 0.0);
 mesh_shape.emplace_back(new Sphere<K>(centre, 0.4 * box.L));
 mesh_shape.emplace_back(new Plane<K>(centre + dz, dz));
 mesh_shape.emplace_back(new Plane<K>(centre - dz, -dz));
+```
 
+### Output configuration
+
+``` {.cpp #workflow}
+double threshold
+  = config["output"]["threshold"].as<double>(0.0);
+std::string walls_filename
+  = config["output"]["walls"].as<std::string>();
+std::string filaments_filename
+  = config["output"]["filaments"].as<std::string>();
+```
+
+### Iterate time frames
+
+``` {.cpp #workflow}
 unsigned iteration = 0;
 for (double t : time) {
   <<workflow-adhesion>>
 
-  auto h5_group = file.createGroup(fmt::format("{}", iteration));
+  auto h5_group = output_file.createGroup(
+    fmt::format("{}", iteration));
   auto time_attr = h5_group.createAttribute(
     "time", H5TypeFactory<double>::get(), H5::DataSpace());
   time_attr.write(H5TypeFactory<double>::get(), &t);
@@ -1131,14 +1276,14 @@ auto nodes = adhesion.get_nodes(threshold);
 write_vector(h5_group, "nodes", nodes);
 ```
 
-### Write a sphere to OBJ
+### Write the walls
 
 ``` {.cpp #run-write-obj}
 {
   auto walls = adhesion.get_walls(threshold);
-  std::cerr << "Walls: " << walls.vertices.size() << " vertices and " << walls.size() << " polygons.\n";
-  std::string filename = fmt::format(walls_filename, fmt::arg("time", t));
-  std::cerr << "writing to " << filename << "\n";
+  std::string filename = fmt::format(
+    walls_filename, fmt::arg("time", t));
+  std::clog << "writing to " << filename << "\n";
 
   std::ofstream ff(filename);
   auto selected_faces = select_mesh(walls, mesh_shape);
@@ -1147,12 +1292,14 @@ write_vector(h5_group, "nodes", nodes);
 }
 ```
 
+### Write the filaments
+
 ``` {.cpp #run-write-obj}
 {
   auto filaments = adhesion.get_filaments(threshold);
-  std::cerr << "Filaments: " << filaments.vertices.size() << " vertices and " << filaments.size() << " polygons.\n";
-  std::string filename = fmt::format(filaments_filename, fmt::arg("time", t));
-  std::cerr << "writing to " << filename << "\n";
+  std::string filename = fmt::format(
+    filaments_filename, fmt::arg("time", t));
+  std::clog << "writing to " << filename << "\n";
 
   std::ofstream ff(filename);
   auto selected_edges = select_mesh(filaments, mesh_shape, false);
@@ -1162,21 +1309,6 @@ write_vector(h5_group, "nodes", nodes);
 ```
 
 ## Main function
-
-The main program has not many arguments. It reads configuration from standard input in the YAML format. Any binary data will be stored in an auxiliary HDF5 file.
-
-``` {.cpp #main-arguments}
-argagg::parser argparser {{
-  { "help",    {"-h", "--help"},
-    "Show this help message.", 0 },
-  { "version", {"--version"},
-    "Show the software version.", 0 },
-  { "config",  {"-c", "--config"},
-	  "Supply configuration file.", 1 }
-}};
-```
-
-We include the default configuration as a fallback.
 
 ``` {.cpp file=src/main.cc}
 #include <iostream>
@@ -1214,6 +1346,11 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
 
+  if (args["defaults"]) {
+    std::cout << default_config;
+    return EXIT_SUCCESS;
+  }
+
   YAML::Node config;
   if (args["config"]) {
     auto config_file = args["config"].as<std::string>();
@@ -1239,17 +1376,21 @@ int main(int argc, char **argv)
 ``` {.cpp #gsl-integrate-qagiu}
 #include <gsl/gsl_integration.h>
 
+using Function = std::function<double (double)>;
+
 double integration_helper(double x, void *params)
 {
-  auto f = reinterpret_cast<std::function<double (double)> *>(params);
+  auto f = reinterpret_cast<Function *>(params);
   return (*f)(x);
 }
 
 template <typename F>
-double integrate_qagiu(F const &func, double lower, double epsabs, double epsrel, size_t limit=1024)
+double integrate_qagiu(
+    F const &func, double lower,
+    double epsabs, double epsrel, size_t limit=1024)
 {
   double x, abserr;
-  std::function<double (double)> integrant = func;
+  Function integrant = func;
   gsl_integration_workspace *workspace =
     gsl_integration_workspace_alloc(limit);
 
@@ -1266,14 +1407,13 @@ double integrate_qagiu(F const &func, double lower, double epsabs, double epsrel
 }
 ```
 
-## Meshes
+## Manipulating meshes
 
-``` {.cpp file=src/mesh.hh}
+``` {.cpp file=src/mesh_manipulation.hh}
 #pragma once
-
 #include <tuple>
-#include <memory>
-#include <vector>
+#include <optional>
+#include "mesh.hh"
 
 template <typename Point>
 using Polygon = std::tuple<
@@ -1286,34 +1426,17 @@ using PolygonPair = std::tuple<
                       std::vector<unsigned>,
                       std::vector<unsigned>>;
 
-<<mesh-definition>>
+<<surface-class>>
+<<split-polygon>>
+<<select-mesh>>
 <<clean-mesh>>
 ```
-
-``` {.cpp #mesh-methods}
-size_t size() const { return sizes.size(); }
-
-void push_back(
-  std::vector<unsigned> const &vertices,
-  Info const &i)
-{
-  data.insert(data.end(), vertices.begin(), vertices.end());
-  sizes.push_back(vertices.size());
-  info.push_back(i);
-}
-```
-
-## Manipulating meshes
 
 To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.
 
 To select parts of a mesh we need to define a surface that can tell us on what side a point lies, and if we have two points, if and where the segment between those points intersects. This concept of a `Surface` is embodied by the following abstract base class:
 
-``` {.cpp file=src/surface.hh}
-#pragma once
-#include <optional>
-#include "mesh.hh"
-
+``` {.cpp #surface-class}
 template <typename Point>
 class Surface
 {
@@ -1321,10 +1444,9 @@ public:
   virtual int oriented_side(Point const &p) const = 0;
   virtual std::optional<Point> intersect(
     Point const &a, Point const &b) const = 0;
+  
+  virtual ~Surface() {}
 };
-
-<<split-polygon>>
-<<select-mesh>>
 ```
 
 Given an implementation of such a class, we  can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.
@@ -1478,7 +1600,7 @@ public:
 
 ``` {.cpp file=src/shapes.hh}
 #pragma once
-#include "surface.hh"
+#include "mesh_manipulation.hh"
 
 template <typename T>
 inline int sign(T a)
@@ -1509,13 +1631,13 @@ public:
   }
 
   std::optional<Point> intersect(Point const &a, Point const &b) const
-  {    
+  {
     Vector u = centre - a,
            v = b - a;
-    
+
     if (v * normal == 0)
       return std::nullopt;
-    
+
     double t = (u * normal) / (v * normal);
 
     if (t < 0 || t > 1)
@@ -1632,22 +1754,23 @@ struct H5TypeFactory<unsigned>
 
 #include "writers/h5_node_type.ih"
 
-template <typename V>
+template <typename V, typename S>
 void write_vector_with_shape(
-    H5::Group &group,
+    H5::CommonFG &group,
     std::string const &name,
     V const &v,
-    std::vector<hsize_t> const &shape)
+    S const &shape)
 {
+  std::vector<hsize_t> hshape(shape.begin(), shape.end());
   auto          data_type = H5TypeFactory<typename V::value_type>::get();
-  H5::DataSpace data_space(shape.size(), shape.data());
+  H5::DataSpace data_space(hshape.size(), hshape.data());
   auto          data_set = group.createDataSet(name, data_type, data_space);
   data_set.write(v.data(), data_type);
 }
 
 template <typename V>
 void write_vector(
-    H5::Group &group,
+    H5::CommonFG &group,
     std::string const &name,
     V const &v)
 {
@@ -1827,7 +1950,7 @@ private:
 public:
   RFFT3(BoxParam const &box_):
     fourier_space(box_.rfft_size()),
-    real_space(box_.size),
+    real_space(box_.size()),
     box(box_)
   {
     int N = static_cast<int>(box.N);
@@ -1851,7 +1974,7 @@ public:
   void backward_transform()
   {
       fftw_execute(d_plan_bwd);
-      for (double &z : real_space) z /= box.size;
+      for (double &z : real_space) z /= box.size();
   }
 };
 ```

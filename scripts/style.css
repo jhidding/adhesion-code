@@ -7,6 +7,7 @@ body
     font-family: "Cantarell", "Verdana", sans-serif;
     /* font-family: "Bitstream Charter"; */
     font-size: 14pt;
+    counter-reset: h1;
 }
 
 p {
@@ -14,8 +15,31 @@ p {
 }
 
 a {
-    color: #333;
+    color: rgb(102, 41, 41);
     text-decoration: none;
+}
+
+h2 {
+    counter-reset: h2;
+}
+
+h3 {
+    counter-reset: h3;
+}
+
+h2:before {
+    content: counter(h1) ".\0000a0\0000a0";
+    counter-increment: h1;
+}
+
+h3:before {
+    content: counter(h1) "." counter(h2) ".\0000a0\0000a0";
+    counter-increment: h2;
+}
+
+h4:before {
+    content: counter(h1) "." counter(h2) "." counter(h3) ".\0000a0\0000a0";
+    counter-increment: h3;
 }
 
 #TOC

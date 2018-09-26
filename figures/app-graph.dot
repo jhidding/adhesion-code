@@ -1,0 +1,34 @@
+digraph {
+    subgraph cluster_0 {
+        label = "Input"
+        labeljust = l
+
+        YAML   [ label = "YAML", shape = box ]
+    }
+
+    subgraph cluster_1 {
+        label = "Adhesion code"
+        labeljust = l
+
+        IC [ label = "Initial conditions" ]
+        RT [ label = "Regular Triangulation" ]
+        DE [ label = "Data extraction" ]
+        IC -> RT -> DE
+    }
+
+    subgraph cluster_2 {
+        label = "Output"
+        labeljust = "l"
+
+        HDF5 [ label = "HDF5", shape = box ]
+        OBJ [ label = "Wavefront OBJ", shape = box ]
+        VIZ [ label = "Visualisation", labelloc = "t", labeljust = "l",
+              shape = box, width = 1.6, height = 1.2,
+              image = "tiny.png", imagescale = true, fixedsize = true ]
+
+        OBJ -> VIZ
+    }
+
+    YAML -> IC -> HDF5
+    DE -> { HDF5, OBJ }
+}
