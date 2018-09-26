@@ -21,6 +21,11 @@ digraph {
         labeljust = "l"
 
         HDF5 [ label = "HDF5", shape = box ]
+        ANA [ label = "Analysis", labelloc = "t",
+              shape = box, width = 1.6, height = 1.2,
+              image = "masses.png", imagescale = true, fixedsize = true ]
+        HDF5 -> ANA
+
         OBJ [ label = "Wavefront OBJ", shape = box ]
         VIZ [ label = "Visualisation", labelloc = "t", labeljust = "l",
               shape = box, width = 1.6, height = 1.2,

@@ -130,6 +130,8 @@ The configuration file contains information about box size, initial conditions, 
 
 Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.
 
+![Outline of the program](figures/app-graph.svg){#fig:outline}
+
 ### Configuration
 
 We read the configuration from a YAML file. This file specifies the box size, cosmology and the requested output. For the cosmological parameters we took the latest values from the Planck collaboration [@Planck2018].
@@ -666,8 +668,21 @@ We collect those type definitions in a separate header file:
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Regular_triangulation_3.h>
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Regular_triangulation_3<K>                    RT;
+using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+
+#ifdef USE_TBB
+#ifndef CGAL_LINKED_WITH_TBB
+#error "CGAL was not compiled with TBB."
+#endif
+
+using TDS = CGAL::Triangulation_data_structure_3<
+    CGAL::Regular_triangulation_vertex_base_3<K>,
+    CGAL::Regular_triangulation_cell_base_3<K>,
+    CGAL::Parallel_tag>;
+using RT = CGAL::Regular_triangulation_3<K, TDS>;
+#else
+using RT = CGAL::Regular_triangulation_3<K>;
+#endif
 
 typedef K::Vector_3           Vector;
 typedef K::Point_3            Point;
@@ -690,6 +705,11 @@ template <typename Array>
 Adhesion(BoxParam const &box, Array &&potential, double t)
   : time(t)
 {
+  #ifdef USE_TBB
+  RT::Lock_data_structure locking_ds(
+    CGAL::Bbox_3(0.0, 0.0, 0.0, box.L, box.L, box.L), box.N / 8);
+  #endif
+
   for (size_t i = 0; i < box.size(); ++i)
   {
     vertices.emplace_back(
@@ -697,9 +717,16 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
       potential[i] * 2 * time);
   }
 
+  #ifdef USE_TBB
+  rt.insert(
+    vertices.begin(),
+    vertices.end(),
+    &locking_ds);
+  #else
   rt.insert(
     vertices.begin(),
     vertices.end());
+  #endif
 }
 ```
 
@@ -1412,15 +1439,7 @@ double integrate_qagiu(
 ``` {.cpp file=src/mesh_manipulation.hh}
 #pragma once
 #include <tuple>
-
-#if __GNUC__ == 6
-#include <experimental/optional>
-namespace std {
-using namespace std::experimental;
-}
-#else
-#include <optional>
-#endif
+<<include-optional>>
 
 #include "mesh.hh"
 
@@ -1509,6 +1528,23 @@ PolygonPair<Point> split_polygon(
   else
     return PolygonPair<Point>(vertices, r2, r1);
 }
+```
+
+### `std::optional`
+
+We're using a library feature of C++17, namely `std::optional`. In C++14, this is included in the `std::experimental` namespace. With this macro, we can use `std::optional` in both cases.
+
+``` {.cpp #include-optional}
+#if __cplusplus == 201402L
+#include <experimental/optional>
+namespace std {
+using namespace std::experimental;
+}
+#elif __cplusplus == 201703L
+#include <optional>
+#else
+#error "Unrecognised C++ version."
+#endif
 ```
 
 ### The sphere
@@ -1740,11 +1776,7 @@ Mesh<Point, Info> select_mesh(
 #include "mesh.hh"
 #include <H5Cpp.h>
 
-#if H5_VERSION_GE(1, 10, 0)
-using FileOrGroup = H5::Group;
-#else
-using FileOrGroup = H5::CommonFG;
-#endif
+<<hdf5-file-or-group>>
 
 template <typename T>
 struct H5TypeFactory {};
@@ -1797,6 +1829,16 @@ extern void write_mesh(
     FileOrGroup &group,
     std::string const &name,
     Mesh<Point, double> const &mesh);
+```
+
+There has been a very recent change in the API of HDF5. So we define a proxy type that is common to `H5::Group` and `H5::H5File`.
+
+``` {.cpp #hdf5-file-or-group}
+#if H5_VERSION_GE(1, 10, 1)
+using FileOrGroup = H5::Group;
+#else
+using FileOrGroup = H5::CommonFG;
+#endif
 ```
 
 ### Saving to HDF5

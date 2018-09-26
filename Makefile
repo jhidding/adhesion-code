@@ -19,13 +19,16 @@ gsl_libs = $(shell pkg-config --libs gsl)
 coverage_cflags = --coverage
 
 # In case we're compiling with GCC 6
-cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${CONDA_PREFIX}/include -I${HOME}/.local/include 
+# cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${CONDA_PREFIX}/include -I${HOME}/.local/include 
+cflags = -DUSE_TBB
+# cflags =
 
 # If some of the dependencies are installed locally
-libs = -L${HOME}/.local/lib -L${CONDA_PREFIX}/lib
+# libs = -L${HOME}/.local/lib -L${CONDA_PREFIX}/lib
+libs =
 
 compile = g++
-compile_flags = -std=c++14 -O3 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(cflags)
+compile_flags = -std=c++17 -O3 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(cflags)
 link = g++
 link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(libs)
 

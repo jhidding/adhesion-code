@@ -54,7 +54,6 @@ Some components of this package are bleeding edge. There is a `Dockerfile` in th
 | C++ compiler | C++17 standard | Tested with GCC 8. |
 | GNU Make | - | - |
 | CGAL     | ≥4.12   | [The Computational Geometry Algorithm Library](http://cgal.org) |
-| XTensor  | ≥0.17   | [XTensor](http://quantstack.net/xtensor) is a template library for handling array data in C++. |
 | FFTW3    | ≥3.3    | [The Fastest Fourier Transform in the West](http://www.fftw.org/) |
 | hdf5-cpp | ≥1.8.13 | [HDF5](https://support.hdfgroup.org/HDF5/doc/cpplus_RM/index.html) is used to store large blobs of binary data and meta data. |
 | yaml-cpp | ≥0.5    | [YAML-cpp](https://github.com/jbeder/yaml-cpp) is a YAML parser for C++. We use it to parse configuration files. |
@@ -88,26 +87,31 @@ wget https://github.com/jgm/pandoc/releases/download/2.2.3.2/pandoc-2.2.3.2-1-am
 sudo dpkg -i ./pandoc-2.2.3.2-1-amd64.deb
 ```
 
-Get the development version of XTensor, install as user:
-
-```shell
-git clone https://github.com/QuantStack/xtl.git
-git clone https://github.com/QuantStack/xtensor.git
-
-cd xtl
-mkdir build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=~/.local
-make install
-
-cd ../../xtensor
-mkdir build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=~/.local
-make install
-```
-
 Go to the root folder of this package and inspect the `Makefile`. The `~/.local/include` directory is already configured as include path. Build the executable by running `make`. Build the PDF by running `make report`.
+
+### Running on another GNU/Linux using Conda
+
+- install Pandoc, CGAL and HDF5 using Conda
+
+    conda install -c conda-forge pandoc cgal hdf5
+
+- download YAML-cpp and install with `cmake`
+
+    git clone https://github.com/jbeder/yaml-cpp.git
+    cd yaml-cpp && mkdir build && cd build
+    ccmake ..
+    # change install path to your liking
+    make install
+
+- download ArgAgg and install with `cmake`
+
+    git clone https://github.com/vietjtnguyen/argagg.git
+
+- download `fmtlib` and install with `cmake`
+
+    git clone https://github.com/fmtlib/fmt.git
+
+TIP: if you would like to keep your `~/.local` directory clean, or use some form of package management, take a look at [`xstow`](http://xstow.sourceforge.net/).
 
 ### Running on Mac
 
