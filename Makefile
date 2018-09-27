@@ -6,7 +6,9 @@ build_dir = ./build
 # hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
 
 # Get HDF5 compilation flags manually if pkg-config does not work
-hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-)
+hdf5_cc = $(shell which h5c++)
+hdf5_root = $(shell dirname `dirname $(hdf5_cc)`)
+hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-) -I$(hdf5_root)/include
 hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
 
 # CGAL compile flags when compiling with GCC
@@ -14,21 +16,24 @@ hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
 cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
+tbb_cflags = -DUSE_TBB -DCGAL_LINKED_WITH_TBB $(shell pkg-config --cflags tbb)
+tbb_libs = $(shell pkg-config --libs tbb) $(shell pkg-config --libs tbbmalloc) -lpthread
+
 gsl_libs = $(shell pkg-config --libs gsl)
 
 coverage_cflags = --coverage
 
 # In case we're compiling with GCC 6
-# cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${CONDA_PREFIX}/include -I${HOME}/.local/include 
-cflags = -DUSE_TBB
+cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
+# cflags = -DUSE_TBB
 # cflags =
 
 # If some of the dependencies are installed locally
-# libs = -L${HOME}/.local/lib -L${CONDA_PREFIX}/lib
-libs =
+libs = -L${HOME}/.local/lib $(tbb_libs)
+# libs =
 
 compile = g++
-compile_flags = -std=c++17 -O3 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(cflags)
+compile_flags = -std=c++14 -O3 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(cflags)
 link = g++
 link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(libs)
 
