@@ -16,26 +16,26 @@ hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
 cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
-tbb_cflags = -DUSE_TBB -DCGAL_LINKED_WITH_TBB $(shell pkg-config --cflags tbb)
-tbb_libs = $(shell pkg-config --libs tbb) $(shell pkg-config --libs tbbmalloc) -lpthread
+tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
+tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
 
 gsl_libs = $(shell pkg-config --libs gsl)
 
 coverage_cflags = --coverage
 
 # In case we're compiling with GCC 6
-cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
-# cflags = -DUSE_TBB
-# cflags =
+# cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
+# cflags = -O3
+cflags = -g
 
 # If some of the dependencies are installed locally
-libs = -L${HOME}/.local/lib $(tbb_libs)
-# libs =
+# libs = -L${HOME}/.local/lib $(tbb_libs)
+libs =
 
 compile = g++
-compile_flags = -std=c++14 -O3 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(cflags)
+compile_flags = -std=c++14 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(tbb_cflags) $(cflags)
 link = g++
-link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(libs)
+link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tbb_libs) $(libs)
 
 # ===========================================================================
 
@@ -72,6 +72,8 @@ tests_dep_files = $(tests_obj_files:%.o=%.d)
 
 adhesion: $(build_dir)/adhesion
 
+parallel-test: $(build_dir)/parallel-test
+
 run-tests: $(build_dir)/run-tests
 
 tangle: $(input_files)
@@ -102,6 +104,10 @@ $(sources): tangle
 $(build_dir)/%.o : %.cc
 	mkdir -p $(@D)
 	$(compile) $(compile_flags) -MMD -c $< -o $@
+
+$(build_dir)/parallel-test : $(build_dir)/examples/cgal-parallel.o
+	mkdir -p $(@D)
+	$(link) $^ $(link_flags) -o $@
 
 # Link main executable
 $(build_dir)/adhesion : $(obj_files) $(main_obj_file)

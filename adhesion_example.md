@@ -628,21 +628,31 @@ the adhesion model uses regular triangulations to compute structures directly fr
 #include "boxparam.hh"
 #include "cgal_base.hh"
 #include "mesh.hh"
+
 #include <memory>
 #include <array>
+#include <algorithm>
 #include <cstdint>
+
 #include <H5Cpp.h>
 
 class Adhesion
 {
+  double                      time;
+  #ifdef CGAL_LINKED_WITH_TBB
+  RT::Lock_data_structure     locking_ds;
+  #endif
   RT                          rt;
   std::vector<Weighted_point> vertices;
-  double                      time;
 
 public:
   <<adhesion-node-type>>
   <<adhesion-node-struct>>
-  <<adhesion-constructor>>
+
+  Adhesion(
+    BoxParam const &box,
+    std::vector<double> const &potential,
+    double t);
 
   int edge_count(RT::Cell_handle h, double threshold) const;
   Vector velocity(RT::Cell_handle c) const;
@@ -670,11 +680,7 @@ We collect those type definitions in a separate header file:
 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 
-#ifdef USE_TBB
-#ifndef CGAL_LINKED_WITH_TBB
-#error "CGAL was not compiled with TBB."
-#endif
-
+#ifdef CGAL_LINKED_WITH_TBB
 using TDS = CGAL::Triangulation_data_structure_3<
     CGAL::Regular_triangulation_vertex_base_3<K>,
     CGAL::Regular_triangulation_cell_base_3<K>,
@@ -685,7 +691,7 @@ using RT = CGAL::Regular_triangulation_3<K>;
 #endif
 
 typedef K::Vector_3           Vector;
-typedef K::Point_3            Point;
+typedef RT::Bare_point        Point;
 typedef RT::Edge              Edge;
 typedef RT::Weighted_point    Weighted_point;
 typedef RT::Segment           Segment;
@@ -700,16 +706,22 @@ We give each point in the grid a weight proportional to the velocity potential,
 $$w_i = 2 t \Phi(q_i).$$
 Then we insert these weighted points into the triangulation.
 
-``` {.cpp #adhesion-constructor}
-template <typename Array>
-Adhesion(BoxParam const &box, Array &&potential, double t)
-  : time(t)
-{
-  #ifdef USE_TBB
-  RT::Lock_data_structure locking_ds(
-    CGAL::Bbox_3(0.0, 0.0, 0.0, box.L, box.L, box.L), box.N / 8);
-  #endif
+``` {.cpp file=src/adhesion/constructor.cc}
+#include "adhesion.hh"
 
+Adhesion::Adhesion(
+    BoxParam const &box,
+    std::vector<double> const &potential,
+    double t)
+  : time(t)
+  #ifdef CGAL_LINKED_WITH_TBB
+  , locking_ds(CGAL::Bbox_3(
+      -0.1, -0.1, -0.1,
+      box.L, box.L, box.L), box.N / 2)
+  , rt(K(), &locking_ds)
+  #endif
+{
+  vertices.reserve(box.size());
   for (size_t i = 0; i < box.size(); ++i)
   {
     vertices.emplace_back(
@@ -717,16 +729,9 @@ Adhesion(BoxParam const &box, Array &&potential, double t)
       potential[i] * 2 * time);
   }
 
-  #ifdef USE_TBB
-  rt.insert(
-    vertices.begin(),
-    vertices.end(),
-    &locking_ds);
-  #else
   rt.insert(
     vertices.begin(),
     vertices.end());
-  #endif
 }
 ```
 
@@ -1341,6 +1346,7 @@ write_vector(h5_group, "nodes", nodes);
 #include <iostream>
 #include <argagg/argagg.hpp>
 #include <yaml-cpp/yaml.h>
+#include "tbb/task_scheduler_init.h"
 
 #include "run.hh"
 
@@ -1363,13 +1369,13 @@ int main(int argc, char **argv)
   }
 
   if (args["help"]) {
-    std::cerr << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
-    std::cerr << argparser;
+    std::cout << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
+    std::cout << argparser;
     return EXIT_SUCCESS;
   }
 
   if (args["version"]) {
-    std::cerr << "amec v" << VERSION << "\n";
+    std::cout << "amec v" << VERSION << "\n";
     return EXIT_SUCCESS;
   }
 
@@ -1381,15 +1387,19 @@ int main(int argc, char **argv)
   YAML::Node config;
   if (args["config"]) {
     auto config_file = args["config"].as<std::string>();
-    std::cerr << "Reading `" << config_file << "` for input.\n";
+    std::clog << "Reading `" << config_file << "` for input.\n";
     config = YAML::LoadFile(config_file);
   } else {
-    std::cerr << "No configuration given, proceeding with defaults.\n";
+    std::clog << "No configuration given, proceeding with defaults.\n";
     config = YAML::Load(default_config);
   }
 
-  run(config);
+  int n = tbb::task_scheduler_init::default_num_threads();
+  std::clog << "Starting TBB task scheduler with "
+            << n << " threads.\n";
+  tbb::task_scheduler_init init(n);
 
+  run(config);
   return EXIT_SUCCESS;
 }
 ```
