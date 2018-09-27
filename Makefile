@@ -1,23 +1,25 @@
 input_files = adhesion_example.md
 build_dir = ./build
+html_dir = ./public
 
 # Get HDF5 compilation flags using pkg-config
-# hdf5_cflags = $(shell pkg-config --cflags hdf5)
-# hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
+hdf5_cflags = $(shell pkg-config --cflags hdf5)
+hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
 
 # Get HDF5 compilation flags manually if pkg-config does not work
-hdf5_cc = $(shell which h5c++)
-hdf5_root = $(shell dirname `dirname $(hdf5_cc)`)
-hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-) -I$(hdf5_root)/include
-hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
+# hdf5_cc = $(shell which h5c++)
+# hdf5_root = $(shell dirname `dirname $(hdf5_cc)`)
+# hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-) -I$(hdf5_root)/include
+# hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
 
 # CGAL compile flags when compiling with GCC
 # Note that CLANG does not support -frounding-math
 cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
-tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
-tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
+# Uncomment if you want to compile with TBB
+# tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
+# tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
 
 gsl_libs = $(shell pkg-config --libs gsl)
 
@@ -26,7 +28,7 @@ coverage_cflags = --coverage
 # In case we're compiling with GCC 6
 # cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
 # cflags = -O3
-cflags = -g
+cflags = -O3
 
 # If some of the dependencies are installed locally
 # libs = -L${HOME}/.local/lib $(tbb_libs)
@@ -51,7 +53,7 @@ pd_list = $(call pd_call,list)
 pd_tangle = $(call pd_call,tangle)
 
 pdf_files = $(input_files:%.md=$(build_dir)/%.pdf)
-html_files = $(input_files:%.md=$(build_dir)/html/%.html)
+html_files = $(input_files:%.md=$(html_dir)/%.html)
 sources = $(shell $(pd_list) $(input_files))
 
 cc_files = $(filter-out src/main.cc, $(filter src/%.cc, $(sources)))
@@ -84,11 +86,12 @@ tangle: $(input_files)
 report: $(pdf_files)
 
 html: $(html_files)
-	cp -r figures build/html
-	cp scripts/style.css build/html
+	mv $(html_dir)/adhesion_example.html $(html_dir)/index.html
+	cp -r figures $(html_dir)
+	cp scripts/style.css $(html_dir)
 
-$(build_dir)/html/%.html: %.md
-	mkdir -p $(build_dir)/html
+$(html_dir)/%.html: %.md
+	mkdir -p $(html_dir)
 	pandoc $< -f $(format) $(html_args) -t html5 -o $@
 
 $(build_dir)/%.pdf : %.md

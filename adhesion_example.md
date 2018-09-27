@@ -60,6 +60,9 @@ argagg           ≥0.4.6    [ArgAgg](https://github.com/vietjtnguyen/argagg)
 
 fmt              ≥4.1      [fmt](http://fmtlib.net/latest/index.html)
                            is a string formatting library that has a similar interface as Python's.
+
+TBB              ≥4.3      [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
+                           is a Intel library for parallel computation in C++. This is an optional dependency. One however, that is incredibly useful once made to work. Versions after 4.4 (2016) are numbered after their release date.
 ------------------------------------------------------------------------------
 
 Extracting the source code from the Markdown or building the report is done using the Pandoc document converter. Additional requirements are:
@@ -639,9 +642,7 @@ the adhesion model uses regular triangulations to compute structures directly fr
 class Adhesion
 {
   double                      time;
-  #ifdef CGAL_LINKED_WITH_TBB
-  RT::Lock_data_structure     locking_ds;
-  #endif
+  <<tbb-lock-member>>
   RT                          rt;
   std::vector<Weighted_point> vertices;
 
@@ -680,15 +681,7 @@ We collect those type definitions in a separate header file:
 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 
-#ifdef CGAL_LINKED_WITH_TBB
-using TDS = CGAL::Triangulation_data_structure_3<
-    CGAL::Regular_triangulation_vertex_base_3<K>,
-    CGAL::Regular_triangulation_cell_base_3<K>,
-    CGAL::Parallel_tag>;
-using RT = CGAL::Regular_triangulation_3<K, TDS>;
-#else
-using RT = CGAL::Regular_triangulation_3<K>;
-#endif
+<<regular-triangulation-type>>
 
 typedef K::Vector_3           Vector;
 typedef RT::Bare_point        Point;
@@ -699,6 +692,21 @@ typedef RT::Tetrahedron       Tetrahedron;
 ```
 
 Since we'll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they can have the same numerical representation, but this may not strictly be the case for all geometry kernels.
+
+We enable two versions of the code: serial and parallel. The parallel version requires  *Threading Building Blocks* to be installed. The regular triangulation data structure gets tagged with `CGAL::Parallel_tag` which enables parallel versions of the algorithm.
+
+``` {.cpp #regular-triangulation-type}
+#ifdef CGAL_LINKED_WITH_TBB
+  using TDS = CGAL::Triangulation_data_structure_3<
+      CGAL::Regular_triangulation_vertex_base_3<K>,
+      CGAL::Regular_triangulation_cell_base_3<K>,
+      CGAL::Parallel_tag>;
+
+  using RT = CGAL::Regular_triangulation_3<K, TDS>;
+#else
+  using RT = CGAL::Regular_triangulation_3<K>;
+#endif
+```
 
 ## Computing the triangulation
 
@@ -714,12 +722,7 @@ Adhesion::Adhesion(
     std::vector<double> const &potential,
     double t)
   : time(t)
-  #ifdef CGAL_LINKED_WITH_TBB
-  , locking_ds(CGAL::Bbox_3(
-      -0.1, -0.1, -0.1,
-      box.L, box.L, box.L), box.N / 2)
-  , rt(K(), &locking_ds)
-  #endif
+  <<tbb-initialise-lock>>
 {
   vertices.reserve(box.size());
   for (size_t i = 0; i < box.size(); ++i)
@@ -734,6 +737,29 @@ Adhesion::Adhesion(
     vertices.end());
 }
 ```
+
+### In parallel using TBB
+
+To implement a parallel version of the code, we need two extra bits of code in the class definition as well as the implementation of the constructor. We have to define a *lock data structure* which keeps a grid of localized locks.
+
+``` {.cpp #tbb-lock-member}
+#ifdef CGAL_LINKED_WITH_TBB
+RT::Lock_data_structure     lock;
+#endif
+```
+
+Then in the constructor the lock has to be initialised with the shape of the box and an indication of the granularity of the grid on which to lock points.
+
+``` {.cpp #tbb-initialise-lock}
+#ifdef CGAL_LINKED_WITH_TBB
+, lock(CGAL::Bbox_3(
+    -0.1, -0.1, -0.1,
+    box.L, box.L, box.L), box.N / 2)
+, rt(K(), &lock)
+#endif
+```
+
+The CGAL regular triangulation code should take care of the rest. Note however, that in current versions of CGAL (4.12) this feature is highly unstable and has been known to produce segmentation faults. Work continues to improve the parallel algorithms.
 
 ## Node properties
 
@@ -1394,10 +1420,12 @@ int main(int argc, char **argv)
     config = YAML::Load(default_config);
   }
 
+  #ifdef CGAL_LINKED_WITH_TBB
   int n = tbb::task_scheduler_init::default_num_threads();
   std::clog << "Starting TBB task scheduler with "
             << n << " threads.\n";
   tbb::task_scheduler_init init(n);
+  #endif
 
   run(config);
   return EXIT_SUCCESS;
