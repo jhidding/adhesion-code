@@ -10,7 +10,7 @@ reference-section-title: References
 
 # Abstract
 
-We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code reads or generates an initial potential field and computes the *regular triangulation* to that potential, that is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
+We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
 
 ## Version
 
@@ -23,14 +23,15 @@ We present a (relatively) small example of using the CGAL library to run the adh
 # Introduction
 
 The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation.
+
 The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the *cosmic web*.
 The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn't reveal the halo structures that are shown in N-body simulations to form inside these structures.
 
 The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set.
 
-This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with the main body of code, implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The appendix contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.
+![Example output of the program, rendered with ParaView.](figures/output.png){#fig:output-example}
 
-![Example output of the program, rendered with ParaView.](figures/output.png)
+This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with the main body of code, implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The appendix contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.
 
 ## Prerequisites
 
@@ -62,7 +63,7 @@ fmt              ≥4.1      [fmt](http://fmtlib.net/latest/index.html)
                            is a string formatting library that has a similar interface as Python's.
 
 TBB              ≥4.3      [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
-                           is a Intel library for parallel computation in C++. This is an optional dependency. One however, that is incredibly useful once made to work. Versions after 4.4 (2016) are numbered after their release date.
+                           is a Intel library for parallel computation in C++. This is an optional dependency. Versions after 4.4 (2016) are numbered after their release date.
 ------------------------------------------------------------------------------
 
 Extracting the source code from the Markdown or building the report is done using the Pandoc document converter. Additional requirements are:
@@ -605,64 +606,45 @@ std::clog << "Computing regular triangulation for t = "
 Adhesion adhesion(box, field, t);
 ```
 
+## Theory
+
 Normally, we derive the fact that we can solve the adhesion model using regular triangulations from existing solutions [@Hopf1950] of the equation of motion, Burgers equation,
 $$\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.$${#eq:burgers-equation}
 We may also understand this idea from a more kinematic point of view.
 
 We assume an ensemble of particles moving by a potential $\Phi_0({\bf q})$ from their starting position ${\bf q}$ to a target position ${\bf x}$,
-$${\bf x} = {\bf q} + t {\bf \nabla} \Phi_0({\bf q}).$$
+
+$${\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).$${#eq:zeldovich}
+
 This is known as the Zeldovich approximation [@Zeldovich1970; @Shandarin1989]. This has the problem that particles continue to move in a straight line, even after structures form. We'd like to have particles adhere together once they form structures, hence the name: *adhesion model*.
 
-Suppose the velocity field ${\bf \nabla}\Phi_0$ can be described as a series of shock fronts expanding from a finite set of points $\{{\bf q_i}\}$.
-Let's turn around the question, and see where does a particle come from if it is found at time $t$ at position ${\bf x}$? We may answer this question if we assume a set of 
+![The Zeldovich Approximation. Each particle is given a velocity equal to $v = -\nabla \Phi_0$. Structures form, but there is no dynamics involved.](figures/ze.svg){#fig:zeldovich}
 
-in the limit of $\nu \to 0$. @Hopf1950 gave the solution to this equation. This solution is given by maximising the function
-$$G(\vec{q}, \vec{x}, t) = \Phi_0(\vec{q}) - \frac{(\vec{x} - \vec{q})^2}{2t},$$
-to obtain the Eulerian velocity potential
-$$\Phi(\vec{x}, t) = \max_q G(\vec{q}, \vec{x}, t).$$
-This solution can be computed through the power diagram, given a set of points $S \subset \mathbb{R}^n$, and a weight $w_u$ associated with each point $\vec{u} \in S$, the *power cell* is defined as,
-$$V_u = \left\{\vec{x} \in \mathbb{R}^n \big| (\vec{x} - \vec{u})^2 + w_u \le (\vec{x} - \vec{v})^2 + w_v\ \forall \vec{v} \in S\right\}.$$
+We can rewrite Equation\ @eq:zeldovich as
+
+$${\bf x} = {\bf \nabla}(\frac{q^2}{2} - t \Phi_0({\bf q}) + C) = {\bf \nabla} \varphi,$${#eq:zeldovich-potential}
+
+introducing the new potential $\varphi({\bf q}) = q^2/2 - t\Phi_0$. The adhesion model is found by using not the potential $\varphi$ but its *convex hull* $\varphi_c$. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation. This argument is a gross oversimplification of the underlying theory. We refer to @Hidding2018 for more detail.
+
+### The power diagram
+
+We won't be computing the convex hull of $\varphi$ explicitly. In stead we use the regular triangulation algorithm. The regular triangulation is the dual of the power diagram. The power diagram is the weighted generalisation of the Voronoi tessellation. Given a subset of points $S \in Q$, we define a cell $V_u$ in the power diagram as follows:
+
+$$V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 + w_u \le ({\bf v} - {\bf x})^2 + w_v \forall {\bf v} \in S \right\}.$$
+
+This is the same as minimising the distance function
+
+$$d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 + w_q\right].$$
+
 Setting the weights to,
+
 $$w(\vec{q}) = 2 t \Phi_0(\vec{q}),$$
-the adhesion model uses regular triangulations to compute structures directly from the initial conditions.
 
-``` {.cpp file=src/adhesion.hh}
-#pragma once
-#include "boxparam.hh"
-#include "cgal_base.hh"
-#include "mesh.hh"
+retrieves an expression similar to Equation\ @eq:zeldovich-potential.
 
-#include <memory>
-#include <array>
-#include <algorithm>
-#include <cstdint>
-
-#include <H5Cpp.h>
-
-class Adhesion
-{
-  double                      time;
-  <<tbb-lock-member>>
-  RT                          rt;
-  std::vector<Weighted_point> vertices;
-
-public:
-  <<adhesion-node-type>>
-  <<adhesion-node-struct>>
-
-  Adhesion(
-    BoxParam const &box,
-    std::vector<double> const &potential,
-    double t);
-
-  int edge_count(RT::Cell_handle h, double threshold) const;
-  Vector velocity(RT::Cell_handle c) const;
-
-  Mesh<Point, double> get_walls(double threshold) const;
-  Mesh<Point, double> get_filaments(double threshold) const;
-  std::vector<Node> get_nodes(double threshold) const;
-};
-```
+::: TODO
+Clear up argumentation here
+:::
 
 ## CGAL Geometry kernels
 
@@ -706,6 +688,62 @@ We enable two versions of the code: serial and parallel. The parallel version re
 #else
   using RT = CGAL::Regular_triangulation_3<K>;
 #endif
+```
+
+## Adhesion header
+
+The adhesion computation is stored in an `Adhesion` object.
+
+``` {.cpp file=src/adhesion.hh}
+#pragma once
+#include "boxparam.hh"
+#include "cgal_base.hh"
+#include "mesh.hh"
+
+#include <memory>
+#include <array>
+#include <algorithm>
+#include <cstdint>
+
+class Adhesion
+{
+  <<adhesion-members>>
+
+public:
+  <<adhesion-node-type>>
+  <<adhesion-node-struct>>
+
+  Adhesion(
+    BoxParam const &box,
+    std::vector<double> const &potential,
+    double t);
+
+  <<adhesion-methods>>
+};
+```
+
+### Members
+
+The `Adhesion` class stores the time parameter, the regular triangulation data structure and a list of vertices.
+
+``` {.cpp #adhesion-members}
+double                      time;
+<<tbb-lock-member>>
+RT                          rt;
+std::vector<Weighted_point> vertices;
+```
+
+Additionally, if we're running with TBB enabled, we have to include a locking data structure.
+
+### Methods
+
+``` {.cpp #adhesion-methods}
+  int edge_count(RT::Cell_handle h, double threshold) const;
+  Vector velocity(RT::Cell_handle c) const;
+
+  Mesh<Point, double> get_walls(double threshold) const;
+  Mesh<Point, double> get_filaments(double threshold) const;
+  std::vector<Node> get_nodes(double threshold) const;
 ```
 
 ## Computing the triangulation
@@ -971,6 +1009,19 @@ Adhesion::get_nodes(double threshold) const
   return result;
 }
 ```
+
+### Writing to HDF5
+
+In the workflow we can now write all this information about the nodes to the HDF5 file.
+
+``` {.cpp #workflow-write-nodes}
+auto nodes = adhesion.get_nodes(threshold);
+write_vector(h5_group, "nodes", nodes);
+```
+
+This can then be read back to Python to plot our measurements. For example, the cluster mass function is shown in Figure~@fig:mass-function.
+
+![Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per $h^{-3}{\rm Mpc}^3$ per logarithmic bin $\Delta \log M/M^*$ where $M^*$ is $\rho_u h^{-3}{\rm Mpc}^3$. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.](figures/mass-functions.svg){#fig:mass-function}
 
 ## The power diagram
 
@@ -1320,7 +1371,7 @@ for (double t : time) {
     "time", H5TypeFactory<double>::get(), H5::DataSpace());
   time_attr.write(H5TypeFactory<double>::get(), &t);
 
-  <<run-write-nodes>>
+  <<workflow-write-nodes>>
   <<run-write-obj>>
 
   ++iteration;
@@ -1329,10 +1380,6 @@ for (double t : time) {
 
 ### Write nodes
 
-``` {.cpp #run-write-nodes}
-auto nodes = adhesion.get_nodes(threshold);
-write_vector(h5_group, "nodes", nodes);
-```
 
 ### Write the walls
 

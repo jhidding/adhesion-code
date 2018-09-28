@@ -43,7 +43,7 @@ link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tb
 
 SHELL := /bin/bash
 
-format = markdown+fenced_code_attributes+citations+all_symbols_escapable+multiline_tables
+format = markdown+fenced_code_attributes+citations+all_symbols_escapable+fenced_divs+multiline_tables
 pandoc_filters = pandoc-eqnos pandoc-fignos pandoc-citeproc
 report_args = --toc $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings 
 html_args = -s --toc --toc-depth=3 $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --mathjax --css "style.css" --base-header-level=2

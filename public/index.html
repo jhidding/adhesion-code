@@ -106,12 +106,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#write-initial-conditions-to-file">Write initial conditions to file</a></li>
 </ul></li>
 <li><a href="#the-adhesion-model">The Adhesion model</a><ul>
+<li><a href="#theory">Theory</a></li>
 <li><a href="#cgal-geometry-kernels">CGAL Geometry kernels</a></li>
+<li><a href="#adhesion-header">Adhesion header</a></li>
 <li><a href="#computing-the-triangulation">Computing the triangulation</a></li>
 <li><a href="#node-properties">Node properties</a></li>
 <li><a href="#velocity">Velocity</a></li>
 <li><a href="#getting-all-nodes">Getting all nodes</a></li>
-<li><a href="#the-power-diagram">The power diagram</a></li>
+<li><a href="#the-power-diagram-1">The power diagram</a></li>
 </ul></li>
 <li><a href="#the-main-program">The main program</a><ul>
 <li><a href="#run-function">Run function</a></li>
@@ -128,18 +130,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </nav>
 
 <h2 id="abstract">Abstract</h2>
-<p>We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code reads or generates an initial potential field and computes the <em>regular triangulation</em> to that potential, that is a weighted generalisation of the <em>Delaunay triangulation</em>. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.</p>
+<p>We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code generates an initial potential field and computes the <em>regular triangulation</em> to that potential, which is a weighted generalisation of the <em>Delaunay triangulation</em>. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.</p>
 <h3 id="version">Version</h3>
 <p><em>«version»=</em></p>
 <div class="sourceCode" id="version"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="version-1" data-line-number="1"><span class="pp">#define VERSION &quot;0.1&quot;</span></a></code></pre></div>
 
 <h2 id="introduction">Introduction</h2>
-<p>The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation. The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the <em>cosmic web</em>. The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn’t reveal the halo structures that are shown in N-body simulations to form inside these structures.</p>
+<p>The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation.</p>
+<p>The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the <em>cosmic web</em>. The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn’t reveal the halo structures that are shown in N-body simulations to form inside these structures.</p>
 <p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set.</p>
-<p>This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We’ve tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with the main body of code, implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The appendix contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.</p>
 <figure>
-<img src="figures/output.png" alt="Example output of the program, rendered with ParaView." /><figcaption>Example output of the program, rendered with ParaView.</figcaption>
+<img src="figures/output.png" alt="Figure 1: Example output of the program, rendered with ParaView." id="fig:output-example" /><figcaption><span>Figure 1:</span> Example output of the program, rendered with ParaView.</figcaption>
 </figure>
+<p>This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We’ve tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with the main body of code, implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The appendix contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.</p>
 <h3 id="prerequisites">Prerequisites</h3>
 <p>From the reader a basic knowledge of programming is required. Familiarity with C/C++ will help to understand the code samples. However, all the code is explained in detail. To run the code the following libraries should be present on the system:</p>
 <table>
@@ -204,7 +207,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <tr class="even">
 <td style="text-align: left;">TBB</td>
 <td style="text-align: left;">≥4.3</td>
-<td style="text-align: left;"><a href="https://www.threadingbuildingblocks.org/">Threading Building Blocks</a> is a Intel library for parallel computation in C++. This is an optional dependency. One however, that is incredibly useful once made to work. Versions after 4.4 (2016) are numbered after their release date.</td>
+<td style="text-align: left;"><a href="https://www.threadingbuildingblocks.org/">Threading Building Blocks</a> is a Intel library for parallel computation in C++. This is an optional dependency. Versions after 4.4 (2016) are numbered after their release date.</td>
 </tr>
 </tbody>
 </table>
@@ -278,7 +281,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the <span class="math inline">\(\Lambda\)</span>CDM cosmological model in the form of an initial velocity potential <span class="math inline">\(\Phi_0\)</span>. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.</p>
 <p>Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.</p>
 <figure>
-<img src="figures/app-graph.svg" alt="Figure 1: Outline of the program" id="fig:outline" /><figcaption><span>Figure 1:</span> Outline of the program</figcaption>
+<img src="figures/app-graph.svg" alt="Figure 2: Outline of the program" id="fig:outline" /><figcaption><span>Figure 2:</span> Outline of the program</figcaption>
 </figure>
 <h4 id="configuration">Configuration</h4>
 <p>We read the configuration from a YAML file. This file specifies the box size, cosmology and the requested output. For the cosmological parameters we took the latest values from the Planck collaboration <span class="citation" data-cites="Planck2018">(Planck Collaboration et al. 2018)</span>.</p>
@@ -485,12 +488,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><span class="math display">\[\Sigma(r) = \begin{pmatrix}\sigma^2 &amp; \xi(r)\\\xi(r) &amp; \sigma^2\end{pmatrix},\]</span></p>
 <p>Equation <a href="#eq:two-point-function">2</a> (also known as the two-point distribution) can be generalised to a distribution of <span class="math inline">\(N\)</span> variates, the <em>multi-variate normal distribution</em>. It can be shown that, in the case of a statistically homogeneous and isotropic random field, this distribution can always be reduced to the two-point distribution. In that case we refer to the random field as a Gaussian random field.</p>
 <figure>
-<img src="figures/noise.svg" alt="Figure 2: The colours of noise. From left to right we change the power spectrum from k^0, to k^{-1}, to k^{-2}. The red noise can also be obtained by integrating a white noise signal." id="fig:colours-of-noise" /><figcaption><span>Figure 2:</span> The colours of noise. From left to right we change the power spectrum from <span class="math inline">\(k^0\)</span>, to <span class="math inline">\(k^{-1}\)</span>, to <span class="math inline">\(k^{-2}\)</span>. The red noise can also be obtained by integrating a white noise signal.</figcaption>
+<img src="figures/noise.svg" alt="Figure 3: The colours of noise. From left to right we change the power spectrum from k^0, to k^{-1}, to k^{-2}. The red noise can also be obtained by integrating a white noise signal." id="fig:colours-of-noise" /><figcaption><span>Figure 3:</span> The colours of noise. From left to right we change the power spectrum from <span class="math inline">\(k^0\)</span>, to <span class="math inline">\(k^{-1}\)</span>, to <span class="math inline">\(k^{-2}\)</span>. The red noise can also be obtained by integrating a white noise signal.</figcaption>
 </figure>
 <h3 id="power-spectrum">Power spectrum</h3>
 <p>In stead of talking about a corellation function, we often use its Fourier transform, the <em>power spectrum</em> to specify the corellations in the random field,</p>
 <p><span class="math display">\[\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.\]</span></p>
-<p>In Figure <a href="#fig:colours-of-noise">2</a> we show three instances of a Gaussian random field with three different correlation functions.</p>
+<p>In Figure <a href="#fig:colours-of-noise">3</a> we show three instances of a Gaussian random field with three different correlation functions.</p>
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="bu">std::</span>clog &lt;&lt; <span class="st">&quot;Applying power spectrum with cosmology:</span><span class="sc">\n</span><span class="st">&quot;</span></a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">          &lt;&lt; config[<span class="st">&quot;cosmology&quot;</span>] &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
@@ -547,7 +550,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb6-20" data-line-number="20">  };</a>
 <a class="sourceLine" id="cb6-21" data-line-number="21">}</a></code></pre></div>
 <figure>
-<img src="figures/power-spectrum.svg" alt="Figure 3: The CDM power-spectrum (without baryons)." id="fig:cdm-power-spectrum" /><figcaption><span>Figure 3:</span> The CDM power-spectrum (without baryons).</figcaption>
+<img src="figures/power-spectrum.svg" alt="Figure 4: The CDM power-spectrum (without baryons)." id="fig:cdm-power-spectrum" /><figcaption><span>Figure 4:</span> The CDM power-spectrum (without baryons).</figcaption>
 </figure>
 <h4 id="normalisation">Normalisation</h4>
 <p>The power-spectrum needs to be normalised so that the amplitudes of the density perturbations match those in the observed Universe. Traditionally the chosen scaling is applied using a spherical top-hat filter of radius <span class="math inline">\(8\ h^{-1}{\rm Mpc}\)</span>. It was long believed that density perturbations on this scale have a standard deviation <span class="math inline">\(\sigma_8\)</span> of around unity. The latest measurements from <span class="citation" data-cites="Planck2018">Planck Collaboration et al. (2018)</span> give <span class="math inline">\(\sigma_8 = 0.811 \pm 0.006\)</span> of density perturbations linearly extrapolated to current epoch.</p>
@@ -636,66 +639,48 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <div class="sourceCode" id="workflow-adhesion"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-adhesion-1" data-line-number="1"><span class="bu">std::</span>clog &lt;&lt; <span class="st">&quot;Computing regular triangulation for t = &quot;</span></a>
 <a class="sourceLine" id="workflow-adhesion-2" data-line-number="2">          &lt;&lt; t &lt;&lt; <span class="st">&quot; ...</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
 <a class="sourceLine" id="workflow-adhesion-3" data-line-number="3">Adhesion adhesion(box, field, t);</a></code></pre></div>
+<h3 id="theory">Theory</h3>
 <p>Normally, we derive the fact that we can solve the adhesion model using regular triangulations from existing solutions <span class="citation" data-cites="Hopf1950">(Hopf 1950)</span> of the equation of motion, Burgers equation, <span id="eq:burgers-equation" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(4)</span></span> We may also understand this idea from a more kinematic point of view.</p>
-<p>We assume an ensemble of particles moving by a potential <span class="math inline">\(\Phi_0({\bf q})\)</span> from their starting position <span class="math inline">\({\bf q}\)</span> to a target position <span class="math inline">\({\bf x}\)</span>, <span class="math display">\[{\bf x} = {\bf q} + t {\bf \nabla} \Phi_0({\bf q}).\]</span> This is known as the Zeldovich approximation <span class="citation" data-cites="Zeldovich1970 Shandarin1989">(Zeldovich 1970; Shandarin and Zeldovich 1989)</span>. This has the problem that particles continue to move in a straight line, even after structures form. We’d like to have particles adhere together once they form structures, hence the name: <em>adhesion model</em>.</p>
-<p>Suppose the velocity field <span class="math inline">\({\bf \nabla}\Phi_0\)</span> can be described as a series of shock fronts expanding from a finite set of points <span class="math inline">\(\{{\bf q_i}\}\)</span>. Let’s turn around the question, and see where does a particle come from if it is found at time <span class="math inline">\(t\)</span> at position <span class="math inline">\({\bf x}\)</span>? We may answer this question if we assume a set of</p>
-<p>in the limit of <span class="math inline">\(\nu \to 0\)</span>. <span class="citation" data-cites="Hopf1950">Hopf (1950)</span> gave the solution to this equation. This solution is given by maximising the function <span class="math display">\[G(\vec{q}, \vec{x}, t) = \Phi_0(\vec{q}) - \frac{(\vec{x} - \vec{q})^2}{2t},\]</span> to obtain the Eulerian velocity potential <span class="math display">\[\Phi(\vec{x}, t) = \max_q G(\vec{q}, \vec{x}, t).\]</span> This solution can be computed through the power diagram, given a set of points <span class="math inline">\(S \subset \mathbb{R}^n\)</span>, and a weight <span class="math inline">\(w_u\)</span> associated with each point <span class="math inline">\(\vec{u} \in S\)</span>, the <em>power cell</em> is defined as, <span class="math display">\[V_u = \left\{\vec{x} \in \mathbb{R}^n \big| (\vec{x} - \vec{u})^2 + w_u \le (\vec{x} - \vec{v})^2 + w_v\ \forall \vec{v} \in S\right\}.\]</span> Setting the weights to, <span class="math display">\[w(\vec{q}) = 2 t \Phi_0(\vec{q}),\]</span> the adhesion model uses regular triangulations to compute structures directly from the initial conditions.</p>
-<p><em>file: «src/adhesion.hh»=</em></p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="pp">#pragma once</span></a>
-<a class="sourceLine" id="cb9-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;boxparam.hh&quot;</span></a>
-<a class="sourceLine" id="cb9-3" data-line-number="3"><span class="pp">#include </span><span class="im">&quot;cgal_base.hh&quot;</span></a>
-<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
-<a class="sourceLine" id="cb9-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb9-6" data-line-number="6"><span class="pp">#include </span><span class="im">&lt;memory&gt;</span></a>
-<a class="sourceLine" id="cb9-7" data-line-number="7"><span class="pp">#include </span><span class="im">&lt;array&gt;</span></a>
-<a class="sourceLine" id="cb9-8" data-line-number="8"><span class="pp">#include </span><span class="im">&lt;algorithm&gt;</span></a>
-<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span></a>
-<a class="sourceLine" id="cb9-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb9-11" data-line-number="11"><span class="pp">#include </span><span class="im">&lt;H5Cpp.h&gt;</span></a>
-<a class="sourceLine" id="cb9-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb9-13" data-line-number="13"><span class="kw">class</span> Adhesion</a>
-<a class="sourceLine" id="cb9-14" data-line-number="14">{</a>
-<a class="sourceLine" id="cb9-15" data-line-number="15">  <span class="dt">double</span>                      time;</a>
-<a class="sourceLine" id="cb9-16" data-line-number="16">  &lt;&lt;tbb-lock-member&gt;&gt;</a>
-<a class="sourceLine" id="cb9-17" data-line-number="17">  RT                          rt;</a>
-<a class="sourceLine" id="cb9-18" data-line-number="18">  <span class="bu">std::</span>vector&lt;Weighted_point&gt; vertices;</a>
-<a class="sourceLine" id="cb9-19" data-line-number="19"></a>
-<a class="sourceLine" id="cb9-20" data-line-number="20"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="cb9-21" data-line-number="21">  &lt;&lt;adhesion-node-type&gt;&gt;</a>
-<a class="sourceLine" id="cb9-22" data-line-number="22">  &lt;&lt;adhesion-node-<span class="kw">struct</span>&gt;&gt;</a>
-<a class="sourceLine" id="cb9-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb9-24" data-line-number="24">  Adhesion(</a>
-<a class="sourceLine" id="cb9-25" data-line-number="25">    BoxParam <span class="at">const</span> &amp;box,</a>
-<a class="sourceLine" id="cb9-26" data-line-number="26">    <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; <span class="at">const</span> &amp;potential,</a>
-<a class="sourceLine" id="cb9-27" data-line-number="27">    <span class="dt">double</span> t);</a>
-<a class="sourceLine" id="cb9-28" data-line-number="28"></a>
-<a class="sourceLine" id="cb9-29" data-line-number="29">  <span class="dt">int</span> edge_count(RT::Cell_handle h, <span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="cb9-30" data-line-number="30">  Vector velocity(RT::Cell_handle c) <span class="at">const</span>;</a>
-<a class="sourceLine" id="cb9-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb9-32" data-line-number="32">  Mesh&lt;Point, <span class="dt">double</span>&gt; get_walls(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="cb9-33" data-line-number="33">  Mesh&lt;Point, <span class="dt">double</span>&gt; get_filaments(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="cb9-34" data-line-number="34">  <span class="bu">std::</span>vector&lt;Node&gt; get_nodes(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="cb9-35" data-line-number="35">};</a></code></pre></div>
+<p>We assume an ensemble of particles moving by a potential <span class="math inline">\(\Phi_0({\bf q})\)</span> from their starting position <span class="math inline">\({\bf q}\)</span> to a target position <span class="math inline">\({\bf x}\)</span>,</p>
+<p><span id="eq:zeldovich" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(5)</span></span></p>
+<p>This is known as the Zeldovich approximation <span class="citation" data-cites="Zeldovich1970 Shandarin1989">(Zeldovich 1970; Shandarin and Zeldovich 1989)</span>. This has the problem that particles continue to move in a straight line, even after structures form. We’d like to have particles adhere together once they form structures, hence the name: <em>adhesion model</em>.</p>
+<figure>
+<img src="figures/ze.svg" alt="Figure 5: The Zeldovich Approximation. Each particle is given a velocity equal to v = -\nabla \Phi_0. Structures form, but there is no dynamics involved." id="fig:zeldovich" /><figcaption><span>Figure 5:</span> The Zeldovich Approximation. Each particle is given a velocity equal to <span class="math inline">\(v = -\nabla \Phi_0\)</span>. Structures form, but there is no dynamics involved.</figcaption>
+</figure>
+<p>We can rewrite Equation <a href="#eq:zeldovich">5</a> as</p>
+<p><span id="eq:zeldovich-potential" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf \nabla}(\frac{q^2}{2} - t \Phi_0({\bf q}) + C) = {\bf \nabla} \varphi,\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(6)</span></span></p>
+<p>introducing the new potential <span class="math inline">\(\varphi({\bf q}) = q^2/2 - t\Phi_0\)</span>. The adhesion model is found by using not the potential <span class="math inline">\(\varphi\)</span> but its <em>convex hull</em> <span class="math inline">\(\varphi_c\)</span>. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation. This argument is a gross oversimplification of the underlying theory. We refer to <span class="citation" data-cites="Hidding2018">Hidding et al. (2018)</span> for more detail.</p>
+<h4 id="the-power-diagram">The power diagram</h4>
+<p>We won’t be computing the convex hull of <span class="math inline">\(\varphi\)</span> explicitly. In stead we use the regular triangulation algorithm. The regular triangulation is the dual of the power diagram. The power diagram is the weighted generalisation of the Voronoi tessellation. Given a subset of points <span class="math inline">\(S \in Q\)</span>, we define a cell <span class="math inline">\(V_u\)</span> in the power diagram as follows:</p>
+<p><span class="math display">\[V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 + w_u \le ({\bf v} - {\bf x})^2 + w_v \forall {\bf v} \in S \right\}.\]</span></p>
+<p>This is the same as minimising the distance function</p>
+<p><span class="math display">\[d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 + w_q\right].\]</span></p>
+<p>Setting the weights to,</p>
+<p><span class="math display">\[w(\vec{q}) = 2 t \Phi_0(\vec{q}),\]</span></p>
+<p>retrieves an expression similar to Equation <a href="#eq:zeldovich-potential">6</a>.</p>
+<div class="TODO">
+<p>Clear up argumentation here</p>
+</div>
 <h3 id="cgal-geometry-kernels">CGAL Geometry kernels</h3>
 <p>CGAL comes with a set of <em>geometry kernels</em>. Each kernel bundles basic type definitions like <code>Point</code>, <code>Vector</code>, <code>Circle</code>, etc. and geometric operations on those types. Depending on the requirements of the programmer, we can choose different implementations of these concepts. These implementations vary in representation of real numbers, vector quantities, and how geometric operations are computed on them. Some abstract applications require an exact representation of numbers while other more cosmological applications can afford to be more liberal with regards to exactness.</p>
 <p>The algorithms that actually do the advanced geometric computations, like the regular triangulations we use, are implemented in generic terms using C++ template techniques. We need to supply those algorithms the correct geometry kernel for our application. This is why all CGAL programs start with a list of template type definitions.</p>
 <p>In our case, what we need is a double precision floating point representation of numbers, while retaining logical consistency in geometric predicates, of which the co-linearity test is the most obvious example. This is provided by the <code>Exact_predicates_inexact_constructions_kernel</code> kernel.</p>
 <p>We collect those type definitions in a separate header file:</p>
 <p><em>file: «src/cgal_base.hh»=</em></p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="pp">#pragma once</span></a>
-<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;CGAL/Exact_predicates_inexact_constructions_kernel.h&gt;</span></a>
-<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;CGAL/Regular_triangulation_3.h&gt;</span></a>
-<a class="sourceLine" id="cb10-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb10-5" data-line-number="5"><span class="kw">using</span> K = CGAL::Exact_predicates_inexact_constructions_kernel;</a>
-<a class="sourceLine" id="cb10-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">&lt;&lt;regular-triangulation-type&gt;&gt;</a>
-<a class="sourceLine" id="cb10-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="kw">typedef</span> K::Vector_3           Vector;</a>
-<a class="sourceLine" id="cb10-10" data-line-number="10"><span class="kw">typedef</span> RT::Bare_point        Point;</a>
-<a class="sourceLine" id="cb10-11" data-line-number="11"><span class="kw">typedef</span> RT::Edge              Edge;</a>
-<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="kw">typedef</span> RT::Weighted_point    Weighted_point;</a>
-<a class="sourceLine" id="cb10-13" data-line-number="13"><span class="kw">typedef</span> RT::Segment           Segment;</a>
-<a class="sourceLine" id="cb10-14" data-line-number="14"><span class="kw">typedef</span> RT::Tetrahedron       Tetrahedron;</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;CGAL/Exact_predicates_inexact_constructions_kernel.h&gt;</span></a>
+<a class="sourceLine" id="cb9-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;CGAL/Regular_triangulation_3.h&gt;</span></a>
+<a class="sourceLine" id="cb9-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb9-5" data-line-number="5"><span class="kw">using</span> K = CGAL::Exact_predicates_inexact_constructions_kernel;</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">&lt;&lt;regular-triangulation-type&gt;&gt;</a>
+<a class="sourceLine" id="cb9-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="kw">typedef</span> K::Vector_3           Vector;</a>
+<a class="sourceLine" id="cb9-10" data-line-number="10"><span class="kw">typedef</span> RT::Bare_point        Point;</a>
+<a class="sourceLine" id="cb9-11" data-line-number="11"><span class="kw">typedef</span> RT::Edge              Edge;</a>
+<a class="sourceLine" id="cb9-12" data-line-number="12"><span class="kw">typedef</span> RT::Weighted_point    Weighted_point;</a>
+<a class="sourceLine" id="cb9-13" data-line-number="13"><span class="kw">typedef</span> RT::Segment           Segment;</a>
+<a class="sourceLine" id="cb9-14" data-line-number="14"><span class="kw">typedef</span> RT::Tetrahedron       Tetrahedron;</a></code></pre></div>
 <p>Since we’ll be using bare (weightless) points, weighted points, and vectors we defined aliases for those types. Note that CGAL is particular about the difference between points and vectors. Points are locations without absolute properties, whereas vectors describe how to get from one point to the other. Internally they can have the same numerical representation, but this may not strictly be the case for all geometry kernels.</p>
 <p>We enable two versions of the code: serial and parallel. The parallel version requires <em>Threading Building Blocks</em> to be installed. The regular triangulation data structure gets tagged with <code>CGAL::Parallel_tag</code> which enables parallel versions of the algorithm.</p>
 <p><em>«regular-triangulation-type»=</em></p>
@@ -709,6 +694,50 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="regular-triangulation-type-8" data-line-number="8"><span class="pp">#else</span></a>
 <a class="sourceLine" id="regular-triangulation-type-9" data-line-number="9">  <span class="kw">using</span> RT = CGAL::Regular_triangulation_3&lt;K&gt;;</a>
 <a class="sourceLine" id="regular-triangulation-type-10" data-line-number="10"><span class="pp">#endif</span></a></code></pre></div>
+<h3 id="adhesion-header">Adhesion header</h3>
+<p>The adhesion computation is stored in an <code>Adhesion</code> object.</p>
+<p><em>file: «src/adhesion.hh»=</em></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;boxparam.hh&quot;</span></a>
+<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="pp">#include </span><span class="im">&quot;cgal_base.hh&quot;</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="pp">#include </span><span class="im">&lt;memory&gt;</span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="pp">#include </span><span class="im">&lt;array&gt;</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="pp">#include </span><span class="im">&lt;algorithm&gt;</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span></a>
+<a class="sourceLine" id="cb10-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb10-11" data-line-number="11"><span class="kw">class</span> Adhesion</a>
+<a class="sourceLine" id="cb10-12" data-line-number="12">{</a>
+<a class="sourceLine" id="cb10-13" data-line-number="13">  &lt;&lt;adhesion-members&gt;&gt;</a>
+<a class="sourceLine" id="cb10-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb10-15" data-line-number="15"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb10-16" data-line-number="16">  &lt;&lt;adhesion-node-type&gt;&gt;</a>
+<a class="sourceLine" id="cb10-17" data-line-number="17">  &lt;&lt;adhesion-node-<span class="kw">struct</span>&gt;&gt;</a>
+<a class="sourceLine" id="cb10-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb10-19" data-line-number="19">  Adhesion(</a>
+<a class="sourceLine" id="cb10-20" data-line-number="20">    BoxParam <span class="at">const</span> &amp;box,</a>
+<a class="sourceLine" id="cb10-21" data-line-number="21">    <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; <span class="at">const</span> &amp;potential,</a>
+<a class="sourceLine" id="cb10-22" data-line-number="22">    <span class="dt">double</span> t);</a>
+<a class="sourceLine" id="cb10-23" data-line-number="23"></a>
+<a class="sourceLine" id="cb10-24" data-line-number="24">  &lt;&lt;adhesion-methods&gt;&gt;</a>
+<a class="sourceLine" id="cb10-25" data-line-number="25">};</a></code></pre></div>
+<h4 id="members">Members</h4>
+<p>The <code>Adhesion</code> class stores the time parameter, the regular triangulation data structure and a list of vertices.</p>
+<p><em>«adhesion-members»=</em></p>
+<div class="sourceCode" id="adhesion-members"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="adhesion-members-1" data-line-number="1"><span class="dt">double</span>                      time;</a>
+<a class="sourceLine" id="adhesion-members-2" data-line-number="2">&lt;&lt;tbb-lock-member&gt;&gt;</a>
+<a class="sourceLine" id="adhesion-members-3" data-line-number="3">RT                          rt;</a>
+<a class="sourceLine" id="adhesion-members-4" data-line-number="4"><span class="bu">std::</span>vector&lt;Weighted_point&gt; vertices;</a></code></pre></div>
+<p>Additionally, if we’re running with TBB enabled, we have to include a locking data structure.</p>
+<h4 id="methods">Methods</h4>
+<p><em>«adhesion-methods»=</em></p>
+<div class="sourceCode" id="adhesion-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="adhesion-methods-1" data-line-number="1">  <span class="dt">int</span> edge_count(RT::Cell_handle h, <span class="dt">double</span> threshold) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-2" data-line-number="2">  Vector velocity(RT::Cell_handle c) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-3" data-line-number="3"></a>
+<a class="sourceLine" id="adhesion-methods-4" data-line-number="4">  Mesh&lt;Point, <span class="dt">double</span>&gt; get_walls(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-5" data-line-number="5">  Mesh&lt;Point, <span class="dt">double</span>&gt; get_filaments(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-6" data-line-number="6">  <span class="bu">std::</span>vector&lt;Node&gt; get_nodes(<span class="dt">double</span> threshold) <span class="at">const</span>;</a></code></pre></div>
 <h3 id="computing-the-triangulation">Computing the triangulation</h3>
 <p>We give each point in the grid a weight proportional to the velocity potential, <span class="math display">\[w_i = 2 t \Phi(q_i).\]</span> Then we insert these weighted points into the triangulation.</p>
 <p><em>file: «src/adhesion/constructor.cc»=</em></p>
@@ -771,9 +800,9 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="adhesion-node-struct-5" data-line-number="5">  NodeType  <span class="dt">node_type</span>;</a>
 <a class="sourceLine" id="adhesion-node-struct-6" data-line-number="6">};</a></code></pre></div>
 <p>Note that the masses of any cell other then the cluster cells carry no physical meaning, unless somehow corrected for the resolution of the box. If we double the resolution, the average mass of a void particle drops by a factor eight, the average mass of a wall particle by a factor four, and the average mass of a filament particle by a factor two. Also we know that the total mass is conserved.</p>
-<p>On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure <a href="#fig:node-classes">4</a>.</p>
+<p>On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure <a href="#fig:node-classes">6</a>.</p>
 <figure>
-<img src="figures/node-classes.svg" alt="Figure 4: Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges." id="fig:node-classes" /><figcaption><span>Figure 4:</span> Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.</figcaption>
+<img src="figures/node-classes.svg" alt="Figure 6: Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges." id="fig:node-classes" /><figcaption><span>Figure 6:</span> Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.</figcaption>
 </figure>
 <p>Note that there are many species of kurtoparabolic points. The ones listed under ‘kurto-parabolics’ have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurto-parabolic <em>e</em>, which has a filament (and three wall segments) ending in a void.</p>
 <p>There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type <em>c</em>. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.</p>
@@ -928,7 +957,16 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb14-26" data-line-number="26"></a>
 <a class="sourceLine" id="cb14-27" data-line-number="27">  <span class="cf">return</span> result;</a>
 <a class="sourceLine" id="cb14-28" data-line-number="28">}</a></code></pre></div>
-<h3 id="the-power-diagram">The power diagram</h3>
+<h4 id="writing-to-hdf5">Writing to HDF5</h4>
+<p>In the workflow we can now write all this information about the nodes to the HDF5 file.</p>
+<p><em>«workflow-write-nodes»=</em></p>
+<div class="sourceCode" id="workflow-write-nodes"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-write-nodes-1" data-line-number="1"><span class="kw">auto</span> nodes = adhesion.get_nodes(threshold);</a>
+<a class="sourceLine" id="workflow-write-nodes-2" data-line-number="2">write_vector(h5_group, <span class="st">&quot;nodes&quot;</span>, nodes);</a></code></pre></div>
+<p>This can then be read back to Python to plot our measurements. For example, the cluster mass function is shown in Figure~<a href="#fig:mass-function">7</a>.</p>
+<figure>
+<img src="figures/mass-functions.svg" alt="Figure 7: Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per h^{-3}{\rm Mpc}^3 per logarithmic bin \Delta \log M/M^* where M^* is \rho_u h^{-3}{\rm Mpc}^3. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters." id="fig:mass-function" /><figcaption><span>Figure 7:</span> Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per <span class="math inline">\(h^{-3}{\rm Mpc}^3\)</span> per logarithmic bin <span class="math inline">\(\Delta \log M/M^*\)</span> where <span class="math inline">\(M^*\)</span> is <span class="math inline">\(\rho_u h^{-3}{\rm Mpc}^3\)</span>. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.</figcaption>
+</figure>
+<h3 id="the-power-diagram-1">The power diagram</h3>
 <p>The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges.</p>
 <p>In this case we’ll store them as Wavefront OBJ files. This is a text based file format, so we can’t store too large amounts of data. However, it is well supported by most visualisation toolkits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span>. We’ll only use the <span class="math inline">\(u\)</span> coordinate to store the density of the walls. The procedure for saving OBJ files is given in the <a href="#obj-file-format">Appendix</a>.</p>
 <p>We’ll define the function that computes the duals of the regular triangulation and stores it in a structure we call <code>Mesh&lt;Point, double&gt;</code>.</p>
@@ -1200,15 +1238,12 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-8" data-line-number="8">    <span class="st">&quot;time&quot;</span>, H5TypeFactory&lt;<span class="dt">double</span>&gt;::get(), H5::DataSpace());</a>
 <a class="sourceLine" id="workflow-9" data-line-number="9">  time_attr.write(H5TypeFactory&lt;<span class="dt">double</span>&gt;::get(), &amp;t);</a>
 <a class="sourceLine" id="workflow-10" data-line-number="10"></a>
-<a class="sourceLine" id="workflow-11" data-line-number="11">  &lt;&lt;run-write-nodes&gt;&gt;</a>
+<a class="sourceLine" id="workflow-11" data-line-number="11">  &lt;&lt;workflow-write-nodes&gt;&gt;</a>
 <a class="sourceLine" id="workflow-12" data-line-number="12">  &lt;&lt;run-write-obj&gt;&gt;</a>
 <a class="sourceLine" id="workflow-13" data-line-number="13"></a>
 <a class="sourceLine" id="workflow-14" data-line-number="14">  ++iteration;</a>
 <a class="sourceLine" id="workflow-15" data-line-number="15">}</a></code></pre></div>
 <h4 id="write-nodes">Write nodes</h4>
-<p><em>«run-write-nodes»=</em></p>
-<div class="sourceCode" id="run-write-nodes"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="run-write-nodes-1" data-line-number="1"><span class="kw">auto</span> nodes = adhesion.get_nodes(threshold);</a>
-<a class="sourceLine" id="run-write-nodes-2" data-line-number="2">write_vector(h5_group, <span class="st">&quot;nodes&quot;</span>, nodes);</a></code></pre></div>
 <h4 id="write-the-walls">Write the walls</h4>
 <p><em>«run-write-obj»=</em></p>
 <div class="sourceCode" id="run-write-obj"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="run-write-obj-1" data-line-number="1">{</a>
@@ -1881,6 +1916,9 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 </div>
 <div id="ref-Frisch2001">
 <p>Frisch, and Bec. 2001. “Burgulence.” <em>arXiv</em> nlin: 0012033v2.</p>
+</div>
+<div id="ref-Hidding2018">
+<p>Hidding, Johan, Rien Van de Weygaert, Mark Neyrinck, and Gert Vegter. 2018. “The Adhesion Model – the Dual Geometry of the Cosmic Web” to be subm. (-): –.</p>
 </div>
 <div id="ref-Hidding2014">
 <p>Hidding, J., S. F. Shandarin, and R. Van de Weygaert. 2014. “The Zel’dovich approximation: key to understanding cosmic web complexity” 437 (February): 3442–72. <a href="https://doi.org/10.1093/mnras/stt2142" class="uri">https://doi.org/10.1093/mnras/stt2142</a>.</p>
