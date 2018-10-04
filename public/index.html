@@ -350,39 +350,62 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="cb3-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;cmath&gt;</span></a>
 <a class="sourceLine" id="cb3-4" data-line-number="4"><span class="pp">#include </span><span class="im">&lt;array&gt;</span></a>
 <a class="sourceLine" id="cb3-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">&lt;&lt;increment-index&gt;&gt;</a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
-<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="kw">inline</span> T sqr(T x) { <span class="cf">return</span> x*x; }</a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="kw">struct</span> BoxParam {</a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">  <span class="dt">unsigned</span> N;         <span class="co">// number of grid points in a row</span></a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">  <span class="dt">double</span>   L;         <span class="co">// physical size of the box</span></a>
-<a class="sourceLine" id="cb3-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb3-15" data-line-number="15">  BoxParam(<span class="dt">unsigned</span> N_, <span class="dt">double</span> L_)</a>
-<a class="sourceLine" id="cb3-16" data-line-number="16">    : N(N_)</a>
-<a class="sourceLine" id="cb3-17" data-line-number="17">    , L(L_)</a>
-<a class="sourceLine" id="cb3-18" data-line-number="18">  {}</a>
-<a class="sourceLine" id="cb3-19" data-line-number="19"></a>
-<a class="sourceLine" id="cb3-20" data-line-number="20">  &lt;&lt;fourier-properties&gt;&gt;</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="kw">inline</span> T sqr(T x) { <span class="cf">return</span> x*x; }</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="kw">inline</span> T modulo(T x, T y) {</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">  <span class="cf">return</span> (x &lt; <span class="dv">0</span> ? y + (x % y) : x % y);</a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">}</a>
+<a class="sourceLine" id="cb3-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb3-14" data-line-number="14">&lt;&lt;increment-index&gt;&gt;</a>
+<a class="sourceLine" id="cb3-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb3-16" data-line-number="16"><span class="kw">class</span> BoxParam {</a>
+<a class="sourceLine" id="cb3-17" data-line-number="17"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb3-18" data-line-number="18">  <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">unsigned</span> R = <span class="dv">3</span>;</a>
+<a class="sourceLine" id="cb3-19" data-line-number="19">  <span class="dt">unsigned</span> N;         <span class="co">// number of grid points in a row</span></a>
+<a class="sourceLine" id="cb3-20" data-line-number="20">  <span class="dt">double</span>   L;         <span class="co">// physical size of the box</span></a>
 <a class="sourceLine" id="cb3-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb3-22" data-line-number="22">  &lt;&lt;boxparam-methods&gt;&gt;</a>
-<a class="sourceLine" id="cb3-23" data-line-number="23">};</a></code></pre></div>
+<a class="sourceLine" id="cb3-22" data-line-number="22"><span class="kw">private</span>:</a>
+<a class="sourceLine" id="cb3-23" data-line-number="23">  <span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, R&gt; _shape,</a>
+<a class="sourceLine" id="cb3-24" data-line-number="24">                        _stride;</a>
+<a class="sourceLine" id="cb3-25" data-line-number="25"></a>
+<a class="sourceLine" id="cb3-26" data-line-number="26"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb3-27" data-line-number="27">  BoxParam(<span class="dt">unsigned</span> N_, <span class="dt">double</span> L_)</a>
+<a class="sourceLine" id="cb3-28" data-line-number="28">    : N(N_)</a>
+<a class="sourceLine" id="cb3-29" data-line-number="29">    , L(L_)</a>
+<a class="sourceLine" id="cb3-30" data-line-number="30">  {</a>
+<a class="sourceLine" id="cb3-31" data-line-number="31">    <span class="cf">for</span> (<span class="dt">unsigned</span> k = <span class="dv">0</span>; k &lt; R; ++k) {</a>
+<a class="sourceLine" id="cb3-32" data-line-number="32">      _shape[k] = N;</a>
+<a class="sourceLine" id="cb3-33" data-line-number="33">      _stride[R - <span class="dv">1</span> - k] =</a>
+<a class="sourceLine" id="cb3-34" data-line-number="34">        (k == <span class="dv">0</span> ? <span class="dv">1</span> : _stride[R - k] * N);</a>
+<a class="sourceLine" id="cb3-35" data-line-number="35">    }</a>
+<a class="sourceLine" id="cb3-36" data-line-number="36">  }</a>
+<a class="sourceLine" id="cb3-37" data-line-number="37"></a>
+<a class="sourceLine" id="cb3-38" data-line-number="38">  &lt;&lt;fourier-properties&gt;&gt;</a>
+<a class="sourceLine" id="cb3-39" data-line-number="39"></a>
+<a class="sourceLine" id="cb3-40" data-line-number="40">  &lt;&lt;boxparam-methods&gt;&gt;</a>
+<a class="sourceLine" id="cb3-41" data-line-number="41">};</a></code></pre></div>
 <p>We add a method to compute the <span class="math inline">\(n\)</span>-th point on a grid.</p>
 <p><em>«boxparam-methods»=</em></p>
-<div class="sourceCode" id="boxparam-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="boxparam-methods-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="boxparam-methods-2" data-line-number="2">Point point(<span class="dt">size_t</span> i) <span class="at">const</span> {</a>
-<a class="sourceLine" id="boxparam-methods-3" data-line-number="3">  <span class="dt">int</span> x = i % N;</a>
-<a class="sourceLine" id="boxparam-methods-4" data-line-number="4">  <span class="dt">int</span> y = (i / N) % N;</a>
-<a class="sourceLine" id="boxparam-methods-5" data-line-number="5">  <span class="dt">int</span> z = i / (N * N);</a>
-<a class="sourceLine" id="boxparam-methods-6" data-line-number="6"></a>
-<a class="sourceLine" id="boxparam-methods-7" data-line-number="7">  <span class="cf">return</span> Point(x * L/N, y * L/N, z * L/N);</a>
-<a class="sourceLine" id="boxparam-methods-8" data-line-number="8">}</a></code></pre></div>
+<div class="sourceCode" id="boxparam-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="boxparam-methods-1" data-line-number="1"><span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, <span class="dv">3</span>&gt; iloc(<span class="dt">size_t</span> i) <span class="at">const</span> {</a>
+<a class="sourceLine" id="boxparam-methods-2" data-line-number="2">  <span class="dt">size_t</span> x = i % N,</a>
+<a class="sourceLine" id="boxparam-methods-3" data-line-number="3">         y = (i / N) % N,</a>
+<a class="sourceLine" id="boxparam-methods-4" data-line-number="4">         z = i / (N * N);</a>
+<a class="sourceLine" id="boxparam-methods-5" data-line-number="5"></a>
+<a class="sourceLine" id="boxparam-methods-6" data-line-number="6">  <span class="cf">return</span> {z, y, x};</a>
+<a class="sourceLine" id="boxparam-methods-7" data-line-number="7">}</a>
+<a class="sourceLine" id="boxparam-methods-8" data-line-number="8"></a>
+<a class="sourceLine" id="boxparam-methods-9" data-line-number="9"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="boxparam-methods-10" data-line-number="10">Point point(<span class="dt">size_t</span> i) <span class="at">const</span> {</a>
+<a class="sourceLine" id="boxparam-methods-11" data-line-number="11">  <span class="kw">auto</span> p = iloc(i);</a>
+<a class="sourceLine" id="boxparam-methods-12" data-line-number="12">  <span class="cf">return</span> Point(p[<span class="dv">2</span>] * L/N, p[<span class="dv">1</span>] * L/N, p[<span class="dv">0</span>] * L/N);</a>
+<a class="sourceLine" id="boxparam-methods-13" data-line-number="13">}</a></code></pre></div>
 <p>Note that we set the <span class="math inline">\(x\)</span>-coordinate to be the fastest changing coordinate in the flattened array. This is known as <em>row-major</em> ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. This also means that when we use a <code>std::array&lt;size_t,3&gt;</code> as a 3-dimensional index into an array, the axes are reversed, so <code>{z, y, x}</code>.</p>
 <p>Some essential helper functions we’ll need are the <code>shape</code> and <code>size</code> of the box.</p>
 <p><em>«boxparam-methods»=+</em></p>
 <div class="sourceCode" id="boxparam-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="boxparam-methods-1" data-line-number="1"><span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, <span class="dv">3</span>&gt; shape() <span class="at">const</span> {</a>
-<a class="sourceLine" id="boxparam-methods-2" data-line-number="2">  <span class="cf">return</span> <span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, <span class="dv">3</span>&gt;{ N, N, N };</a>
+<a class="sourceLine" id="boxparam-methods-2" data-line-number="2">  <span class="cf">return</span> _shape;</a>
 <a class="sourceLine" id="boxparam-methods-3" data-line-number="3">}</a>
 <a class="sourceLine" id="boxparam-methods-4" data-line-number="4"></a>
 <a class="sourceLine" id="boxparam-methods-5" data-line-number="5"><span class="dt">size_t</span> size() <span class="at">const</span> {</a>
@@ -432,6 +455,30 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="increment-index-13" data-line-number="13"></a>
 <a class="sourceLine" id="increment-index-14" data-line-number="14">  <span class="cf">return</span> R;</a>
 <a class="sourceLine" id="increment-index-15" data-line-number="15">}</a></code></pre></div>
+<p><em>«boxparam-methods»=+</em></p>
+<div class="sourceCode" id="boxparam-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="boxparam-methods-1" data-line-number="1"><span class="dt">unsigned</span> increment_index(</a>
+<a class="sourceLine" id="boxparam-methods-2" data-line-number="2">    <span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, R&gt; &amp;index) <span class="at">const</span></a>
+<a class="sourceLine" id="boxparam-methods-3" data-line-number="3">{</a>
+<a class="sourceLine" id="boxparam-methods-4" data-line-number="4">  <span class="cf">return</span> ::increment_index&lt;R&gt;(_shape, index);</a>
+<a class="sourceLine" id="boxparam-methods-5" data-line-number="5">}</a>
+<a class="sourceLine" id="boxparam-methods-6" data-line-number="6"></a>
+<a class="sourceLine" id="boxparam-methods-7" data-line-number="7"><span class="dt">size_t</span> flat_index(</a>
+<a class="sourceLine" id="boxparam-methods-8" data-line-number="8">    <span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, R&gt; <span class="at">const</span> &amp;index) <span class="at">const</span></a>
+<a class="sourceLine" id="boxparam-methods-9" data-line-number="9">{</a>
+<a class="sourceLine" id="boxparam-methods-10" data-line-number="10">  <span class="dt">size_t</span> i = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="boxparam-methods-11" data-line-number="11">  <span class="cf">for</span> (<span class="dt">unsigned</span> k = <span class="dv">0</span>; k &lt; R; ++k)</a>
+<a class="sourceLine" id="boxparam-methods-12" data-line-number="12">    i += index[k] * _stride[k];</a>
+<a class="sourceLine" id="boxparam-methods-13" data-line-number="13">  <span class="cf">return</span> i;</a>
+<a class="sourceLine" id="boxparam-methods-14" data-line-number="14">}</a>
+<a class="sourceLine" id="boxparam-methods-15" data-line-number="15"></a>
+<a class="sourceLine" id="boxparam-methods-16" data-line-number="16"><span class="dt">size_t</span> cycle_index(</a>
+<a class="sourceLine" id="boxparam-methods-17" data-line-number="17">    <span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, R&gt; &amp;index,</a>
+<a class="sourceLine" id="boxparam-methods-18" data-line-number="18">    <span class="dt">unsigned</span> k,</a>
+<a class="sourceLine" id="boxparam-methods-19" data-line-number="19">    <span class="dt">int</span> delta) <span class="at">const</span></a>
+<a class="sourceLine" id="boxparam-methods-20" data-line-number="20">{</a>
+<a class="sourceLine" id="boxparam-methods-21" data-line-number="21">  index[k] = modulo(index[k] + delta, _shape[k]);</a>
+<a class="sourceLine" id="boxparam-methods-22" data-line-number="22">  <span class="cf">return</span> flat_index(index);</a>
+<a class="sourceLine" id="boxparam-methods-23" data-line-number="23">}</a></code></pre></div>
 <h3 id="white-noise">White noise</h3>
 <p>Having defined a <code>box</code> we need to fill it with initial density fluctuations, extending our workflow:</p>
 <p><em>«workflow»=+</em></p>
@@ -772,8 +819,8 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p><em>«tbb-initialise-lock»=</em></p>
 <div class="sourceCode" id="tbb-initialise-lock"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="tbb-initialise-lock-1" data-line-number="1"><span class="pp">#ifdef CGAL_LINKED_WITH_TBB</span></a>
 <a class="sourceLine" id="tbb-initialise-lock-2" data-line-number="2">, lock(CGAL::Bbox_3(</a>
-<a class="sourceLine" id="tbb-initialise-lock-3" data-line-number="3">    <span class="fl">-0.1</span>, <span class="fl">-0.1</span>, <span class="fl">-0.1</span>,</a>
-<a class="sourceLine" id="tbb-initialise-lock-4" data-line-number="4">    box.L, box.L, box.L), box.N / <span class="dv">2</span>)</a>
+<a class="sourceLine" id="tbb-initialise-lock-3" data-line-number="3">    <span class="fl">0.0</span>, <span class="fl">0.0</span>, <span class="fl">0.0</span>,</a>
+<a class="sourceLine" id="tbb-initialise-lock-4" data-line-number="4">    box.L, box.L, box.L), box.N)</a>
 <a class="sourceLine" id="tbb-initialise-lock-5" data-line-number="5">, rt(K(), &amp;lock)</a>
 <a class="sourceLine" id="tbb-initialise-lock-6" data-line-number="6"><span class="pp">#endif</span></a></code></pre></div>
 <p>The CGAL regular triangulation code should take care of the rest. Note however, that in current versions of CGAL (4.12) this feature is highly unstable and has been known to produce segmentation faults. Work continues to improve the parallel algorithms.</p>

@@ -1,6 +1,13 @@
-input_files = adhesion_example.md
+# Input files
+input_files = adhesion_example.md appendix.md
+
+# Target directories
 build_dir = ./build
 html_dir = ./public
+
+# Target files
+pdf_files = $(build_dir)/main.pdf
+html_files = $(html_dir)/index.html
 
 # Get HDF5 compilation flags using pkg-config
 hdf5_cflags = $(shell pkg-config --cflags hdf5)
@@ -18,8 +25,8 @@ cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
 # Uncomment if you want to compile with TBB
-# tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
-# tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
+tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
+tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
 
 gsl_libs = $(shell pkg-config --libs gsl)
 
@@ -28,16 +35,16 @@ coverage_cflags = --coverage
 # In case we're compiling with GCC 6
 # cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
 # cflags = -O3
-cflags = -O3
+cflags = -O3 -I${HOME}/.local/include
 
 # If some of the dependencies are installed locally
-# libs = -L${HOME}/.local/lib $(tbb_libs)
-libs =
+libs = -L${HOME}/.local/lib
+# libs =
 
 compile = g++
-compile_flags = -std=c++14 -Wall -Isrc $(hdf5_cflags) $(cgal_cflags) $(tbb_cflags) $(cflags)
+compile_flags = -std=c++14 -Wall -Isrc  $(cflags) $(hdf5_cflags) $(cgal_cflags) $(tbb_cflags)
 link = g++
-link_flags = -lfftw3 -lyaml-cpp -lfmt $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tbb_libs) $(libs)
+link_flags = -lfftw3 -lyaml-cpp -lfmt $(libs) $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tbb_libs)
 
 # ===========================================================================
 
@@ -52,8 +59,6 @@ pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
 pd_list = $(call pd_call,list)
 pd_tangle = $(call pd_call,tangle)
 
-pdf_files = $(input_files:%.md=$(build_dir)/%.pdf)
-html_files = $(input_files:%.md=$(html_dir)/%.html)
 sources = $(shell $(pd_list) $(input_files))
 
 cc_files = $(filter-out src/main.cc, $(filter src/%.cc, $(sources)))
@@ -80,22 +85,21 @@ run-tests: $(build_dir)/run-tests
 
 tangle: $(input_files)
 	mkdir -p $(build_dir)
-	$(pd_tangle) $< > $(build_dir)/tangle.sh
+	$(pd_tangle) $^ > $(build_dir)/tangle.sh
 	source $(build_dir)/tangle.sh
 
 report: $(pdf_files)
 
 html: $(html_files)
-	mv $(html_dir)/adhesion_example.html $(html_dir)/index.html
 	cp -r figures $(html_dir)
 	cp scripts/style.css $(html_dir)
 
-$(html_dir)/%.html: %.md
+$(html_dir)/%.html: $(input_files)
 	mkdir -p $(html_dir)
-	pandoc $< -f $(format) $(html_args) -t html5 -o $@
+	pandoc $^ -f $(format) $(html_args) -t html5 -o $@
 
-$(build_dir)/%.pdf : %.md
-	pandoc $< -f $(format) $(report_args) -t latex -o $@ --pdf-engine=xelatex
+$(build_dir)/%.pdf : $(input_files)
+	pandoc $^ -f $(format) $(report_args) -t latex -o $@ --pdf-engine=xelatex
 
 $(sources): tangle
 
