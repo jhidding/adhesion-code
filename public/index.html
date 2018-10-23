@@ -130,7 +130,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </nav>
 
 <h2 id="abstract">Abstract</h2>
-<p>We present a (relatively) small example of using the CGAL library to run the adhesion model. This literate C++ code generates an initial potential field and computes the <em>regular triangulation</em> to that potential, which is a weighted generalisation of the <em>Delaunay triangulation</em>. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.</p>
+<p>We present a (relatively) small example of using the CGAL <span class="citation" data-cites="cgal:eb-18b">(The CGAL Project 2018)</span> library to run the adhesion model. This literate C++ code generates an initial potential field and computes the <em>regular triangulation</em> to that potential, which is a weighted generalisation of the <em>Delaunay triangulation</em>. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.</p>
 <h3 id="version">Version</h3>
 <p><em>«version»=</em></p>
 <div class="sourceCode" id="version"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="version-1" data-line-number="1"><span class="pp">#define VERSION &quot;0.1&quot;</span></a></code></pre></div>
@@ -138,7 +138,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 id="introduction">Introduction</h2>
 <p>The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation.</p>
 <p>The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the <em>cosmic web</em>. The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn’t reveal the halo structures that are shown in N-body simulations to form inside these structures.</p>
-<p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set.</p>
+<p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set <span class="citation" data-cites="cgal:pt-t3-18b cgal:pt-tds3-18b">(Jamin, Pion, and Teillaud 2018b, 2018a)</span>.</p>
 <figure>
 <img src="figures/output.png" alt="Figure 1: Example output of the program, rendered with ParaView." id="fig:output-example" /><figcaption><span>Figure 1:</span> Example output of the program, rendered with ParaView.</figcaption>
 </figure>
@@ -1973,6 +1973,12 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <div id="ref-Hopf1950">
 <p>Hopf, Eberhard. 1950. “The Partial Differential Equation <span class="math inline">\(u_t + uu_x = \mu_{xx}\)</span>.” <em>Communications on Pure and Applied Mathematics</em> Vol. 3, No. 3: 201–30. <a href="https://doi.org/10.1002/cpa.3160030302" class="uri">https://doi.org/10.1002/cpa.3160030302</a>.</p>
 </div>
+<div id="ref-cgal:pt-tds3-18b">
+<p>Jamin, Clément, Sylvain Pion, and Monique Teillaud. 2018a. “3D Triangulation Data Structure.” In <em>CGAL User and Reference Manual</em>, 4.13 ed. CGAL Editorial Board. <a href="https://doc.cgal.org/4.13/Manual/packages.html#PkgTDS3Summary" class="uri">https://doc.cgal.org/4.13/Manual/packages.html#PkgTDS3Summary</a>.</p>
+</div>
+<div id="ref-cgal:pt-t3-18b">
+<p>———. 2018b. “3D Triangulations.” In <em>CGAL User and Reference Manual</em>, 4.13 ed. CGAL Editorial Board. <a href="https://doc.cgal.org/4.13/Manual/packages.html#PkgTriangulation3Summary" class="uri">https://doc.cgal.org/4.13/Manual/packages.html#PkgTriangulation3Summary</a>.</p>
+</div>
 <div id="ref-Knuth1984">
 <p>Knuth, Donald Ervin. 1984. “Literate Programming.” <em>The Computer Journal</em> 27 (2). Oxford University Press: 97–111.</p>
 </div>
@@ -1987,6 +1993,9 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 </div>
 <div id="ref-Sirko2005">
 <p>Sirko, Edwin. 2005. “Initial Conditions to Cosmological N-Body Simulations, or, How to Run an Ensemble of Simulations.” <em>The Astrophysical Journal</em> 634 (2): 728. <a href="http://stacks.iop.org/0004-637X/634/i=2/a=728" class="uri">http://stacks.iop.org/0004-637X/634/i=2/a=728</a>.</p>
+</div>
+<div id="ref-cgal:eb-18b">
+<p>The CGAL Project. 2018. <em>CGAL User and Reference Manual</em>. 4.13 ed. CGAL Editorial Board. <a href="https://doc.cgal.org/4.13/Manual/packages.html" class="uri">https://doc.cgal.org/4.13/Manual/packages.html</a>.</p>
 </div>
 <div id="ref-Zeldovich1970">
 <p>Zeldovich, Ya. B. 1970. “Gravitational instability: An approximate theory for large density perturbations.” 5 (March): 84–89.</p>
