@@ -52,7 +52,9 @@ SHELL := /bin/bash
 
 format = markdown+fenced_code_attributes+citations+all_symbols_escapable+fenced_divs+multiline_tables
 pandoc_filters = pandoc-eqnos pandoc-fignos pandoc-citeproc
-report_args = --toc $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings 
+pandoc_latex_filters = pandoc-eqnos pandoc-fignos
+report_args = --toc $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --template scripts/eisvogel.tex --listings
+latex_args = --toc $(pandoc_latex_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --natbib --listings
 html_args = -s --toc --toc-depth=3 $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --mathjax --css "style.css" --base-header-level=2
 
 pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
@@ -89,6 +91,11 @@ tangle: $(input_files)
 	source $(build_dir)/tangle.sh
 
 report: $(pdf_files)
+
+latex: $(build_dir)/adhesion_example.tex
+
+$(build_dir)/%.tex : %.md
+	pandoc $^ -f $(format) $(latex_args) -t latex -o $@
 
 html: $(html_files)
 	cp -r figures $(html_dir)

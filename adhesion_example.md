@@ -206,7 +206,7 @@ Throughout the sections of this report, we work through the workflow for running
 
 ## Creating the box
 
-The `box` section of the configuration should contain an entry for `N` and `L`, the logical and physical box sizes respectively. 
+The `box` section of the configuration should contain an entry for `N` and `L`, the logical and physical box sizes respectively.
 
 ``` {.cpp #workflow}
 std::clog << "# Using box with parameters:\n"
@@ -1216,7 +1216,7 @@ inline bool is_big_edge(
 }
 ```
 
-For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex.
+For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex. This procedure is illustrated in Figure\ @fig:edge-iteration.
 
 ``` {.cpp #pd-is-big-facet}
 inline bool is_big_facet(
@@ -1245,6 +1245,8 @@ inline bool is_big_facet(
 }
 ```
 
+![Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge $\overline{AB}$, suppose we are checking the validity of the facet $\overline{134}$. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case $(\overline{A},\overline{2})$. To iterate the edges of this facet, we find all combinations $\overline{ij}$, where $1 \le i < j \le 4$, and $i, j \neq 2$.](figures/edge-iteration.svg){#fig:edge-iteration width="50%"}
+
 ### Function body (walls)
 
 Collecting these steps, the rest of the implementation of `power_diagram_faces` is as follows:
@@ -1266,6 +1268,7 @@ Mesh<Point, double> power_diagram_faces(
 ```
 
 ### Filaments
+
 
 The implementation for the filaments is very similar. In the case of a facet in the regular triangulation, we only need to compute the dual of the two co-faces of the facet. Again, in CGAL the facet is represented as one of the two co-faces and the vertex opposite the facet. This means there are two 'mirror' representations of the same facet. To get the other co-facet we can query the triangulation for the mirror facet.
 
