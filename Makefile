@@ -35,7 +35,7 @@ coverage_cflags = --coverage
 # In case we're compiling with GCC 6
 # cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
 # cflags = -O3
-cflags = -O3 -I${HOME}/.local/include
+cflags = -O3 -Iinclude -I${HOME}/.local/include
 
 # If some of the dependencies are installed locally
 libs = -L${HOME}/.local/lib

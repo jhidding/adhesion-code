@@ -97,15 +97,13 @@ Go to the root folder of this package and inspect the `Makefile`. The `~/.local/
 
 - download YAML-cpp and install with `cmake`
 
-    git clone https://github.com/jbeder/yaml-cpp.git
-    cd yaml-cpp && mkdir build && cd build
-    ccmake ..
-    # change install path to your liking
-    make install
-
-- download ArgAgg and install with `cmake`
-
-    git clone https://github.com/vietjtnguyen/argagg.git
+```
+git clone https://github.com/jbeder/yaml-cpp.git
+cd yaml-cpp && mkdir build && cd build
+ccmake ..
+# change install path to your liking
+make install
+```
 
 - download `fmtlib` and install with `cmake`
 
@@ -115,11 +113,23 @@ TIP: if you would like to keep your `~/.local` directory clean, or use some form
 
 ### Running on Mac
 
-A beta-tester has been found. More's to follow.
+Several dependencies can be installed using Homebrew.
+
+    brew install pandoc cgal yaml-cpp hdf5 fmt librsvg gsl pkg-config
+
+Some others need to be installed through `pip`:
+
+    pip install pandoc-eqnos pandoc-fignos
+
+ArgAgg is available as a single header file which is included in this repository.
+
+You may want to change the `compiler` and `linker` variables in the `Makefile` into `clang++`. Also, comment out the `cgal_cflags` variable as `clang` does not support `-frounding-math`. You may need to remove `-lboost_thread` from `cgal_libs` as well.
+
+To build the code run `make`, to build the report run `make report`.
 
 ### Getting coverage
 
-compile with `--coverage`, then run code, then:
+Compile with `--coverage`, then run code, then:
 
 ```shell
 lcov --capture --directory . --output coverage.info --no-external
