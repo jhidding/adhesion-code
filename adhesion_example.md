@@ -6,8 +6,6 @@ bibliography: ref.bib
 reference-section-title: References
 ---
 
-\pagebreak
-
 # Abstract
 
 We present a (relatively) small example of using the CGAL [@cgal:eb-18b] library to run the adhesion model. This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
@@ -15,7 +13,7 @@ We present a (relatively) small example of using the CGAL [@cgal:eb-18b] library
 ## Version
 
 ``` {.cpp #version}
-#define VERSION "0.1"
+#define VERSION "1.0"
 ```
 
 \pagebreak
@@ -31,7 +29,7 @@ The code presented here computes the adhesion model using the Computational Geom
 
 ![Example output of the program, rendered with ParaView.](figures/output.png){#fig:output-example}
 
-This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with the main body of code, implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The appendix contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.
+This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The supplementary material contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.
 
 ## Prerequisites
 
@@ -87,8 +85,6 @@ rsvg-convert     ≥2.40     Convert SVG files.
 
 All of these packages are available in the Debian GNU/Linux package repositories.
 
-\pagebreak
-
 ## Literate programming
 
 This example is written in a style of *literate programming* [@Knuth1984]. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don't always give the listing of an entire source file in one go. In stead, we use a system of references known as *noweb* [@Ramsey1994].
@@ -124,8 +120,6 @@ return EXIT_SUCCESS;
 
 These blocks of code can be *tangled* into source files. The source code presented in this report combine into a fully working example of the adhesion model!
 
-\pagebreak
-
 ## Program outline
 
 The program reads a YAML configuration file and writes output data to HDF5. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages. HDF5 files can be read in all widely used data analysis frameworks, i.e. Python, GNU R, Julia or even Matlab if you're so inclined.
@@ -140,7 +134,7 @@ Information about the nodes, filaments and walls is then extracted from the regu
 
 We read the configuration from a YAML file. This file specifies the box size, cosmology and the requested output. For the cosmological parameters we took the latest values from the Planck collaboration [@Planck2018].
 
-``` {.yaml #default-config file=examples/lcdm.yaml}
+``` {.yaml #default-config}
 # Default configuration
 
 box:
@@ -165,7 +159,7 @@ output:
   threshold:       1.0
 ```
 
-In the output specification we inserted some syntax for formatting the output filename based on the time step. The `{time:02.1f}` part in the output filenames for walls and filaments will be replaced with the `time` parameter of the run. The syntax of these format expressions is specified in [the documentation of the `fmt` library](http://fmtlib.net/dev/syntax.html).
+In the output specification we inserted some syntax for formatting the output filename based on the time step. The `{time:02.1f}` part in the output filenames for walls and filaments will be replaced with the `time` parameter of the run. The precise syntax of these format expressions is specified in [the documentation of the `fmt` library](http://fmtlib.net/dev/syntax.html).
 
 The `threshold` parameter is the square of the length at which we consider an edge to span a collapsed structure. In a triangulated grid edges can have a length of $\sqrt{3} l_p$, where $l_p$ is the resolution of the box $l_p = L/N$. This means that the threshold should be set higher than $3 L^2/N^2$. In this case, with $L = 50.0 h^{-1} {\rm Mpc}$ and $N = 128$, a threshold length of $1.0$ is a safe choice.
 
@@ -186,23 +180,21 @@ argagg::parser argparser {{
 }};
 ```
 
-The `ArgAgg` library parses command-line arguments and even composes a help message when the user passes the `--help` flag.
+The `ArgAgg` library parses command-line arguments and composes the following help message when the user passes the `--help` flag:
 
-```
-Adhesion model example code -- (C) 2018 Johan Hidding
-    -h, --help
-        Show this help message.
-    --version
-        Show the software version.
-    -c, --config
-        Supply configuration file.
-    -d, --defaults
-        Show default configuration.
-```
+    Adhesion model example code -- (C) 2018 Johan Hidding
+        -h, --help
+            Show this help message.
+        --version
+            Show the software version.
+        -c, --config
+            Supply configuration file.
+        -d, --defaults
+            Show default configuration.
 
 # Initial conditions
 
-Throughout the sections of this report, we work through the workflow for running the adhesion model. Each time we append some code onto *«workflow»* and then dive into implementation. The lines in *«workflow»* will be put into a function taking a single argument giving the configuration, including cosmological parameters and output specification. We start with defining the `box` in which the initial conditions will be generated.
+Throughout the sections of this report, we work through the workflow for running the adhesion model. Each time we append some code onto *«workflow»* and then dive into implementation. The lines in *«workflow»* will be put into a `run` function taking a single argument giving the configuration, including cosmological parameters and output specification. We start with defining the `box` in which the initial conditions will be generated.
 
 ## Creating the box
 
@@ -224,45 +216,41 @@ These parameters are collected into an instance of `BoxParam`, which has several
 #include <cmath>
 #include <array>
 
-template <typename T>
-inline T sqr(T x) { return x*x; }
-
-template <typename T>
-inline T modulo(T x, T y) {
-  return (x < 0 ? y + (x % y) : x % y);
-}
-
+<<helper-functions>>
 <<increment-index>>
 
 class BoxParam {
 public:
-  static constexpr unsigned R = 3;
+  static constexpr unsigned R = 3; // dimension of the box
   unsigned N;         // number of grid points in a row
   double   L;         // physical size of the box
-
-private:
-  std::array<size_t, R> _shape,
-                        _stride;
 
 public:
   BoxParam(unsigned N_, double L_)
     : N(N_)
     , L(L_)
-  {
-    for (unsigned k = 0; k < R; ++k) {
-      _shape[k] = N;
-      _stride[R - 1 - k] =
-        (k == 0 ? 1 : _stride[R - k] * N);
-    }
-  }
+  {}
 
   <<fourier-properties>>
-
   <<boxparam-methods>>
 };
 ```
 
-We add a method to compute the $n$-th point on a grid.
+### Methods
+
+Some essential helper functions we'll need are the `shape` and `size` of the box.
+
+``` {.cpp #boxparam-methods}
+std::array<size_t, 3> shape() const {
+  return std::array<size_t, 3>({ N, N, N });
+}
+
+size_t size() const {
+  return N * N * N;
+}
+```
+
+We add a method to compute the $n$-th point on a grid. First we need to know the integer position along each axis for a given linear index.
 
 ``` {.cpp #boxparam-methods}
 std::array<size_t, 3> iloc(size_t i) const {
@@ -272,7 +260,13 @@ std::array<size_t, 3> iloc(size_t i) const {
 
   return {z, y, x};
 }
+```
 
+Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. This also means that when we use a `std::array<size_t,3>` as a 3-dimensional index into an array, the axes are reversed, so `{z, y, x}`.
+
+Then we can compute the physical point by multiplying the integer position with the resolution of the box. This method accepts a template argument for the type of the `Point`. We'll assume `Point` has a constructor that accepts the $x$, $y$ and $z$ coordinates as arguments.
+
+``` {.cpp #boxparam-methods}
 template <typename Point>
 Point point(size_t i) const {
   auto p = iloc(i);
@@ -280,18 +274,35 @@ Point point(size_t i) const {
 }
 ```
 
-Note that we set the $x$-coordinate to be the fastest changing coordinate in the flattened array. This is known as *row-major* ordering, which the same as how indexing into C/C++ and Python/NumPy arrays works. This also means that when we use a `std::array<size_t,3>` as a 3-dimensional index into an array, the axes are reversed, so `{z, y, x}`.
+#### Iterating multi-dimensional arrays
 
-Some essential helper functions we'll need are the `shape` and `size` of the box.
+We'll be indexing multi-dimensional arrays. To prevent having to write nested for-loops, we use the `increment_index` helper function. This increments the last index first, if it caries, set it back to zero and increment the next to last index and so on.
 
-``` {.cpp #boxparam-methods}
-std::array<size_t, 3> shape() const {
-  return _shape;
+``` {.cpp #increment-index}
+template <unsigned R>
+inline unsigned increment_index(
+    std::array<size_t, R> const &shape,
+    std::array<size_t, R> &index)
+{
+  for (unsigned i = 0; i < R; ++i) {
+    unsigned k = R - i - 1;
+    if (++index[k] < shape[k])
+      return k;
+
+    index[k] = 0;
+  }
+
+  return R;
 }
+```
 
-size_t size() const {
-  return N * N * N;
-}
+#### Helper functions
+
+The `sqr` function computes the square of any object that has the multiplication operator defined.
+
+``` {.cpp #helper-functions}
+template <typename T>
+inline T sqr(T x) { return x*x; }
 ```
 
 ### Fourier properties
@@ -328,54 +339,6 @@ double k_abs(std::array<size_t, 3> const &loc) const {
   for (size_t i : loc)
     x += sqr(wave_number(i));
   return sqrt(x);
-}
-```
-
-### Iterating multi-dimensional arrays
-
-We'll be indexing multi-dimensional arrays. To prevent having to write nested for-loops, we use the `increment_index` helper function. This increments the last index first, if it caries, set it back to zero and increment the next to last index and so on.
-
-``` {.cpp #increment-index}
-template <unsigned R>
-inline unsigned increment_index(
-    std::array<size_t, R> const &shape,
-    std::array<size_t, R> &index)
-{
-  for (unsigned i = 0; i < R; ++i) {
-    unsigned k = R - i - 1;
-    if (++index[k] < shape[k])
-      return k;
-
-    index[k] = 0;
-  }
-
-  return R;
-}
-```
-
-``` {.cpp #boxparam-methods}
-unsigned increment_index(
-    std::array<size_t, R> &index) const
-{
-  return ::increment_index<R>(_shape, index);
-}
-
-size_t flat_index(
-    std::array<size_t, R> const &index) const
-{
-  size_t i = 0;
-  for (unsigned k = 0; k < R; ++k)
-    i += index[k] * _stride[k];
-  return i;
-}
-
-size_t cycle_index(
-    std::array<size_t, R> &index,
-    unsigned k,
-    int delta) const
-{
-  index[k] = modulo(index[k] + delta, _shape[k]);
-  return flat_index(index);
 }
 ```
 
@@ -455,7 +418,7 @@ $$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$
 
 Equation\ @eq:two-point-function (also known as the two-point distribution) can be generalised to a distribution of $N$ variates, the *multi-variate normal distribution*. It can be shown that, in the case of a statistically homogeneous and isotropic random field, this distribution can always be reduced to the two-point distribution. In that case we refer to the random field as a Gaussian random field.
 
-![The colours of noise. From left to right we change the power spectrum from $k^0$, to $k^{-1}$, to $k^{-2}$. The red noise can also be obtained by integrating a white noise signal.](figures/noise.svg){#fig:colours-of-noise}
+![The colours of noise. From left to right we change the power spectrum from $k^0$, to $k^{-1}$, to $k^{-2}$. The red noise can also be obtained by integrating a white noise signal. Red noise is an elemental example of a Markov process, as each value is computed from a state (the cumulative sum) and a random variate (the white noise).](figures/noise.svg){#fig:colours-of-noise}
 
 ## Power spectrum
 
@@ -463,7 +426,7 @@ In stead of talking about a corellation function, we often use its Fourier trans
 
 $$\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.$$
 
-In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions.
+In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In the *«workflow»* we first normalise the power spectrum and then apply it to the previously generated white noise.
 
 ``` {.cpp #workflow}
 std::clog << "Applying power spectrum with cosmology:\n"
@@ -474,7 +437,7 @@ auto power_spectrum = normalize_power_spectrum(
 compute_potential(box, field, power_spectrum);
 ```
 
-A power spectrum is a function taking in a value of $k$ in units of $h {\rm Mpc}^{-1}$ giving an amplitude.
+This requires two new functions: `EisensteinHu` and `normalize_power_spectrum`.
 
 ``` {.cpp #power-spectra}
 #include <yaml-cpp/yaml.h>
@@ -539,28 +502,39 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
 
 ### Normalisation
 
-The power-spectrum needs to be normalised so that the amplitudes of the density perturbations match those in the observed Universe.
-Traditionally the chosen scaling is applied using a spherical top-hat filter of radius $8\ h^{-1}{\rm Mpc}$. It was long believed that density perturbations on this scale have a standard deviation $\sigma_8$ of around unity. The latest measurements from @Planck2018 give $\sigma_8 = 0.811 \pm 0.006$ of density perturbations linearly extrapolated to current epoch.
+The power-spectrum needs to be normalised so that the amplitudes of the density perturbations match those in the observed Universe. The chosen scaling is applied using a spherical top-hat filter of radius $8\ h^{-1}{\rm Mpc}$. The latest measurements from @Planck2018 give $\sigma_8 = 0.811 \pm 0.006$ of density perturbations linearly extrapolated to current epoch.
 
 Now, given a density field $f$ we may filter this field with a spherical top-hat function with radius of $8\ h^{-1}{\rm Mpc}$ by means of a convolution $f_R = f \ast W_{\rm th}$. Then $\sigma_8^2 \equiv \langle f_8^{\star}f_8 \rangle$ can be expressed in Fourier space as
 $$\sigma_R^2 = \int \mathcal{P}(\vec{k}) \hat{W}_{\rm th}^2(\vec{k}) \frac{{\rm d}^3 \vec{k}}{{(2\pi)}^3}.$$
+
 Because all terms in the integral only depend on $|\vec{k}|$, we may rewrite this as
 $$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2},$$ {#eq:normalisation}
+
+``` {.cpp #define-integrant}
+auto integrant = [&] (double k) {
+  return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
+};
+```
+
 where the Fourier transform of the top-hat window function is given by
 $$\hat{W}_{th}(y) = \frac{3}{y^3}\left(\sin y - y \cos y\right).$$
 
+``` {.cpp #top-hat-function}
+double W_th(double y) {
+  return 3.0 / pow(y, 3) * (sin(y) - y * cos(y));
+}
+```
+
 There's a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution [see e.g. @Sirko2005]. In practice, good results are obtained by normalising using a numerical integration of Equation\ @eq:normalisation from $2 \pi / L$ to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.
+
+The `normalize_power_spectrum` function computes the integral in Equation\ @eq:normalisation using the Gauss-Konrod quadrature algorithm for integrals over a semi-infinite domain that is present in the GNU Scientific Library [@Galassi2002]. It then returns a new function of type `PowerSpectrum`.
 
 ``` {.cpp file=src/normalize_power_spectrum.cc}
 #include "initial_conditions.hh"
 #include <iostream>
 
 <<gsl-integrate-qagiu>>
-
-inline double W_th(double y)
-{
-  return 3.0 / pow(y, 3) * (sin(y) - y * cos(y));
-}
+<<top-hat-function>>
 
 PowerSpectrum normalize_power_spectrum(
     BoxParam const &box,
@@ -571,9 +545,10 @@ PowerSpectrum normalize_power_spectrum(
   double epsabs = 1e-6, epsrel = 1e-6;
   double sigma8 = cosmology["sigma8"].as<double>();
 
-  double x = integrate_qagiu([&] (double k) {
-      return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
-    }, k_lower, epsabs, epsrel);
+  <<define-integrant>>
+
+  double x = integrate_qagiu(
+    integrant, k_lower, epsabs, epsrel);
 
   double A = sigma8 * sigma8 / x;
   std::clog << "Normalised power spectrum, A = " << A << ".\n";
@@ -584,7 +559,7 @@ PowerSpectrum normalize_power_spectrum(
 }
 ```
 
-Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper, specified in the appendix.
+Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper, specified in the supplementary material.
 
 ### Applying the power spectrum
 
@@ -632,7 +607,7 @@ for (size_t i = 1; i < box.rfft_size(); ++i) {
 
 ## Write initial conditions to file
 
-When we're all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the appendix.
+When we're all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.
 
 ``` {.cpp #workflow}
 std::string output_filename
@@ -643,17 +618,9 @@ write_vector_with_shape(
   output_file, "potential", field, box.shape());
 ```
 
-\pagebreak
-
 # The Adhesion model
 
 Now that we have set up the initial conditions, we can run the adhesion model. Given a time $t$, which is an alias for the *growing mode* solution of the linearised equations of structure formation, we can compute the regular triangulation weighted by the potential.
-
-``` {.cpp #workflow-adhesion}
-std::clog << "Computing regular triangulation for t = "
-          << t << " ...\n";
-Adhesion adhesion(box, field, t);
-```
 
 ## Theory
 
@@ -771,7 +738,7 @@ public:
 };
 ```
 
-### Members
+### Adhesion members
 
 The `Adhesion` class stores the time parameter, the regular triangulation data structure and a list of vertices.
 
@@ -784,7 +751,9 @@ std::vector<Weighted_point> vertices;
 
 Additionally, if we're running with TBB enabled, we have to include a locking data structure.
 
-### Methods
+### Adhesion methods
+
+We define methods for retrieving information from the regular triangulation.
 
 ``` {.cpp #adhesion-methods}
   int edge_count(RT::Cell_handle h, double threshold) const;
@@ -1059,18 +1028,6 @@ Adhesion::get_nodes(double threshold) const
 }
 ```
 
-### Writing to HDF5
-
-In the workflow we can now write all this information about the nodes to the HDF5 file.
-
-``` {.cpp #workflow-write-nodes}
-auto nodes = adhesion.get_nodes(threshold);
-write_vector(h5_group, "nodes", nodes);
-```
-
-This can then be read back to Python to plot our measurements. For example, the cluster mass function is shown in Figure~@fig:mass-function.
-
-![Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per $h^{-3}{\rm Mpc}^3$ per logarithmic bin $\Delta \log M/M^*$ where $M^*$ is $\rho_u h^{-3}{\rm Mpc}^3$. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.](figures/mass-functions.svg){#fig:mass-function}
 
 ## The power diagram
 
@@ -1269,7 +1226,6 @@ Mesh<Point, double> power_diagram_faces(
 
 ### Filaments
 
-
 The implementation for the filaments is very similar. In the case of a facet in the regular triangulation, we only need to compute the dual of the two co-faces of the facet. Again, in CGAL the facet is represented as one of the two co-faces and the vertex opposite the facet. This means there are two 'mirror' representations of the same facet. To get the other co-facet we can query the triangulation for the mirror facet.
 
 ``` {.cpp file=src/power_diagram/edges.cc}
@@ -1330,12 +1286,11 @@ Mesh<Point, double> Adhesion::get_filaments(
 }
 ```
 
-\pagebreak
+
 
 # The main program
 
 We're now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly.
-
 
 ## Run function
 
@@ -1367,28 +1322,7 @@ void run(YAML::Node const &config)
 }
 ```
 
-### Opening the output file
-
-
-### Loop over times
-
-We read the time specification from the configuration. Either a single time output is given, or a list of times.
-
-``` {.cpp #workflow}
-std::vector<double> time;
-auto time_cfg = config["run"]["time"];
-switch (time_cfg.Type()) {
-  case YAML::NodeType::Scalar:
-    time.push_back(time_cfg.as<double>());
-    break;
-  case YAML::NodeType::Sequence:
-    time = time_cfg.as<std::vector<double>>();
-    break;
-  default: throw std::runtime_error("No time given.");
-}
-```
-
-### Selection volume
+### Output configuration
 
 ``` {.cpp #workflow}
 std::vector<std::unique_ptr<Surface<Point>>> mesh_shape;
@@ -1399,8 +1333,6 @@ mesh_shape.emplace_back(new Plane<K>(centre + dz, dz));
 mesh_shape.emplace_back(new Plane<K>(centre - dz, -dz));
 ```
 
-### Output configuration
-
 ``` {.cpp #workflow}
 double threshold
   = config["output"]["threshold"].as<double>(0.0);
@@ -1410,32 +1342,59 @@ std::string filaments_filename
   = config["output"]["filaments"].as<std::string>();
 ```
 
-### Iterate time frames
+### Looping over time
+
+We read the time specification from the configuration, specify the output parameters, and loop over the specified times.
 
 ``` {.cpp #workflow}
+auto time = config["run"]["time"]
+  .as<std::vector<double>>();
+
 unsigned iteration = 0;
 for (double t : time) {
   <<workflow-adhesion>>
 
-  auto h5_group = output_file.createGroup(
-    fmt::format("{}", iteration));
-  auto time_attr = h5_group.createAttribute(
-    "time", H5TypeFactory<double>::get(), H5::DataSpace());
-  time_attr.write(H5TypeFactory<double>::get(), &t);
-
+  <<workflow-create-hdf5-group>>
   <<workflow-write-nodes>>
-  <<run-write-obj>>
-
+  <<workflow-write-obj>>
   ++iteration;
 }
 ```
 
-### Write nodes
+In each iteration we run the adhesion model. We then write results to a new HDF5 group, and also to a series of Wavefront OBJ files. We already covered the implementation of the adhesion model. All that's left is calling the `Adhesion` constructor.
 
+``` {.cpp #workflow-adhesion}
+std::clog << "Computing regular triangulation for t = "
+          << t << " ...\n";
+Adhesion adhesion(box, field, t);
+```
 
-### Write the walls
+### Writing output
 
-``` {.cpp #run-write-obj}
+In the workflow we can now write all this information about the nodes to the HDF5 file. First, for each snapshot we create a group in the HDF5 file.
+
+``` {.cpp #workflow-create-hdf5-group}
+auto h5_group = output_file.createGroup(
+  fmt::format("{}", iteration));
+auto time_attr = h5_group.createAttribute(
+  "time", H5TypeFactory<double>::get(), H5::DataSpace());
+time_attr.write(H5TypeFactory<double>::get(), &t);
+```
+
+Then we write the node information to that group.
+
+``` {.cpp #workflow-write-nodes}
+auto nodes = adhesion.get_nodes(threshold);
+write_vector(h5_group, "nodes", nodes);
+```
+
+This can then be read back to Python to plot our measurements. For example, the cluster mass function is shown in Figure~@fig:mass-function.
+
+![Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per $h^{-3}{\rm Mpc}^3$ per logarithmic bin $\Delta \log M/M^*$ where $M^*$ is $\rho_u h^{-3}{\rm Mpc}^3$. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.](figures/mass-functions.svg){#fig:mass-function}
+
+#### Write the walls
+
+``` {.cpp #workflow-write-obj}
 {
   auto walls = adhesion.get_walls(threshold);
   std::string filename = fmt::format(
@@ -1445,13 +1404,13 @@ for (double t : time) {
   std::ofstream ff(filename);
   auto selected_faces = select_mesh(walls, mesh_shape);
   write_faces_to_obj(ff, selected_faces);
-  write_mesh(h5_group, "faces", selected_faces);
+  write_mesh(h5_group, "faces", walls);
 }
 ```
 
-### Write the filaments
+#### Write the filaments
 
-``` {.cpp #run-write-obj}
+``` {.cpp #workflow-write-obj}
 {
   auto filaments = adhesion.get_filaments(threshold);
   std::string filename = fmt::format(
@@ -1461,7 +1420,7 @@ for (double t : time) {
   std::ofstream ff(filename);
   auto selected_edges = select_mesh(filaments, mesh_shape, false);
   write_edges_to_obj(ff, selected_edges);
-  write_mesh(h5_group, "edges", selected_edges);
+  write_mesh(h5_group, "edges", filaments);
 }
 ```
 
@@ -1471,12 +1430,10 @@ for (double t : time) {
 #include <iostream>
 #include <argagg/argagg.hpp>
 #include <yaml-cpp/yaml.h>
-#include "tbb/task_scheduler_init.h"
 
 #include "run.hh"
 
 <<version>>
-
 <<main-arguments>>
 
 const char *default_config = R"YAML(
@@ -1485,51 +1442,74 @@ const char *default_config = R"YAML(
 
 int main(int argc, char **argv)
 {
-  argagg::parser_results args;
-  try {
-    args = argparser.parse(argc, argv);
-  } catch (const std::exception& e) {
-    std::cerr << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  if (args["help"]) {
-    std::cout << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
-    std::cout << argparser;
-    return EXIT_SUCCESS;
-  }
-
-  if (args["version"]) {
-    std::cout << "amec v" << VERSION << "\n";
-    return EXIT_SUCCESS;
-  }
-
-  if (args["defaults"]) {
-    std::cout << default_config;
-    return EXIT_SUCCESS;
-  }
-
-  YAML::Node config;
-  if (args["config"]) {
-    auto config_file = args["config"].as<std::string>();
-    std::clog << "Reading `" << config_file << "` for input.\n";
-    config = YAML::LoadFile(config_file);
-  } else {
-    std::clog << "No configuration given, proceeding with defaults.\n";
-    config = YAML::Load(default_config);
-  }
-
-  #ifdef CGAL_LINKED_WITH_TBB
-  int n = tbb::task_scheduler_init::default_num_threads();
-  std::clog << "Starting TBB task scheduler with "
-            << n << " threads.\n";
-  tbb::task_scheduler_init init(n);
-  #endif
-
-  run(config);
+  <<parse-arguments>>
+  <<maybe-print-help>>
+  <<maybe-print-version>>
+  <<maybe-print-defaults>>
+  <<load-config>>
+  <<run>>
   return EXIT_SUCCESS;
 }
 ```
 
-\pagebreak
+First we parse the arguments using the specification given in the introduction.
 
+``` {.cpp #parse-arguments}
+argagg::parser_results args;
+try {
+  args = argparser.parse(argc, argv);
+} catch (const std::exception& e) {
+  std::cerr << e.what() << std::endl;
+  return EXIT_FAILURE;
+}
+```
+
+If the `help` argument is given, we print the help message and exit.
+
+``` {.cpp #maybe-print-help}
+if (args["help"]) {
+  std::cout << "Adhesion model example code -- (C) 2018 Johan Hidding\n";
+  std::cout << argparser;
+  return EXIT_SUCCESS;
+}
+```
+
+If the `version` argument is given, we print the software version and exit.
+
+``` {.cpp #maybe-print-version}
+if (args["version"]) {
+  std::cout << "amec v" << VERSION << "\n";
+  return EXIT_SUCCESS;
+}
+```
+
+The `help` and `version` arguments are considered to be a standard interface for command-line programs. See for instance the [GNU Sofware Standards](https://www.gnu.org/prep/standards/standards.html).
+
+If the `defaults` argument is given, we print the default configuration as specified in the introduction. The user can use this to write this configuration to a file and edit it to wishes accordingly.
+
+``` {.cpp #maybe-print-defaults}
+if (args["defaults"]) {
+  std::cout << default_config;
+  return EXIT_SUCCESS;
+}
+```
+
+If none of the `help`, `version` or `defaults` arguments is given, we proceed reading the configuration from file, or if no filename is given, use the defaults.
+
+``` {.cpp #load-config}
+YAML::Node config;
+if (args["config"]) {
+  auto config_file = args["config"].as<std::string>();
+  std::clog << "Reading `" << config_file << "` for input.\n";
+  config = YAML::LoadFile(config_file);
+} else {
+  std::clog << "No configuration given, proceeding with defaults.\n";
+  config = YAML::Load(default_config);
+}
+```
+
+Now that the configuration is loaded, we are ready to run the program.
+
+``` {.cpp #run}
+run(config);
+```

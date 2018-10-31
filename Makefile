@@ -25,8 +25,8 @@ cgal_cflags = -frounding-math
 cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
 
 # Uncomment if you want to compile with TBB
-tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
-tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
+# tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
+# tbb_libs = -ltbb -latomic -ltbbmalloc -pthread
 
 gsl_libs = $(shell pkg-config --libs gsl)
 
@@ -93,6 +93,12 @@ tangle: $(input_files)
 report: $(pdf_files)
 
 latex: $(build_dir)/adhesion_example.tex
+	cat $(build_dir)/adhesion_example.tex \
+		| perl -0777 -pe 's/(\\emph\{.*\})\n\n\\begin\{lstlisting\}/\\par\\needspace{4\\baselineskip}\\vspace{8pt}$$1\\vspace{-8pt}\\begin{lstlisting}/g' \
+		| perl -0777 -pe 's/\\includegraphics\{/\\includegraphics[width=\\textwidth]{/g' \
+		| perl -0777 -pe 's/\\includegraphics\[(.*)\]\{(.*)\.svg\}/\\includegraphics[$$1]{$$2}/g' \
+		| perl -0777 -pe 's/\\includegraphics\[(.*),height=.*\]\{(.*)\}/\\includegraphics[$$1]{$$2}/g' \
+		> $(build_dir)/adhesion_code.tex
 
 $(build_dir)/%.tex : %.md
 	pandoc $^ -f $(format) $(latex_args) -t latex -o $@

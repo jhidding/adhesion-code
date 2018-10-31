@@ -1,3 +1,46 @@
+## Additions to `BoxParam`
+
+The `increment_index` function is also available as method on `BoxParam`:
+
+``` {.cpp #boxparam-methods}
+unsigned increment_index(
+    std::array<size_t, R> &index) const
+{
+  return ::increment_index<R>(_shape, index);
+}
+```
+
+``` {.cpp #boxparam-methods}
+size_t flat_index(
+    std::array<size_t, R> const &index) const
+{
+  size_t i = 0;
+  for (unsigned k = 0; k < R; ++k)
+    i += index[k] * _stride[k];
+  return i;
+}
+```
+
+``` {.cpp #boxparam-methods}
+size_t cycle_index(
+    std::array<size_t, R> &index,
+    unsigned k,
+    int delta) const
+{
+  index[k] = modulo(index[k] + delta, _shape[k]);
+  return flat_index(index);
+}
+```
+
+In C/C++ the modulo operator doesn't always return a positive number. For example, the expression `-8 % 5` returns `-3`. We create the `modulo` function to get the behaviour we want, which is `modulo(-8, 5) == 2`.
+
+``` {.cpp #helper-functions}
+template <typename T>
+inline T modulo(T x, T y) {
+  return (x < 0 ? y + (x % y) : x % y);
+}
+```
+
 ## Convex conjugate method
 
 ``` {.cpp file=src/convex_conjugate.hh}
