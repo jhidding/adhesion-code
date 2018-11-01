@@ -194,10 +194,80 @@ The `ArgAgg` library parses command-line arguments and composes the following he
 
 # Initial conditions
 
+We will generate an initial potential $\Phi_0$, sampled on a cubic mesh with a logical size of $N$ pixels on each side and a physical size $L$ in units of $h^{-1}{\rm Mpc}$. The corresponding initial density field will follow a CDM (without baryons) power spectrum, as given by @Eisenstein1999.
+
+We'll have box parameters ($N$, $L$ and derived quantities) stored in a `BoxParam` object that is defined in `boxparam.hh`. Given the box parameters and input cosmology, we have three steps in generating the initial conditions:
+
+* Generate white noise
+* Normalise power spectrum
+* Compute potential
+
+The interface to these steps is collected in `initial_conditions.hh`.
+
+``` {.cpp file=src/initial_conditions.hh}
+#pragma once
+#include "boxparam.hh"
+#include <vector>
+#include <yaml-cpp/yaml.h>
+
+using PowerSpectrum = std::function<double (double)>;
+using Config = YAML::Node;
+
+extern std::vector<double>
+generate_white_noise(
+    BoxParam const &box,
+    unsigned long seed);
+
+extern PowerSpectrum EisensteinHu(
+    Config const &cosmology);
+
+extern PowerSpectrum normalize_power_spectrum(
+    BoxParam const &box,
+    PowerSpectrum const &P,
+    Config const &cosmology);
+
+extern void compute_potential(
+    BoxParam const &box,
+    std::vector<double> &white_noise,
+    PowerSpectrum const &P);
+
+extern std::vector<double>
+generate_initial_potential(
+    BoxParam const &box,
+    Config const &config);
+```
+
+The `generate_initial_potential` function collects all three steps.
+
+``` {.cpp file=src/initial_conditions/generate.cc}
+#include "initial_conditions.hh"
+#include <iostream>
+
+std::vector<double> generate_initial_potential(
+    BoxParam const &box,
+    Config const &config)
+{
+  std::clog << "# Generating white noise with seed:\n"
+            << config["run"]["seed"] << "\n";
+  auto seed = config["run"]["seed"].as<unsigned long>();
+  auto field = generate_white_noise(box, seed);
+
+  std::clog << "Applying power spectrum with cosmology:\n"
+            << config["cosmology"] << "\n";
+  auto cosmology = config["cosmology"];
+  auto power_spectrum = normalize_power_spectrum(
+    box, EisensteinHu(cosmology), cosmology);
+  compute_potential(box, field, power_spectrum);
+
+  return field;
+}
+```
+
+We will first define the `BoxParam` class, then work on the implementation of the rest of the functions declared in `initial_conditions.hh`.
 
 ## Creating the box
 
-These parameters are collected into an instance of `BoxParam`, which has several methods that support working with coordinates in the box both in real and frequency space.
+The logical and physical box sizes, $N$ and $L$, are needed in all of our computations. These parameters are collected into an instance of `BoxParam`, which has several methods that support working with coordinates in the box both in real and frequency space.
 
 ``` {.cpp file=src/boxparam.hh}
 #pragma once
@@ -331,65 +401,9 @@ double k_abs(std::array<size_t, 3> const &loc) const {
 }
 ```
 
-## Initial conditions header file
-
-``` {.cpp file=src/initial_conditions.hh}
-#pragma once
-#include "boxparam.hh"
-#include <vector>
-#include <yaml-cpp/yaml.h>
-
-using PowerSpectrum = std::function<double (double)>;
-using Config = YAML::Node;
-
-extern std::vector<double>
-generate_white_noise(
-    BoxParam const &box,
-    unsigned long seed);
-
-<<power-spectra>>
-
-extern void compute_potential(
-    BoxParam const &box,
-    std::vector<double> &white_noise,
-    PowerSpectrum const &P);
-
-extern std::vector<double>
-generate_initial_potential(
-    BoxParam const &box,
-    Config const &config);
-```
-
-* Generate white noise
-* Normalise power spectrum
-* Compute potential
-
-``` {.cpp file=src/initial_conditions/generate.cc}
-#include "initial_conditions.hh"
-#include <iostream>
-
-std::vector<double> generate_initial_potential(
-    BoxParam const &box,
-    Config const &config)
-{
-  <<generate-white-noise>>
-  <<compute-potential>>
-  return field;
-}
-```
-
 ## White noise
 
-Having defined a `box` we need to fill it with initial density fluctuations, extending our workflow:
-
-``` {.cpp #generate-white-noise}
-std::clog << "# Generating white noise with seed:\n"
-          << config["run"]["seed"] << "\n";
-auto seed = config["run"]["seed"].as<unsigned long>();
-auto field = generate_white_noise(box, seed);
-```
-
-We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
+Having defined a `box` we need to fill it with initial density fluctuations. We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
 
 The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
 
@@ -440,32 +454,11 @@ Equation\ @eq:two-point-function (also known as the two-point distribution) can 
 
 ## Power spectrum
 
-In stead of talking about a corellation function, we often use its Fourier transform, the *power spectrum* to specify the corellations in the random field,
+In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In stead of talking about a corellation function, we often use its Fourier transform, the *power spectrum* to specify the corellations in the random field,
 
 $$\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.$$
 
-In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In the *«workflow»* we first normalise the power spectrum and then apply it to the previously generated white noise.
-
-``` {.cpp #compute-potential}
-std::clog << "Applying power spectrum with cosmology:\n"
-          << config["cosmology"] << "\n";
-auto cosmology = config["cosmology"];
-auto power_spectrum = normalize_power_spectrum(
-  box, EisensteinHu(cosmology), cosmology);
-compute_potential(box, field, power_spectrum);
-```
-
-This requires two new functions: `EisensteinHu` and `normalize_power_spectrum`.
-
-``` {.cpp #power-spectra}
-extern PowerSpectrum EisensteinHu(
-    Config const &cosmology);
-
-extern PowerSpectrum normalize_power_spectrum(
-    BoxParam const &box,
-    PowerSpectrum const &P,
-    Config const &cosmology);
-```
+We will now define the Eisenstein-Hu power spectrum and give a method to normalise the amplitudes to match the real Universe.
 
 ### Eisenstein-Hu power spectrum
 
@@ -575,7 +568,7 @@ PowerSpectrum normalize_power_spectrum(
 
 Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper, specified in the supplementary material.
 
-### Applying the power spectrum
+## Compute initial potential
 
 We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. We use a C++ wrapper around the FFTW3 library [@FFTW3], which is listed in the appendix. The wrapper class `RFFT3` allocates two `vector`s of memory for the input and output data. This is done using the FFTW routines, which ensure proper memory alignment for optimal algorithm efficiency. Note that our wrapper divides the result of the FFT computation by $N^3$ to normalise the end result, an action which FFTW omits.
 
