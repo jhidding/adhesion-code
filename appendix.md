@@ -1,6 +1,12 @@
 # Appendix
 
+This appendix provides convenience interfaces to the FFTW3, GSL integration and HDF5 libraries.
+
 ## Numerical integration
+
+The GNU Scientific Library (GSL) is a collection of numerical algorithms written in C. In many cases it is convenient to use a C++ wrapper in stead of the C API directly. Here we define an interface around the `gsl_integration_qagiu` function, which integrates functions from a lower bound to upper infinity. The C API expects a pointer to a function and a `gsl_integration_workspace` to be provided. The function pointed to should accept a `double` and a `void *`. The latter argument can be used to pass around extra arguments of which the function knows the intended type. In our case we reinterpret the void pointer as a generic C++ `std::function` pointer and then call that. This allows any callable C++ function to be passed to `integrate_qagiu`.
+
+Since we only call the integrator once, we do allocation and destruction of the `gsl_integration_workspace` in the body of `integrate_qagiu`. In a situation where `integrate_qagiu` would be called repeatedly, it is better to use a more complicated wrapper.
 
 ``` {.cpp #gsl-integrate-qagiu}
 #include <gsl/gsl_integration.h>
@@ -74,7 +80,7 @@ public:
   virtual int oriented_side(Point const &p) const = 0;
   virtual std::optional<Point> intersect(
     Point const &a, Point const &b) const = 0;
-  
+
   virtual ~Surface() {}
 };
 ```
@@ -368,6 +374,8 @@ Mesh<Point, Info> select_mesh(
 ```
 
 ## Writing to disk
+
+For reading and writing HDF5, there is a C++ interface available. This interface is still too low level for our purposes.
 
 ### Interface
 

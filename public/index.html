@@ -116,7 +116,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#the-power-diagram-1">The power diagram</a></li>
 </ul></li>
 <li><a href="#the-main-program">The main program</a><ul>
-<li><a href="#run-function">Run function</a></li>
+<li><a href="#main-loop">Main loop</a></li>
 <li><a href="#main-function">Main function</a></li>
 </ul></li>
 <li><a href="#appendix">Appendix</a><ul>
@@ -502,7 +502,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><span id="eq:normal-distribution" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(1)</span></span> </p>
 <p>A function following only this distribution, without any corellation between points, is also referred to as <em>white noise</em>. We’re looking at quantities, like the density perturbation, that have mean <span class="math inline">\(\mu = 0\)</span>. When we generate white noise, we’re sampling a realisation of such a function <span class="math inline">\(f\)</span> at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.</p>
 <p>The <code>white_noise</code> function fills a newly created array with random values, following a normal distribution with <span class="math inline">\(\sigma = 1\)</span>.</p>
-<p><em>file: «src/white_noise.cc»=</em></p>
+<p><em>file: «src/initial_conditions/white_noise.cc»=</em></p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
 <a class="sourceLine" id="cb6-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;random&gt;</span></a>
 <a class="sourceLine" id="cb6-3" data-line-number="3"></a>
@@ -548,7 +548,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p>where <span class="math inline">\(q\)</span> is the wave number re-scaled to find the <em>knee</em> in the CDM power spectrum.</p>
 <p><span class="math display">\[q = \frac{k}{h {\rm Mpc}^{-1}} \Theta_{2.7}^2 / \Gamma,\]</span></p>
 <p>where <span class="math inline">\(\Theta_{2.7}\)</span> is the temperature of the CMB divided by 2.7 and <span class="math inline">\(\Gamma = \Omega_0 h\)</span>.</p>
-<p><em>file: «src/eisenstein-hu.cc»=</em></p>
+<p><em>file: «src/initial_conditions/eisenstein-hu.cc»=</em></p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb7-3" data-line-number="3">PowerSpectrum EisensteinHu(Config <span class="at">const</span> &amp;cosmology)</a>
@@ -588,7 +588,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="top-hat-function-3" data-line-number="3">}</a></code></pre></div>
 <p>There’s a lot to say about how to normalise initial conditions properly, retaining the statistical properties of a larger ensemble and reducing excess shot noise from having a limited resolution <span class="citation" data-cites="Sirko2005">(see e.g. Sirko 2005)</span>. In practice, good results are obtained by normalising using a numerical integration of Equation <a href="#eq:normalisation">3</a> from <span class="math inline">\(2 \pi / L\)</span> to infinity, compensating for the power lost in the modes exceeding the box size. In particular we would like to fix the typical collapse times of structures of a certain size to be independent of resolution or box size.</p>
 <p>The <code>normalize_power_spectrum</code> function computes the integral in Equation <a href="#eq:normalisation">3</a> using the Gauss-Konrod quadrature algorithm for integrals over a semi-infinite domain that is present in the GNU Scientific Library <span class="citation" data-cites="Galassi2002">(Galassi et al. 2002)</span>. It then returns a new function of type <code>PowerSpectrum</code>.</p>
-<p><em>file: «src/normalize_power_spectrum.cc»=</em></p>
+<p><em>file: «src/initial_conditions/normalize_power_spectrum.cc»=</em></p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
 <a class="sourceLine" id="cb8-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
 <a class="sourceLine" id="cb8-3" data-line-number="3"></a>
@@ -619,7 +619,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p>Here we used some helper functions to encapsulate the GSL integration routines into a more friendly C++ wrapper, specified in the supplementary material.</p>
 <h3 id="compute-initial-potential">Compute initial potential</h3>
 <p>We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. We use a C++ wrapper around the FFTW3 library <span class="citation" data-cites="FFTW3">(Frigo and Johnson 2005)</span>, which is listed in the appendix. The wrapper class <code>RFFT3</code> allocates two <code>vector</code>s of memory for the input and output data. This is done using the FFTW routines, which ensure proper memory alignment for optimal algorithm efficiency. Note that our wrapper divides the result of the FFT computation by <span class="math inline">\(N^3\)</span> to normalise the end result, an action which FFTW omits.</p>
-<p><em>file: «src/apply_power_spectrum.cc»=</em></p>
+<p><em>file: «src/initial_conditions/apply_power_spectrum.cc»=</em></p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
 <a class="sourceLine" id="cb9-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;fft.hh&quot;</span></a>
 <a class="sourceLine" id="cb9-3" data-line-number="3"></a>
@@ -655,9 +655,9 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <h2 id="the-adhesion-model">The Adhesion model</h2>
 <p>Now that we have set up the initial conditions, we can run the adhesion model. Given a time <span class="math inline">\(t\)</span>, which is an alias for the <em>growing mode</em> solution of the linearised equations of structure formation, we can compute the regular triangulation weighted by the potential.</p>
 <h3 id="theory">Theory</h3>
-<p>Normally, we derive the fact that we can solve the adhesion model using regular triangulations from existing solutions <span class="citation" data-cites="Hopf1950">(Hopf 1950)</span> of the equation of motion, Burgers equation, <span id="eq:burgers-equation" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(4)</span></span> We may also understand this idea from a more kinematic point of view.</p>
+<p>Normally, we derive the fact that we can solve the adhesion model using regular triangulations from existing solutions <span class="citation" data-cites="Hopf1950">(Hopf 1950)</span> of the equation of motion, Burgers equation, <span id="eq:burgers-equation" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(4)</span></span>  We may also understand this idea from a more kinematic point of view.</p>
 <p>We assume an ensemble of particles moving by a potential <span class="math inline">\(\Phi_0({\bf q})\)</span> from their starting position <span class="math inline">\({\bf q}\)</span> to a target position <span class="math inline">\({\bf x}\)</span>,</p>
-<p><span id="eq:zeldovich" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(5)</span></span></p>
+<p><span id="eq:zeldovich" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(5)</span></span> </p>
 <p>This is known as the Zeldovich approximation <span class="citation" data-cites="Zeldovich1970 Shandarin1989">(Zeldovich 1970; Shandarin and Zeldovich 1989)</span>. This has the problem that particles continue to move in a straight line, even after structures form. We’d like to have particles adhere together once they form structures, hence the name: <em>adhesion model</em>.</p>
 <figure>
 <img src="figures/ze.svg" alt="Figure 5: The Zeldovich Approximation. Each particle is given a velocity equal to v = -\nabla \Phi_0. Structures form, but there is no dynamics involved." id="fig:zeldovich" /><figcaption><span>Figure 5:</span> The Zeldovich Approximation. Each particle is given a velocity equal to <span class="math inline">\(v = -\nabla \Phi_0\)</span>. Structures form, but there is no dynamics involved.</figcaption>
@@ -748,12 +748,12 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <h4 id="adhesion-methods">Adhesion methods</h4>
 <p>We define methods for retrieving information from the regular triangulation.</p>
 <p><em>«adhesion-methods»=</em></p>
-<div class="sourceCode" id="adhesion-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="adhesion-methods-1" data-line-number="1">  <span class="dt">int</span> edge_count(RT::Cell_handle h, <span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="adhesion-methods-2" data-line-number="2">  Vector velocity(RT::Cell_handle c) <span class="at">const</span>;</a>
+<div class="sourceCode" id="adhesion-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="adhesion-methods-1" data-line-number="1"><span class="dt">int</span> edge_count(RT::Cell_handle h, <span class="dt">double</span> threshold) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-2" data-line-number="2">Vector velocity(RT::Cell_handle c) <span class="at">const</span>;</a>
 <a class="sourceLine" id="adhesion-methods-3" data-line-number="3"></a>
-<a class="sourceLine" id="adhesion-methods-4" data-line-number="4">  Mesh&lt;Point, <span class="dt">double</span>&gt; get_walls(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="adhesion-methods-5" data-line-number="5">  Mesh&lt;Point, <span class="dt">double</span>&gt; get_filaments(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
-<a class="sourceLine" id="adhesion-methods-6" data-line-number="6">  <span class="bu">std::</span>vector&lt;Node&gt; get_nodes(<span class="dt">double</span> threshold) <span class="at">const</span>;</a></code></pre></div>
+<a class="sourceLine" id="adhesion-methods-4" data-line-number="4">Mesh&lt;Point, <span class="dt">double</span>&gt; get_walls(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-5" data-line-number="5">Mesh&lt;Point, <span class="dt">double</span>&gt; get_filaments(<span class="dt">double</span> threshold) <span class="at">const</span>;</a>
+<a class="sourceLine" id="adhesion-methods-6" data-line-number="6"><span class="bu">std::</span>vector&lt;Node&gt; get_nodes(<span class="dt">double</span> threshold) <span class="at">const</span>;</a></code></pre></div>
 <h3 id="computing-the-triangulation">Computing the triangulation</h3>
 <p>We give each point in the grid a weight proportional to the velocity potential, <span class="math display">\[w_i = 2 t \Phi(q_i).\]</span> Then we insert these weighted points into the triangulation.</p>
 <p><em>file: «src/adhesion/constructor.cc»=</em></p>
@@ -872,7 +872,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="adhesion-type-from-edge-count-13" data-line-number="13">}</a></code></pre></div>
 <h4 id="counting-edges">Counting edges</h4>
 <p>We count the number of edges that are incident to the cell <code>h</code> and exceed the distance squared <code>threshold</code>.</p>
-<p><em>file: «src/adhesion_edge_count.cc»=</em></p>
+<p><em>file: «src/adhesion/edge_count.cc»=</em></p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
 <a class="sourceLine" id="cb13-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb13-3" data-line-number="3"><span class="dt">int</span> Adhesion::edge_count(RT::Cell_handle h, <span class="dt">double</span> threshold) <span class="at">const</span></a>
@@ -892,7 +892,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb13-17" data-line-number="17">}</a></code></pre></div>
 <h3 id="velocity">Velocity</h3>
 <p>To compute the velocity of a particle (a node in the power diagram), we need to compute the gradient of the velocity potential over the corresponding cell in the regular triangulation. We can use CGAL here to do the hard work for us. The d-dimensional geometry kernel lets us compute the hyperplane associated with the four vertices of the cell in the triangulation.</p>
-<p><em>file: «src/adhesion_velocity.cc»=</em></p>
+<p><em>file: «src/adhesion/velocity.cc»=</em></p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
 <a class="sourceLine" id="cb14-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;limits&gt;</span></a>
 <a class="sourceLine" id="cb14-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;CGAL/Cartesian_d.h&gt;</span></a>
@@ -944,7 +944,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="velocity-implementation-4" data-line-number="4"><span class="cf">return</span> Vector(v[<span class="dv">0</span>], v[<span class="dv">1</span>], v[<span class="dv">2</span>]);</a></code></pre></div>
 <h3 id="getting-all-nodes">Getting all nodes</h3>
 <p>We will retrieve the position, mass, velocity and node type of each dual vertex in the regular triangulation.</p>
-<p><em>file: «src/adhesion_get_nodes.cc»=</em></p>
+<p><em>file: «src/adhesion/get_nodes.cc»=</em></p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
 <a class="sourceLine" id="cb15-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb15-3" data-line-number="3">&lt;&lt;adhesion-type-from-edge-count&gt;&gt;</a>
@@ -1162,7 +1162,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb19-34" data-line-number="34">}</a></code></pre></div>
 <h4 id="retrieving-the-walls">Retrieving the walls</h4>
 <p>We think it is important to make the step from abstract mathematics to physical model explicit. The implementation of the <code>get_walls</code> method is now trivial though.</p>
-<p><em>file: «src/adhesion_get_walls.cc»=</em></p>
+<p><em>file: «src/adhesion/get_walls.cc»=</em></p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
 <a class="sourceLine" id="cb20-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;power_diagram.hh&quot;</span></a>
 <a class="sourceLine" id="cb20-3" data-line-number="3"></a>
@@ -1178,13 +1178,13 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb20-13" data-line-number="13">  <span class="cf">return</span> power_diagram_edges(rt, threshold);</a>
 <a class="sourceLine" id="cb20-14" data-line-number="14">}</a></code></pre></div>
 <h2 id="the-main-program">The main program</h2>
-<p>We’re now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly.</p>
-<h3 id="run-function">Run function</h3>
+<p>We’re now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly. Once the configuration is read, the workflow of actually computing the adhesion model is collected in a single function called <code>run</code>.</p>
 <p><em>file: «src/run.hh»=</em></p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="pp">#pragma once</span></a>
 <a class="sourceLine" id="cb21-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;yaml-cpp/yaml.h&gt;</span></a>
 <a class="sourceLine" id="cb21-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb21-4" data-line-number="4"><span class="at">extern</span> <span class="dt">void</span> run(YAML::Node <span class="at">const</span> &amp;config);</a></code></pre></div>
+<p>As we discuss each step in the workflow, we add code onto <em>«workflow»</em>.</p>
 <p><em>file: «src/run.cc»=</em></p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
 <a class="sourceLine" id="cb22-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></a>
@@ -1204,8 +1204,8 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb22-16" data-line-number="16">{</a>
 <a class="sourceLine" id="cb22-17" data-line-number="17">  &lt;&lt;workflow&gt;&gt;</a>
 <a class="sourceLine" id="cb22-18" data-line-number="18">}</a></code></pre></div>
-<h4 id="generate-initial-conditions">Generate initial conditions</h4>
-<p>The <code>box</code> section of the configuration should contain an entry for <code>N</code> and <code>L</code>, the logical and physical box sizes respectively.</p>
+<h5 id="generate-initial-conditions">Generate initial conditions</h5>
+<p>We create a <code>BoxParam</code> instance and generate the initial potential.</p>
 <p><em>«workflow»=</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="bu">std::</span>clog &lt;&lt; <span class="st">&quot;# Using box with parameters:</span><span class="sc">\n</span><span class="st">&quot;</span></a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">          &lt;&lt; config[<span class="st">&quot;box&quot;</span>] &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
@@ -1215,8 +1215,8 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-6" data-line-number="6"></a>
 <a class="sourceLine" id="workflow-7" data-line-number="7"><span class="kw">auto</span> potential = generate_initial_potential(</a>
 <a class="sourceLine" id="workflow-8" data-line-number="8">  box, config);</a></code></pre></div>
-<h4 id="write-initial-conditions-to-file">Write initial conditions to file</h4>
-<p>When we’re all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.</p>
+<h5 id="write-initial-conditions-to-file">Write initial conditions to file</h5>
+<p>We write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.</p>
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="bu">std::</span>string output_filename</a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">  = config[<span class="st">&quot;output&quot;</span>][<span class="st">&quot;hdf5&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;();</a>
@@ -1224,7 +1224,8 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-4" data-line-number="4"></a>
 <a class="sourceLine" id="workflow-5" data-line-number="5">write_vector_with_shape(</a>
 <a class="sourceLine" id="workflow-6" data-line-number="6">  output_file, <span class="st">&quot;potential&quot;</span>, potential, box.shape());</a></code></pre></div>
-<h4 id="output-configuration">Output configuration</h4>
+<h5 id="output-configuration">Output configuration</h5>
+<p>We will write the walls and filaments to both HDF5 and OBJ files. In case of the OBJ files we only store a disc shaped selection, which makes the output easier to visualise. We have defined functions that can cut a mesh using planes and spheres. By cutting the mesh with a single sphere and two planes we extract a disc shaped region from the box. These cutting planes are stored in <code>mesh_shape</code>.</p>
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="bu">std::</span>vector&lt;<span class="bu">std::</span>unique_ptr&lt;Surface&lt;Point&gt;&gt;&gt; mesh_shape;</a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">Point centre(box.L/<span class="dv">2</span>, box.L/<span class="dv">2</span>, box.L/<span class="dv">2</span>);</a>
@@ -1232,6 +1233,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-4" data-line-number="4">mesh_shape.emplace_back(<span class="kw">new</span> Sphere&lt;K&gt;(centre, <span class="fl">0.4</span> * box.L));</a>
 <a class="sourceLine" id="workflow-5" data-line-number="5">mesh_shape.emplace_back(<span class="kw">new</span> Plane&lt;K&gt;(centre + dz, dz));</a>
 <a class="sourceLine" id="workflow-6" data-line-number="6">mesh_shape.emplace_back(<span class="kw">new</span> Plane&lt;K&gt;(centre - dz, -dz));</a></code></pre></div>
+<p>The configuration specifies the threshold for structure selection and filenames to which the meshes are written.</p>
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="dt">double</span> threshold</a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">  = config[<span class="st">&quot;output&quot;</span>][<span class="st">&quot;threshold&quot;</span>].as&lt;<span class="dt">double</span>&gt;(<span class="fl">0.0</span>);</a>
@@ -1239,7 +1241,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-4" data-line-number="4">  = config[<span class="st">&quot;output&quot;</span>][<span class="st">&quot;walls&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;();</a>
 <a class="sourceLine" id="workflow-5" data-line-number="5"><span class="bu">std::</span>string filament<span class="va">s_filename</span></a>
 <a class="sourceLine" id="workflow-6" data-line-number="6">  = config[<span class="st">&quot;output&quot;</span>][<span class="st">&quot;filaments&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;();</a></code></pre></div>
-<h4 id="looping-over-time">Looping over time</h4>
+<h3 id="main-loop">Main loop</h3>
 <p>We read the time specification from the configuration, specify the output parameters, and loop over the specified times.</p>
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="kw">auto</span> time = config[<span class="st">&quot;run&quot;</span>][<span class="st">&quot;time&quot;</span>]</a>
@@ -1276,6 +1278,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <img src="figures/mass-functions.svg" alt="Figure 8: Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per h^{-3}{\rm Mpc}^3 per logarithmic bin \Delta \log M/M^* where M^* is \rho_u h^{-3}{\rm Mpc}^3. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters." id="fig:mass-function" /><figcaption><span>Figure 8:</span> Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per <span class="math inline">\(h^{-3}{\rm Mpc}^3\)</span> per logarithmic bin <span class="math inline">\(\Delta \log M/M^*\)</span> where <span class="math inline">\(M^*\)</span> is <span class="math inline">\(\rho_u h^{-3}{\rm Mpc}^3\)</span>. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.</figcaption>
 </figure>
 <h5 id="write-the-walls">Write the walls</h5>
+<p>In case of the walls we write a selection to an OBJ file and the entire box to the HDF5 file.</p>
 <p><em>«workflow-write-obj»=</em></p>
 <div class="sourceCode" id="workflow-write-obj"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-write-obj-1" data-line-number="1">{</a>
 <a class="sourceLine" id="workflow-write-obj-2" data-line-number="2">  <span class="kw">auto</span> walls = adhesion.get_walls(threshold);</a>
@@ -1289,6 +1292,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-write-obj-10" data-line-number="10">  write_mesh(h5_group, <span class="st">&quot;faces&quot;</span>, walls);</a>
 <a class="sourceLine" id="workflow-write-obj-11" data-line-number="11">}</a></code></pre></div>
 <h5 id="write-the-filaments">Write the filaments</h5>
+<p>The same goes for the filaments. The difference with the previous code block is the extra <code>false</code> parameter in the <code>select_mesh</code> call. This tells the polygon cutting algorithm that we are dealing with non-cyclic edges, whereas the walls are represented by polygons that are cyclic.</p>
 <p><em>«workflow-write-obj»=+</em></p>
 <div class="sourceCode" id="workflow-write-obj"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-write-obj-1" data-line-number="1">{</a>
 <a class="sourceLine" id="workflow-write-obj-2" data-line-number="2">  <span class="kw">auto</span> filaments = adhesion.get_filaments(threshold);</a>
@@ -1302,6 +1306,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-write-obj-10" data-line-number="10">  write_mesh(h5_group, <span class="st">&quot;edges&quot;</span>, filaments);</a>
 <a class="sourceLine" id="workflow-write-obj-11" data-line-number="11">}</a></code></pre></div>
 <h3 id="main-function">Main function</h3>
+<p>The <code>main</code> function provides the primary interface to the user. It parses command-line arguments, prints help if needed, loads the configuration, and runs the rest of the program by calling <code>run</code>.</p>
 <p><em>file: «src/main.cc»=</em></p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb23-1" data-line-number="1"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
 <a class="sourceLine" id="cb23-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;argagg/argagg.hpp&gt;</span></a>
@@ -1370,7 +1375,10 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p><em>«run»=</em></p>
 <div class="sourceCode" id="run"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="run-1" data-line-number="1">run(config);</a></code></pre></div>
 <h2 id="appendix">Appendix</h2>
+<p>This appendix provides convenience interfaces to the FFTW3, GSL integration and HDF5 libraries.</p>
 <h3 id="numerical-integration">Numerical integration</h3>
+<p>The GNU Scientific Library (GSL) is a collection of numerical algorithms written in C. In many cases it is convenient to use a C++ wrapper in stead of the C API directly. Here we define an interface around the <code>gsl_integration_qagiu</code> function, which integrates functions from a lower bound to upper infinity. The C API expects a pointer to a function and a <code>gsl_integration_workspace</code> to be provided. The function pointed to should accept a <code>double</code> and a <code>void *</code>. The latter argument can be used to pass around extra arguments of which the function knows the intended type. In our case we reinterpret the void pointer as a generic C++ <code>std::function</code> pointer and then call that. This allows any callable C++ function to be passed to <code>integrate_qagiu</code>.</p>
+<p>Since we only call the integrator once, we do allocation and destruction of the <code>gsl_integration_workspace</code> in the body of <code>integrate_qagiu</code>. In a situation where <code>integrate_qagiu</code> would be called repeatedly, it is better to use a more complicated wrapper.</p>
 <p><em>«gsl-integrate-qagiu»=</em></p>
 <div class="sourceCode" id="gsl-integrate-qagiu"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="gsl-integrate-qagiu-1" data-line-number="1"><span class="pp">#include </span><span class="im">&lt;gsl/gsl_integration.h&gt;</span></a>
 <a class="sourceLine" id="gsl-integrate-qagiu-2" data-line-number="2"></a>
@@ -1436,7 +1444,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="surface-class-5" data-line-number="5">  <span class="kw">virtual</span> <span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;p) <span class="at">const</span> = <span class="dv">0</span>;</a>
 <a class="sourceLine" id="surface-class-6" data-line-number="6">  <span class="kw">virtual</span> <span class="bu">std::</span>optional&lt;Point&gt; intersect(</a>
 <a class="sourceLine" id="surface-class-7" data-line-number="7">    Point <span class="at">const</span> &amp;a, Point <span class="at">const</span> &amp;b) <span class="at">const</span> = <span class="dv">0</span>;</a>
-<a class="sourceLine" id="surface-class-8" data-line-number="8">  </a>
+<a class="sourceLine" id="surface-class-8" data-line-number="8"></a>
 <a class="sourceLine" id="surface-class-9" data-line-number="9">  <span class="kw">virtual</span> ~Surface() {}</a>
 <a class="sourceLine" id="surface-class-10" data-line-number="10">};</a></code></pre></div>
 <p>Given an implementation of such a class, we can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.</p>
@@ -1688,6 +1696,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="select-mesh-39" data-line-number="39">  <span class="cf">return</span> m;</a>
 <a class="sourceLine" id="select-mesh-40" data-line-number="40">}</a></code></pre></div>
 <h3 id="writing-to-disk">Writing to disk</h3>
+<p>For reading and writing HDF5, there is a C++ interface available. This interface is still too low level for our purposes.</p>
 <h4 id="interface">Interface</h4>
 <p><em>file: «src/writers.hh»=</em></p>
 <div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="pp">#pragma once</span></a>

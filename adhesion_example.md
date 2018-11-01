@@ -413,7 +413,7 @@ A function following only this distribution, without any corellation between poi
 
 The `white_noise` function fills a newly created array with random values, following a normal distribution with $\sigma = 1$.
 
-``` {.cpp file=src/white_noise.cc}
+``` {.cpp file=src/initial_conditions/white_noise.cc}
 #include "initial_conditions.hh"
 #include <random>
 
@@ -480,7 +480,7 @@ $$q = \frac{k}{h {\rm Mpc}^{-1}} \Theta_{2.7}^2 / \Gamma,$$
 
 where $\Theta_{2.7}$ is the temperature of the CMB divided by 2.7 and $\Gamma = \Omega_0 h$.
 
-``` {.cpp file=src/eisenstein-hu.cc}
+``` {.cpp file=src/initial_conditions/eisenstein-hu.cc}
 #include "initial_conditions.hh"
 
 PowerSpectrum EisensteinHu(Config const &cosmology)
@@ -536,7 +536,7 @@ There's a lot to say about how to normalise initial conditions properly, retaini
 
 The `normalize_power_spectrum` function computes the integral in Equation\ @eq:normalisation using the Gauss-Konrod quadrature algorithm for integrals over a semi-infinite domain that is present in the GNU Scientific Library [@Galassi2002]. It then returns a new function of type `PowerSpectrum`.
 
-``` {.cpp file=src/normalize_power_spectrum.cc}
+``` {.cpp file=src/initial_conditions/normalize_power_spectrum.cc}
 #include "initial_conditions.hh"
 #include <iostream>
 
@@ -572,7 +572,7 @@ Here we used some helper functions to encapsulate the GSL integration routines i
 
 We now apply the desired power spectrum to the previously generated white noise. This is done by transforming the white noise to the Fourier domain, multiplying it by the square root of the power spectrum, and then transforming back again. We use a C++ wrapper around the FFTW3 library [@FFTW3], which is listed in the appendix. The wrapper class `RFFT3` allocates two `vector`s of memory for the input and output data. This is done using the FFTW routines, which ensure proper memory alignment for optimal algorithm efficiency. Note that our wrapper divides the result of the FFT computation by $N^3$ to normalise the end result, an action which FFTW omits.
 
-``` {.cpp file=src/apply_power_spectrum.cc}
+``` {.cpp file=src/initial_conditions/apply_power_spectrum.cc}
 #include "initial_conditions.hh"
 #include "fft.hh"
 
@@ -619,12 +619,12 @@ Now that we have set up the initial conditions, we can run the adhesion model. G
 ## Theory
 
 Normally, we derive the fact that we can solve the adhesion model using regular triangulations from existing solutions [@Hopf1950] of the equation of motion, Burgers equation,
-$$\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.$${#eq:burgers-equation}
+$$\partial_t {\bf v} + ({\bf v} \cdot {\bf \nabla}) {\bf v} = \nu \nabla^2 {\bf v}.$$ {#eq:burgers-equation}
 We may also understand this idea from a more kinematic point of view.
 
 We assume an ensemble of particles moving by a potential $\Phi_0({\bf q})$ from their starting position ${\bf q}$ to a target position ${\bf x}$,
 
-$${\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).$${#eq:zeldovich}
+$${\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).$$ {#eq:zeldovich}
 
 This is known as the Zeldovich approximation [@Zeldovich1970; @Shandarin1989]. This has the problem that particles continue to move in a straight line, even after structures form. We'd like to have particles adhere together once they form structures, hence the name: *adhesion model*.
 
@@ -750,12 +750,12 @@ Additionally, if we're running with TBB enabled, we have to include a locking da
 We define methods for retrieving information from the regular triangulation.
 
 ``` {.cpp #adhesion-methods}
-  int edge_count(RT::Cell_handle h, double threshold) const;
-  Vector velocity(RT::Cell_handle c) const;
+int edge_count(RT::Cell_handle h, double threshold) const;
+Vector velocity(RT::Cell_handle c) const;
 
-  Mesh<Point, double> get_walls(double threshold) const;
-  Mesh<Point, double> get_filaments(double threshold) const;
-  std::vector<Node> get_nodes(double threshold) const;
+Mesh<Point, double> get_walls(double threshold) const;
+Mesh<Point, double> get_filaments(double threshold) const;
+std::vector<Node> get_nodes(double threshold) const;
 ```
 
 ## Computing the triangulation
@@ -894,7 +894,7 @@ inline Adhesion::NodeType type_from_edge_count(int n)
 
 We count the number of edges that are incident to the cell `h` and exceed the distance squared `threshold`.
 
-``` {.cpp file=src/adhesion_edge_count.cc}
+``` {.cpp file=src/adhesion/edge_count.cc}
 #include "adhesion.hh"
 
 int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
@@ -918,7 +918,7 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
 
 To compute the velocity of a particle (a node in the power diagram), we need to compute the gradient of the velocity potential over the corresponding cell in the regular triangulation. We can use CGAL here to do the hard work for us. The d-dimensional geometry kernel lets us compute the hyperplane associated with the four vertices of the cell in the triangulation.
 
-``` {.cpp file=src/adhesion_velocity.cc}
+``` {.cpp file=src/adhesion/velocity.cc}
 #include "adhesion.hh"
 #include <limits>
 #include <CGAL/Cartesian_d.h>
@@ -991,7 +991,7 @@ return Vector(v[0], v[1], v[2]);
 
 We will retrieve the position, mass, velocity and node type of each dual vertex in the regular triangulation.
 
-``` {.cpp file=src/adhesion_get_nodes.cc}
+``` {.cpp file=src/adhesion/get_nodes.cc}
 #include "adhesion.hh"
 
 <<adhesion-type-from-edge-count>>
@@ -1263,7 +1263,7 @@ Mesh<Point, double> power_diagram_edges(
 
 We think it is important to make the step from abstract mathematics to physical model explicit. The implementation of the `get_walls` method is now trivial though.
 
-``` {.cpp file=src/adhesion_get_walls.cc}
+``` {.cpp file=src/adhesion/get_walls.cc}
 #include "adhesion.hh"
 #include "power_diagram.hh"
 
@@ -1282,9 +1282,7 @@ Mesh<Point, double> Adhesion::get_filaments(
 
 # The main program
 
-We're now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly.
-
-## Run function
+We're now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly. Once the configuration is read, the workflow of actually computing the adhesion model is collected in a single function called `run`.
 
 ``` {.cpp file=src/run.hh}
 #pragma once
@@ -1292,6 +1290,8 @@ We're now ready to write the main program. It will read a configuration file fro
 
 extern void run(YAML::Node const &config);
 ```
+
+As we discuss each step in the workflow, we add code onto *«workflow»*.
 
 ``` {.cpp file=src/run.cc}
 #include <iostream>
@@ -1314,9 +1314,9 @@ void run(YAML::Node const &config)
 }
 ```
 
-### Generate initial conditions
+#### Generate initial conditions
 
-The `box` section of the configuration should contain an entry for `N` and `L`, the logical and physical box sizes respectively.
+We create a `BoxParam` instance and generate the initial potential.
 
 ``` {.cpp #workflow}
 std::clog << "# Using box with parameters:\n"
@@ -1329,9 +1329,9 @@ auto potential = generate_initial_potential(
   box, config);
 ```
 
-### Write initial conditions to file
+#### Write initial conditions to file
 
-When we're all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.
+We write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.
 
 ``` {.cpp #workflow}
 std::string output_filename
@@ -1342,7 +1342,9 @@ write_vector_with_shape(
   output_file, "potential", potential, box.shape());
 ```
 
-### Output configuration
+#### Output configuration
+
+We will write the walls and filaments to both HDF5 and OBJ files. In case of the OBJ files we only store a disc shaped selection, which makes the output easier to visualise. We have defined functions that can cut a mesh using planes and spheres. By cutting the mesh with a single sphere and two planes we extract a disc shaped region from the box. These cutting planes are stored in `mesh_shape`.
 
 ``` {.cpp #workflow}
 std::vector<std::unique_ptr<Surface<Point>>> mesh_shape;
@@ -1353,6 +1355,8 @@ mesh_shape.emplace_back(new Plane<K>(centre + dz, dz));
 mesh_shape.emplace_back(new Plane<K>(centre - dz, -dz));
 ```
 
+The configuration specifies the threshold for structure selection and filenames to which the meshes are written.
+
 ``` {.cpp #workflow}
 double threshold
   = config["output"]["threshold"].as<double>(0.0);
@@ -1362,7 +1366,7 @@ std::string filaments_filename
   = config["output"]["filaments"].as<std::string>();
 ```
 
-### Looping over time
+## Main loop
 
 We read the time specification from the configuration, specify the output parameters, and loop over the specified times.
 
@@ -1414,6 +1418,8 @@ This can then be read back to Python to plot our measurements. For example, the 
 
 #### Write the walls
 
+In case of the walls we write a selection to an OBJ file and the entire box to the HDF5 file.
+
 ``` {.cpp #workflow-write-obj}
 {
   auto walls = adhesion.get_walls(threshold);
@@ -1430,6 +1436,8 @@ This can then be read back to Python to plot our measurements. For example, the 
 
 #### Write the filaments
 
+The same goes for the filaments. The difference with the previous code block is the extra `false` parameter in the `select_mesh` call. This tells the polygon cutting algorithm that we are dealing with non-cyclic edges, whereas the walls are represented by polygons that are cyclic.
+
 ``` {.cpp #workflow-write-obj}
 {
   auto filaments = adhesion.get_filaments(threshold);
@@ -1445,6 +1453,8 @@ This can then be read back to Python to plot our measurements. For example, the 
 ```
 
 ## Main function
+
+The `main` function provides the primary interface to the user. It parses command-line arguments, prints help if needed, loads the configuration, and runs the rest of the program by calling `run`.
 
 ``` {.cpp file=src/main.cc}
 #include <iostream>
