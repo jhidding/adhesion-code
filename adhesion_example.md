@@ -194,19 +194,8 @@ The `ArgAgg` library parses command-line arguments and composes the following he
 
 # Initial conditions
 
-Throughout the sections of this report, we work through the workflow for running the adhesion model. Each time we append some code onto *«workflow»* and then dive into implementation. The lines in *«workflow»* will be put into a `run` function taking a single argument giving the configuration, including cosmological parameters and output specification. We start with defining the `box` in which the initial conditions will be generated.
 
 ## Creating the box
-
-The `box` section of the configuration should contain an entry for `N` and `L`, the logical and physical box sizes respectively.
-
-``` {.cpp #workflow}
-std::clog << "# Using box with parameters:\n"
-          << config["box"] << "\n";
-BoxParam box(
-  config["box"]["N"].as<int>(),
-  config["box"]["L"].as<double>());
-```
 
 These parameters are collected into an instance of `BoxParam`, which has several methods that support working with coordinates in the box both in real and frequency space.
 
@@ -342,23 +331,16 @@ double k_abs(std::array<size_t, 3> const &loc) const {
 }
 ```
 
-## White noise
-
-Having defined a `box` we need to fill it with initial density fluctuations, extending our workflow:
-
-``` {.cpp #workflow}
-std::clog << "# Generating white noise with seed:\n"
-          << config["run"]["seed"] << "\n";
-auto seed = config["run"]["seed"].as<unsigned long>();
-auto field = generate_white_noise(box, seed);
-```
-
-We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
+## Initial conditions header file
 
 ``` {.cpp file=src/initial_conditions.hh}
 #pragma once
 #include "boxparam.hh"
 #include <vector>
+#include <yaml-cpp/yaml.h>
+
+using PowerSpectrum = std::function<double (double)>;
+using Config = YAML::Node;
 
 extern std::vector<double>
 generate_white_noise(
@@ -371,7 +353,43 @@ extern void compute_potential(
     BoxParam const &box,
     std::vector<double> &white_noise,
     PowerSpectrum const &P);
+
+extern std::vector<double>
+generate_initial_potential(
+    BoxParam const &box,
+    Config const &config);
 ```
+
+* Generate white noise
+* Normalise power spectrum
+* Compute potential
+
+``` {.cpp file=src/initial_conditions/generate.cc}
+#include "initial_conditions.hh"
+#include <iostream>
+
+std::vector<double> generate_initial_potential(
+    BoxParam const &box,
+    Config const &config)
+{
+  <<generate-white-noise>>
+  <<compute-potential>>
+  return field;
+}
+```
+
+## White noise
+
+Having defined a `box` we need to fill it with initial density fluctuations, extending our workflow:
+
+``` {.cpp #generate-white-noise}
+std::clog << "# Generating white noise with seed:\n"
+          << config["run"]["seed"] << "\n";
+auto seed = config["run"]["seed"].as<unsigned long>();
+auto field = generate_white_noise(box, seed);
+```
+
+We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
 
 The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
 
@@ -428,7 +446,7 @@ $$\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \v
 
 In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In the *«workflow»* we first normalise the power spectrum and then apply it to the previously generated white noise.
 
-``` {.cpp #workflow}
+``` {.cpp #compute-potential}
 std::clog << "Applying power spectrum with cosmology:\n"
           << config["cosmology"] << "\n";
 auto cosmology = config["cosmology"];
@@ -440,11 +458,6 @@ compute_potential(box, field, power_spectrum);
 This requires two new functions: `EisensteinHu` and `normalize_power_spectrum`.
 
 ``` {.cpp #power-spectra}
-#include <yaml-cpp/yaml.h>
-
-using PowerSpectrum = std::function<double (double)>;
-using Config = YAML::Node;
-
 extern PowerSpectrum EisensteinHu(
     Config const &cosmology);
 
@@ -508,7 +521,8 @@ Now, given a density field $f$ we may filter this field with a spherical top-hat
 $$\sigma_R^2 = \int \mathcal{P}(\vec{k}) \hat{W}_{\rm th}^2(\vec{k}) \frac{{\rm d}^3 \vec{k}}{{(2\pi)}^3}.$$
 
 Because all terms in the integral only depend on $|\vec{k}|$, we may rewrite this as
-$$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2},$$ {#eq:normalisation}
+$$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2}.$$ {#eq:normalisation}
+The integrant in Equation\ @eq:normalisation can be defined as the following lambda expression:
 
 ``` {.cpp #define-integrant}
 auto integrant = [&] (double k) {
@@ -516,7 +530,7 @@ auto integrant = [&] (double k) {
 };
 ```
 
-where the Fourier transform of the top-hat window function is given by
+The Fourier transform of the top-hat window function is given by
 $$\hat{W}_{th}(y) = \frac{3}{y^3}\left(\sin y - y \cos y\right).$$
 
 ``` {.cpp #top-hat-function}
@@ -603,19 +617,6 @@ for (size_t i = 1; i < box.rfft_size(); ++i) {
   rfft.fourier_space[i] *= sqrt(P(k) / v) / (k * k);
   increment_index<3>(f_shape, loc);
 }
-```
-
-## Write initial conditions to file
-
-When we're all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.
-
-``` {.cpp #workflow}
-std::string output_filename
-  = config["output"]["hdf5"].as<std::string>();
-H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
-
-write_vector_with_shape(
-  output_file, "potential", field, box.shape());
 ```
 
 # The Adhesion model
@@ -1286,8 +1287,6 @@ Mesh<Point, double> Adhesion::get_filaments(
 }
 ```
 
-
-
 # The main program
 
 We're now ready to write the main program. It will read a configuration file from file and compute the adhesion model accordingly.
@@ -1320,6 +1319,34 @@ void run(YAML::Node const &config)
 {
   <<workflow>>
 }
+```
+
+### Generate initial conditions
+
+The `box` section of the configuration should contain an entry for `N` and `L`, the logical and physical box sizes respectively.
+
+``` {.cpp #workflow}
+std::clog << "# Using box with parameters:\n"
+          << config["box"] << "\n";
+BoxParam box(
+  config["box"]["N"].as<int>(),
+  config["box"]["L"].as<double>());
+
+auto potential = generate_initial_potential(
+  box, config);
+```
+
+### Write initial conditions to file
+
+When we're all done, we can write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.
+
+``` {.cpp #workflow}
+std::string output_filename
+  = config["output"]["hdf5"].as<std::string>();
+H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
+
+write_vector_with_shape(
+  output_file, "potential", potential, box.shape());
 ```
 
 ### Output configuration
@@ -1366,7 +1393,7 @@ In each iteration we run the adhesion model. We then write results to a new HDF5
 ``` {.cpp #workflow-adhesion}
 std::clog << "Computing regular triangulation for t = "
           << t << " ...\n";
-Adhesion adhesion(box, field, t);
+Adhesion adhesion(box, potential, t);
 ```
 
 ### Writing output
