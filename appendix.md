@@ -438,6 +438,17 @@ void write_vector(
   write_vector_with_shape(group, name, v, shape);
 }
 
+template <typename Group, typename T>
+void write_attribute(
+    Group &group,
+    std::string const &name,
+    T const &value)
+{
+  auto attr = group.createAttribute(
+    name, H5TypeFactory<T>::get(), H5::DataSpace());
+  attr.write(H5TypeFactory<T>::get(), &value);
+}
+
 extern void write_mesh(
     FileOrGroup &group,
     std::string const &name,

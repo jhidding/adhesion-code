@@ -122,7 +122,7 @@ These blocks of code can be *tangled* into source files. The source code present
 
 ## Program outline
 
-The program reads a YAML configuration file and writes output data to HDF5. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages. HDF5 files can be read in all widely used data analysis frameworks, i.e. Python, GNU R, Julia or even Matlab if you're so inclined.
+The program reads a YAML configuration file and writes output data to HDF5 [@HDF5]. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages.
 
 The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the $\Lambda$CDM cosmological model in the form of an initial velocity potential $\Phi_0$. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.
 
@@ -139,7 +139,7 @@ We read the configuration from a YAML file. This file specifies the box size, co
 
 box:
   N:      128       # logical box size
-  L:       30.0     # physical box size
+  L:       50.0     # physical box size
 
 cosmology:
   power-spectrum: Eisenstein & Hu (no baryons)
@@ -191,6 +191,20 @@ The `ArgAgg` library parses command-line arguments and composes the following he
             Supply configuration file.
         -d, --defaults
             Show default configuration.
+
+### Output
+
+We write output to two kinds of files: HDF5 (Hierarchical Data Format) and Wavefront OBJ.
+
+#### HDF5
+
+HDF5 files have a hierarchy similar to a filesystem with groups and data spaces. Each item in the hierarchy can have meta-data attributes. HDF5 files can be read (and written) in all widely used data analysis frameworks, i.e. Python, GNU R, Julia or even Matlab if you're so inclined. As an example, we show the adhesion cluster mass function in Figure\ @fig:mass-function.
+
+![Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per $h^{-3}{\rm Mpc}^3$ per logarithmic bin $\Delta \log M/M^*$ where $M^*$ is $\rho_u h^{-3}{\rm Mpc}^3$. Both plots show the same data, but the right panel uses a logarithmic y-axis. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters at later times.](figures/mass-functions.svg){#fig:mass-function}
+
+#### Wavefront OBJ
+
+Wavefront OBJ format is a text based format designed for computer graphics applications. We chose it for two reasons. It is relatively easy to write and it has support for per-face texture coordinates. Normally these coordinates are used to map texture images onto the three dimensional surface. We abuse the texture coordinates to represent the wall density. This method of encoding extra information is supported by ParaView, by which we rendered Figure\ @fig:output-example.
 
 # Initial conditions
 
@@ -405,11 +419,11 @@ double k_abs(std::array<size_t, 3> const &loc) const {
 
 Having defined a `box` we need to fill it with initial density fluctuations. We first generate *white noise* in real space, then apply the power spectrum by method of *Fourier convolution*.
 
-The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
+The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabilistic terms. In cosmology it comes natural that these probabilities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,
 
 $$P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).$$ {#eq:normal-distribution}
 
-A function following only this distribution, without any corellation between points, is also referred to as *white noise*. We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
+A function following only this distribution, without any correlation between points, is also referred to as *white noise*. We're looking at quantities, like the density perturbation, that have mean $\mu = 0$. When we generate white noise, we're sampling a realisation of such a function $f$ at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.
 
 The `white_noise` function fills a newly created array with random values, following a normal distribution with $\sigma = 1$.
 
@@ -434,7 +448,7 @@ generate_white_noise(
 }
 ```
 
-## Introducing corellation
+## Introducing correlation
 
 To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function $f$ are positively correlated at the small scale. Taking any two positions $x_1$ and $x_2$, their correlation is
 
@@ -444,7 +458,7 @@ Often we write the correlation function $\xi(r)$ because our fields are isotropi
 
 $$P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).$$ {#eq:two-point-function}
 
-Here, $\Sigma(r)$ is the corellation matrix,
+Here, $\Sigma(r)$ is the correlation matrix,
 
 $$\Sigma(r) = \begin{pmatrix}\sigma^2 & \xi(r)\\\xi(r) & \sigma^2\end{pmatrix},$$
 
@@ -454,7 +468,7 @@ Equation\ @eq:two-point-function (also known as the two-point distribution) can 
 
 ## Power spectrum
 
-In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In stead of talking about a corellation function, we often use its Fourier transform, the *power spectrum* to specify the corellations in the random field,
+In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In stead of talking about a correlation function, we often use its Fourier transform, the *power spectrum* to specify the correlation in the random field,
 
 $$\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.$$
 
@@ -512,13 +526,12 @@ The power-spectrum needs to be normalised so that the amplitudes of the density 
 
 Now, given a density field $f$ we may filter this field with a spherical top-hat function with radius of $8\ h^{-1}{\rm Mpc}$ by means of a convolution $f_R = f \ast W_{\rm th}$. Then $\sigma_8^2 \equiv \langle f_8^{\star}f_8 \rangle$ can be expressed in Fourier space as
 $$\sigma_R^2 = \int \mathcal{P}(\vec{k}) \hat{W}_{\rm th}^2(\vec{k}) \frac{{\rm d}^3 \vec{k}}{{(2\pi)}^3}.$$
-
 Because all terms in the integral only depend on $|\vec{k}|$, we may rewrite this as
 $$\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2}.$$ {#eq:normalisation}
-The integrant in Equation\ @eq:normalisation can be defined as the following lambda expression:
+The integrand in Equation\ @eq:normalisation can be defined as the following lambda expression:
 
-``` {.cpp #define-integrant}
-auto integrant = [&] (double k) {
+``` {.cpp #define-integrand}
+auto integrand = [&] (double k) {
   return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
 };
 ```
@@ -552,10 +565,10 @@ PowerSpectrum normalize_power_spectrum(
   double epsabs = 1e-6, epsrel = 1e-6;
   double sigma8 = cosmology["sigma8"].as<double>();
 
-  <<define-integrant>>
+  <<define-integrand>>
 
   double x = integrate_qagiu(
-    integrant, k_lower, epsabs, epsrel);
+    integrand, k_lower, epsabs, epsrel);
 
   double A = sigma8 * sigma8 / x;
   std::clog << "Normalised power spectrum, A = " << A << ".\n";
@@ -854,7 +867,7 @@ On the other hand, part of the distribution in masses is determined by the kind 
 
 ![Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.](figures/node-classes.svg){#fig:node-classes}
 
-Note that there are many species of kurtoparabolic points. The ones listed under 'kurto-parabolics' have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurto-parabolic *e*, which has a filament (and three wall segments) ending in a void.
+Note that there are several species of kurtoparabolic points. The ones listed under 'kurtoparabolics' have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurtoparabolic *e*, which has a filament (and three wall segments) ending in a void.
 
 There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type *c*. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.
 
@@ -1022,12 +1035,11 @@ Adhesion::get_nodes(double threshold) const
 }
 ```
 
-
 ## The power diagram
 
 The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges.
 
-In this case we'll store them as Wavefront OBJ files. This is a text based file format, so we can't store too large amounts of data. However, it is well supported by most visualisation toolkits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, $u$ and $v$. We'll only use the $u$ coordinate to store the density of the walls. The procedure for saving OBJ files is given in the [Appendix](#obj-file-format).
+In this case we'll store them as Wavefront OBJ files. This is a text based file format, so we can't store too large amounts of data. However, it is well supported by most visualisation tool-kits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, $u$ and $v$. We'll only use the $u$ coordinate to store the density of the walls. The procedure for saving OBJ files is given in the supplementary material.
 
 We'll define the function that computes the duals of the regular triangulation and stores it in a structure we call `Mesh<Point, double>`.
 
@@ -1331,13 +1343,15 @@ auto potential = generate_initial_potential(
 
 #### Write initial conditions to file
 
-We write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.
+We write the initial conditions to the output file for future reference. We have written some easy wrappers around the HDF5 routines, letting us write the statement in a single line. The wrappers can be found in the supplementary material. Next to saving the initial conditions, we also create two attributes, saving the box properties in the file.
 
 ``` {.cpp #workflow}
 std::string output_filename
   = config["output"]["hdf5"].as<std::string>();
 H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
 
+write_attribute(output_file, "N", box.N);
+write_attribute(output_file, "L", box.L);
 write_vector_with_shape(
   output_file, "potential", potential, box.shape());
 ```
@@ -1400,9 +1414,7 @@ In the workflow we can now write all this information about the nodes to the HDF
 ``` {.cpp #workflow-create-hdf5-group}
 auto h5_group = output_file.createGroup(
   fmt::format("{}", iteration));
-auto time_attr = h5_group.createAttribute(
-  "time", H5TypeFactory<double>::get(), H5::DataSpace());
-time_attr.write(H5TypeFactory<double>::get(), &t);
+write_attribute(h5_group, "time", t);
 ```
 
 Then we write the node information to that group.
@@ -1411,10 +1423,6 @@ Then we write the node information to that group.
 auto nodes = adhesion.get_nodes(threshold);
 write_vector(h5_group, "nodes", nodes);
 ```
-
-This can then be read back to Python to plot our measurements. For example, the cluster mass function is shown in Figure~@fig:mass-function.
-
-![Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per $h^{-3}{\rm Mpc}^3$ per logarithmic bin $\Delta \log M/M^*$ where $M^*$ is $\rho_u h^{-3}{\rm Mpc}^3$. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.](figures/mass-functions.svg){#fig:mass-function}
 
 #### Write the walls
 
