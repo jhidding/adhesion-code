@@ -48,19 +48,7 @@ double integrate_qagiu(
 #pragma once
 #include <tuple>
 <<include-optional>>
-
 #include "mesh.hh"
-
-template <typename Point>
-using Polygon = std::tuple<
-                  std::vector<Point> *,
-                  std::vector<unsigned>>;
-
-template <typename Point>
-using PolygonPair = std::tuple<
-                      std::vector<Point> *,
-                      std::vector<unsigned>,
-                      std::vector<unsigned>>;
 
 <<surface-class>>
 <<split-polygon>>
@@ -86,6 +74,21 @@ public:
 ```
 
 Given an implementation of such a class, we  can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.
+
+``` {.cpp #split-polygon}
+template <typename Point>
+using Polygon = std::tuple<
+                  std::vector<Point> *,
+                  std::vector<unsigned>>;
+```
+
+``` {.cpp #split-polygon}
+template <typename Point>
+using PolygonPair = std::tuple<
+    std::vector<Point> *,
+    std::vector<unsigned>,
+    std::vector<unsigned>>;
+```
 
 ``` {.cpp #split-polygon}
 template <typename Point>

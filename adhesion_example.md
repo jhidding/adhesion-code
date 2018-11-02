@@ -27,7 +27,7 @@ The adhesion model is accurate enough to predict the structures that will form t
 
 The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set [@cgal:pt-t3-18b;@cgal:pt-tds3-18b].
 
-![Example output of the program, rendered with ParaView.](figures/output.png){#fig:output-example}
+![Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for $D_+ = 0.2, 0.4$ and $0.6$. The axes have units of $h^{-1}\ {\rm Mpc}$. The top left part of the rendering shows a large expanding void.](figures/web-evolution.png){#fig:output-example}
 
 This document is aimed to be self-containing. This means that all the code to build a working adhesion model is included. We've tried to limit the involvement of too much boilerplate code by using existing libraries where possible. The main body of the code is covered in three sections. We start with generating initial conditions in the Fourier domain. Then we proceed with implementing the adhesion model on the basis of the algorithms and data structures provided by CGAL. We tie things together in a main executable that reads a configuration file and runs the model. The supplementary material contains necessary routines for dealing with Fourier transforms, IO and handling of mesh data.
 
@@ -139,7 +139,7 @@ We read the configuration from a YAML file. This file specifies the box size, co
 
 box:
   N:      128       # logical box size
-  L:       50.0     # physical box size
+  L:       30.0     # physical box size
 
 cosmology:
   power-spectrum: Eisenstein & Hu (no baryons)
@@ -1349,7 +1349,7 @@ We will write the walls and filaments to both HDF5 and OBJ files. In case of the
 ``` {.cpp #workflow}
 std::vector<std::unique_ptr<Surface<Point>>> mesh_shape;
 Point centre(box.L/2, box.L/2, box.L/2);
-Vector dz(box.L/10, 0.0, 0.0);
+Vector dz(box.L/15, 0.0, 0.0);
 mesh_shape.emplace_back(new Sphere<K>(centre, 0.4 * box.L));
 mesh_shape.emplace_back(new Plane<K>(centre + dz, dz));
 mesh_shape.emplace_back(new Plane<K>(centre - dz, -dz));
