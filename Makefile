@@ -3,7 +3,7 @@ input_files = adhesion_example.md appendix.md
 
 # Target directories
 build_dir = ./build
-html_dir = ./public
+html_dir = ./docs
 
 # Target files
 pdf_files = $(build_dir)/main.pdf
