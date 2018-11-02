@@ -160,7 +160,7 @@ using namespace std::experimental;
 
 ### The sphere
 
-Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do some algebraic geometry our selves. The `Sphere` data type will have two members:
+Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do some computational geometry our selves. The `Sphere` data type will have two members:
 
 ``` {.cpp #sphere-members}
 Point  origin;
