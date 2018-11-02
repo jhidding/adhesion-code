@@ -101,7 +101,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#initial-conditions">Initial conditions</a><ul>
 <li><a href="#creating-the-box">Creating the box</a></li>
 <li><a href="#white-noise">White noise</a></li>
-<li><a href="#introducing-corellation">Introducing corellation</a></li>
+<li><a href="#introducing-correlation">Introducing correlation</a></li>
 <li><a href="#power-spectrum">Power spectrum</a></li>
 <li><a href="#compute-initial-potential">Compute initial potential</a></li>
 </ul></li>
@@ -137,7 +137,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 id="introduction">Introduction</h2>
 <p>The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation.</p>
 <p>The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the <em>cosmic web</em>. The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn’t reveal the halo structures that are shown in N-body simulations to form inside these structures.</p>
-<p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set <span class="citation" data-cites="cgal:pt-t3-18b cgal:pt-tds3-18b">(Jamin, Pion, and Teillaud 2018b, 2018a)</span>.</p>
+<p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set <span class="citation" data-cites="cgal:pt-t3-18b cgal:pt-tds3-18b">(Jamin, Pion, and Teillaud 2018b; Jamin, Pion, and Teillaud 2018a)</span>.</p>
 <figure>
 <img src="figures/web-evolution.png" alt="Figure 1: Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for D_+ = 0.2, 0.4 and 0.6. The axes have units of h^{-1}\ {\rm Mpc}. The top left part of the rendering shows a large expanding void." id="fig:output-example" /><figcaption><span>Figure 1:</span> Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for <span class="math inline">\(D_+ = 0.2, 0.4\)</span> and <span class="math inline">\(0.6\)</span>. The axes have units of <span class="math inline">\(h^{-1}\ {\rm Mpc}\)</span>. The top left part of the rendering shows a large expanding void.</figcaption>
 </figure>
@@ -274,7 +274,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode" id="hello-world"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="hello-world-1" data-line-number="1"><span class="cf">return</span> EXIT_SUCCESS;</a></code></pre></div>
 <p>These blocks of code can be <em>tangled</em> into source files. The source code presented in this report combine into a fully working example of the adhesion model!</p>
 <h3 id="program-outline">Program outline</h3>
-<p>The program reads a YAML configuration file and writes output data to HDF5. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages. HDF5 files can be read in all widely used data analysis frameworks, i.e. Python, GNU R, Julia or even Matlab if you’re so inclined.</p>
+<p>The program reads a YAML configuration file and writes output data to HDF5 <span class="citation" data-cites="HDF5">(Folk et al. 2011)</span>. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages.</p>
 <p>The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the <span class="math inline">\(\Lambda\)</span>CDM cosmological model in the form of an initial velocity potential <span class="math inline">\(\Phi_0\)</span>. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.</p>
 <p>Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.</p>
 <figure>
@@ -287,7 +287,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="default-config-2" data-line-number="2"></a>
 <a class="sourceLine" id="default-config-3" data-line-number="3"><span class="fu">box:</span></a>
 <a class="sourceLine" id="default-config-4" data-line-number="4">  <span class="fu">N:</span><span class="at">      128       </span><span class="co"># logical box size</span></a>
-<a class="sourceLine" id="default-config-5" data-line-number="5">  <span class="fu">L:</span><span class="at">       30.0     </span><span class="co"># physical box size</span></a>
+<a class="sourceLine" id="default-config-5" data-line-number="5">  <span class="fu">L:</span><span class="at">       50.0     </span><span class="co"># physical box size</span></a>
 <a class="sourceLine" id="default-config-6" data-line-number="6"></a>
 <a class="sourceLine" id="default-config-7" data-line-number="7"><span class="fu">cosmology:</span></a>
 <a class="sourceLine" id="default-config-8" data-line-number="8">  <span class="fu">power-spectrum:</span><span class="at"> Eisenstein &amp; Hu (no baryons)</span></a>
@@ -330,6 +330,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
         Supply configuration file.
     -d, --defaults
         Show default configuration.</code></pre>
+<h4 id="output">Output</h4>
+<p>We write output to two kinds of files: HDF5 (Hierarchical Data Format) and Wavefront OBJ.</p>
+<h5 id="hdf5">HDF5</h5>
+<p>HDF5 files have a hierarchy similar to a filesystem with groups and data spaces. Each item in the hierarchy can have meta-data attributes. HDF5 files can be read (and written) in all widely used data analysis frameworks, i.e. Python, GNU R, Julia or even Matlab if you’re so inclined. As an example, we show the adhesion cluster mass function in Figure <a href="#fig:mass-function">3</a>.</p>
+<figure>
+<img src="figures/mass-functions.svg" alt="Figure 3: Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per h^{-3}{\rm Mpc}^3 per logarithmic bin \Delta \log M/M^* where M^* is \rho_u h^{-3}{\rm Mpc}^3. Both plots show the same data, but the right panel uses a logarithmic y-axis. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters at later times." id="fig:mass-function" /><figcaption><span>Figure 3:</span> Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per <span class="math inline">\(h^{-3}{\rm Mpc}^3\)</span> per logarithmic bin <span class="math inline">\(\Delta \log M/M^*\)</span> where <span class="math inline">\(M^*\)</span> is <span class="math inline">\(\rho_u h^{-3}{\rm Mpc}^3\)</span>. Both plots show the same data, but the right panel uses a logarithmic y-axis. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters at later times.</figcaption>
+</figure>
+<h5 id="wavefront-obj">Wavefront OBJ</h5>
+<p>Wavefront OBJ format is a text based format designed for computer graphics applications. We chose it for two reasons. It is relatively easy to write and it has support for per-face texture coordinates. Normally these coordinates are used to map texture images onto the three dimensional surface. We abuse the texture coordinates to represent the wall density. This method of encoding extra information is supported by ParaView, by which we rendered Figure <a href="#fig:output-example">1</a>.</p>
 <h2 id="initial-conditions">Initial conditions</h2>
 <p>We will generate an initial potential <span class="math inline">\(\Phi_0\)</span>, sampled on a cubic mesh with a logical size of <span class="math inline">\(N\)</span> pixels on each side and a physical size <span class="math inline">\(L\)</span> in units of <span class="math inline">\(h^{-1}{\rm Mpc}\)</span>. The corresponding initial density field will follow a CDM (without baryons) power spectrum, as given by <span class="citation" data-cites="Eisenstein1999">Eisenstein and Hu (1999)</span>.</p>
 <p>We’ll have box parameters (<span class="math inline">\(N\)</span>, <span class="math inline">\(L\)</span> and derived quantities) stored in a <code>BoxParam</code> object that is defined in <code>boxparam.hh</code>. Given the box parameters and input cosmology, we have three steps in generating the initial conditions:</p>
@@ -498,9 +507,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="fourier-properties-6" data-line-number="6">}</a></code></pre></div>
 <h3 id="white-noise">White noise</h3>
 <p>Having defined a <code>box</code> we need to fill it with initial density fluctuations. We first generate <em>white noise</em> in real space, then apply the power spectrum by method of <em>Fourier convolution</em>.</p>
-<p>The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabalistic terms. In cosmology it comes natural that these probabalities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,</p>
+<p>The initial conditions are randomly generated on a grid. We suppose a platonic ideal Gaussian random field that underlies our realisation. This is a function that is only defined in probabilistic terms. In cosmology it comes natural that these probabilities do not depend on location. For example, in the case of completely uncorrelated Gaussian white noise, we can ask: what is the probability that this function attains a certain value,</p>
 <p><span id="eq:normal-distribution" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[P(f(x) = y) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left(-\frac{(y - \mu)^2}{2 \sigma^2}\right).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(1)</span></span> </p>
-<p>A function following only this distribution, without any corellation between points, is also referred to as <em>white noise</em>. We’re looking at quantities, like the density perturbation, that have mean <span class="math inline">\(\mu = 0\)</span>. When we generate white noise, we’re sampling a realisation of such a function <span class="math inline">\(f\)</span> at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.</p>
+<p>A function following only this distribution, without any correlation between points, is also referred to as <em>white noise</em>. We’re looking at quantities, like the density perturbation, that have mean <span class="math inline">\(\mu = 0\)</span>. When we generate white noise, we’re sampling a realisation of such a function <span class="math inline">\(f\)</span> at a limited set of points. This should be considered in contrast with seeing a realisation as as integral quantities to a grid cell. Any integral of a white noise over a finite area results exactly in the mean value.</p>
 <p>The <code>white_noise</code> function fills a newly created array with random values, following a normal distribution with <span class="math inline">\(\sigma = 1\)</span>.</p>
 <p><em>file: «src/initial_conditions/white_noise.cc»=</em></p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
@@ -521,19 +530,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="cb6-16" data-line-number="16"></a>
 <a class="sourceLine" id="cb6-17" data-line-number="17">  <span class="cf">return</span> result;</a>
 <a class="sourceLine" id="cb6-18" data-line-number="18">}</a></code></pre></div>
-<h3 id="introducing-corellation">Introducing corellation</h3>
+<h3 id="introducing-correlation">Introducing correlation</h3>
 <p>To get an instance of a physically meaningful field, with non-zero integrals, requires that the values of the function <span class="math inline">\(f\)</span> are positively correlated at the small scale. Taking any two positions <span class="math inline">\(x_1\)</span> and <span class="math inline">\(x_2\)</span>, their correlation is</p>
 <p><span class="math display">\[\xi(x_1, x_2) = \langle f(x_1) f(x_2) \rangle.\]</span></p>
 <p>Often we write the correlation function <span class="math inline">\(\xi(r)\)</span> because our fields are isotropic and homogeneous. We can now ask the next question: what is the probability that the function <span class="math inline">\(f\)</span> at position <span class="math inline">\(\vec{x}\)</span> attains the value <span class="math inline">\(f(\vec{x}) = y_1\)</span> and at position <span class="math inline">\(\vec{x} + \vec{r}\)</span> attains the value <span class="math inline">\(f(\vec{x} + \vec{r}) = y_2\)</span>,</p>
 <p><span id="eq:two-point-function" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[P(f(\vec{x}) = y_1, f(\vec{x} + \vec{r}) = y_2) = \frac{1}{\sqrt{2\pi |\Sigma(r)|}} \exp \left(-\frac{1}{2} \begin{pmatrix}y_1\\y_2\end{pmatrix}^T \Sigma^{-1}(r) \begin{pmatrix}y_1\\y_2\end{pmatrix}\right).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(2)</span></span> </p>
-<p>Here, <span class="math inline">\(\Sigma(r)\)</span> is the corellation matrix,</p>
+<p>Here, <span class="math inline">\(\Sigma(r)\)</span> is the correlation matrix,</p>
 <p><span class="math display">\[\Sigma(r) = \begin{pmatrix}\sigma^2 &amp; \xi(r)\\\xi(r) &amp; \sigma^2\end{pmatrix},\]</span></p>
 <p>Equation <a href="#eq:two-point-function">2</a> (also known as the two-point distribution) can be generalised to a distribution of <span class="math inline">\(N\)</span> variates, the <em>multi-variate normal distribution</em>. It can be shown that, in the case of a statistically homogeneous and isotropic random field, this distribution can always be reduced to the two-point distribution. In that case we refer to the random field as a Gaussian random field.</p>
 <figure>
-<img src="figures/noise.svg" alt="Figure 3: The colours of noise. From left to right we change the power spectrum from k^0, to k^{-1}, to k^{-2}. The red noise can also be obtained by integrating a white noise signal. Red noise is an elemental example of a Markov process, as each value is computed from a state (the cumulative sum) and a random variate (the white noise)." id="fig:colours-of-noise" /><figcaption><span>Figure 3:</span> The colours of noise. From left to right we change the power spectrum from <span class="math inline">\(k^0\)</span>, to <span class="math inline">\(k^{-1}\)</span>, to <span class="math inline">\(k^{-2}\)</span>. The red noise can also be obtained by integrating a white noise signal. Red noise is an elemental example of a Markov process, as each value is computed from a state (the cumulative sum) and a random variate (the white noise).</figcaption>
+<img src="figures/noise.svg" alt="Figure 4: The colours of noise. From left to right we change the power spectrum from k^0, to k^{-1}, to k^{-2}. The red noise can also be obtained by integrating a white noise signal. Red noise is an elemental example of a Markov process, as each value is computed from a state (the cumulative sum) and a random variate (the white noise)." id="fig:colours-of-noise" /><figcaption><span>Figure 4:</span> The colours of noise. From left to right we change the power spectrum from <span class="math inline">\(k^0\)</span>, to <span class="math inline">\(k^{-1}\)</span>, to <span class="math inline">\(k^{-2}\)</span>. The red noise can also be obtained by integrating a white noise signal. Red noise is an elemental example of a Markov process, as each value is computed from a state (the cumulative sum) and a random variate (the white noise).</figcaption>
 </figure>
 <h3 id="power-spectrum">Power spectrum</h3>
-<p>In Figure <a href="#fig:colours-of-noise">3</a> we show three instances of a Gaussian random field with three different correlation functions. In stead of talking about a corellation function, we often use its Fourier transform, the <em>power spectrum</em> to specify the corellations in the random field,</p>
+<p>In Figure <a href="#fig:colours-of-noise">4</a> we show three instances of a Gaussian random field with three different correlation functions. In stead of talking about a correlation function, we often use its Fourier transform, the <em>power spectrum</em> to specify the correlation in the random field,</p>
 <p><span class="math display">\[\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.\]</span></p>
 <p>We will now define the Eisenstein-Hu power spectrum and give a method to normalise the amplitudes to match the real Universe.</p>
 <h4 id="eisenstein-hu-power-spectrum">Eisenstein-Hu power spectrum</h4>
@@ -571,16 +580,15 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb7-20" data-line-number="20">  };</a>
 <a class="sourceLine" id="cb7-21" data-line-number="21">}</a></code></pre></div>
 <figure>
-<img src="figures/power-spectrum.svg" alt="Figure 4: The CDM power-spectrum (without baryons)." id="fig:cdm-power-spectrum" /><figcaption><span>Figure 4:</span> The CDM power-spectrum (without baryons).</figcaption>
+<img src="figures/power-spectrum.svg" alt="Figure 5: The CDM power-spectrum (without baryons)." id="fig:cdm-power-spectrum" /><figcaption><span>Figure 5:</span> The CDM power-spectrum (without baryons).</figcaption>
 </figure>
 <h4 id="normalisation">Normalisation</h4>
 <p>The power-spectrum needs to be normalised so that the amplitudes of the density perturbations match those in the observed Universe. The chosen scaling is applied using a spherical top-hat filter of radius <span class="math inline">\(8\ h^{-1}{\rm Mpc}\)</span>. The latest measurements from <span class="citation" data-cites="Planck2018">Planck Collaboration et al. (2018)</span> give <span class="math inline">\(\sigma_8 = 0.811 \pm 0.006\)</span> of density perturbations linearly extrapolated to current epoch.</p>
-<p>Now, given a density field <span class="math inline">\(f\)</span> we may filter this field with a spherical top-hat function with radius of <span class="math inline">\(8\ h^{-1}{\rm Mpc}\)</span> by means of a convolution <span class="math inline">\(f_R = f \ast W_{\rm th}\)</span>. Then <span class="math inline">\(\sigma_8^2 \equiv \langle f_8^{\star}f_8 \rangle\)</span> can be expressed in Fourier space as <span class="math display">\[\sigma_R^2 = \int \mathcal{P}(\vec{k}) \hat{W}_{\rm th}^2(\vec{k}) \frac{{\rm d}^3 \vec{k}}{{(2\pi)}^3}.\]</span></p>
-<p>Because all terms in the integral only depend on <span class="math inline">\(|\vec{k}|\)</span>, we may rewrite this as <span id="eq:normalisation" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2}.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(3)</span></span>  The integrant in Equation <a href="#eq:normalisation">3</a> can be defined as the following lambda expression:</p>
-<p><em>«define-integrant»=</em></p>
-<div class="sourceCode" id="define-integrant"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="define-integrant-1" data-line-number="1"><span class="kw">auto</span> integrant = [&amp;] (<span class="dt">double</span> k) {</a>
-<a class="sourceLine" id="define-integrant-2" data-line-number="2">  <span class="cf">return</span> P(k) / (<span class="dv">2</span> * M_PI*M_PI) * pow(W_th(<span class="fl">8.0</span> * k) * k, <span class="dv">2</span>);</a>
-<a class="sourceLine" id="define-integrant-3" data-line-number="3">};</a></code></pre></div>
+<p>Now, given a density field <span class="math inline">\(f\)</span> we may filter this field with a spherical top-hat function with radius of <span class="math inline">\(8\ h^{-1}{\rm Mpc}\)</span> by means of a convolution <span class="math inline">\(f_R = f \ast W_{\rm th}\)</span>. Then <span class="math inline">\(\sigma_8^2 \equiv \langle f_8^{\star}f_8 \rangle\)</span> can be expressed in Fourier space as <span class="math display">\[\sigma_R^2 = \int \mathcal{P}(\vec{k}) \hat{W}_{\rm th}^2(\vec{k}) \frac{{\rm d}^3 \vec{k}}{{(2\pi)}^3}.\]</span> Because all terms in the integral only depend on <span class="math inline">\(|\vec{k}|\)</span>, we may rewrite this as <span id="eq:normalisation" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[\sigma_R^2 = \int_0^{\infty} \mathcal{P}(k)\ \hat{W}_{\rm th}^2(k R)\ k^2 \frac{{\rm d} k}{2 \pi^2}.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(3)</span></span>  The integrand in Equation <a href="#eq:normalisation">3</a> can be defined as the following lambda expression:</p>
+<p><em>«define-integrand»=</em></p>
+<div class="sourceCode" id="define-integrand"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="define-integrand-1" data-line-number="1"><span class="kw">auto</span> integrand = [&amp;] (<span class="dt">double</span> k) {</a>
+<a class="sourceLine" id="define-integrand-2" data-line-number="2">  <span class="cf">return</span> P(k) / (<span class="dv">2</span> * M_PI*M_PI) * pow(W_th(<span class="fl">8.0</span> * k) * k, <span class="dv">2</span>);</a>
+<a class="sourceLine" id="define-integrand-3" data-line-number="3">};</a></code></pre></div>
 <p>The Fourier transform of the top-hat window function is given by <span class="math display">\[\hat{W}_{th}(y) = \frac{3}{y^3}\left(\sin y - y \cos y\right).\]</span></p>
 <p><em>«top-hat-function»=</em></p>
 <div class="sourceCode" id="top-hat-function"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="top-hat-function-1" data-line-number="1"><span class="dt">double</span> W_th(<span class="dt">double</span> y) {</a>
@@ -604,10 +612,10 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb8-13" data-line-number="13">  <span class="dt">double</span> epsabs = <span class="fl">1e-6</span>, epsrel = <span class="fl">1e-6</span>;</a>
 <a class="sourceLine" id="cb8-14" data-line-number="14">  <span class="dt">double</span> sigma8 = cosmology[<span class="st">&quot;sigma8&quot;</span>].as&lt;<span class="dt">double</span>&gt;();</a>
 <a class="sourceLine" id="cb8-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb8-16" data-line-number="16">  &lt;&lt;define-integrant&gt;&gt;</a>
+<a class="sourceLine" id="cb8-16" data-line-number="16">  &lt;&lt;define-integrand&gt;&gt;</a>
 <a class="sourceLine" id="cb8-17" data-line-number="17"></a>
 <a class="sourceLine" id="cb8-18" data-line-number="18">  <span class="dt">double</span> x = integrate_qagiu(</a>
-<a class="sourceLine" id="cb8-19" data-line-number="19">    integrant, k_lower, epsabs, epsrel);</a>
+<a class="sourceLine" id="cb8-19" data-line-number="19">    integrand, k_lower, epsabs, epsrel);</a>
 <a class="sourceLine" id="cb8-20" data-line-number="20"></a>
 <a class="sourceLine" id="cb8-21" data-line-number="21">  <span class="dt">double</span> A = sigma8 * sigma8 / x;</a>
 <a class="sourceLine" id="cb8-22" data-line-number="22">  <span class="bu">std::</span>clog &lt;&lt; <span class="st">&quot;Normalised power spectrum, A = &quot;</span> &lt;&lt; A &lt;&lt; <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
@@ -660,7 +668,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p><span id="eq:zeldovich" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf q} - t {\bf \nabla} \Phi_0({\bf q}).\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(5)</span></span> </p>
 <p>This is known as the Zeldovich approximation <span class="citation" data-cites="Zeldovich1970 Shandarin1989">(Zeldovich 1970; Shandarin and Zeldovich 1989)</span>. This has the problem that particles continue to move in a straight line, even after structures form. We’d like to have particles adhere together once they form structures, hence the name: <em>adhesion model</em>.</p>
 <figure>
-<img src="figures/ze.svg" alt="Figure 5: The Zeldovich Approximation. Each particle is given a velocity equal to v = -\nabla \Phi_0. Structures form, but there is no dynamics involved." id="fig:zeldovich" /><figcaption><span>Figure 5:</span> The Zeldovich Approximation. Each particle is given a velocity equal to <span class="math inline">\(v = -\nabla \Phi_0\)</span>. Structures form, but there is no dynamics involved.</figcaption>
+<img src="figures/ze.svg" alt="Figure 6: The Zeldovich Approximation. Each particle is given a velocity equal to v = -\nabla \Phi_0. Structures form, but there is no dynamics involved." id="fig:zeldovich" /><figcaption><span>Figure 6:</span> The Zeldovich Approximation. Each particle is given a velocity equal to <span class="math inline">\(v = -\nabla \Phi_0\)</span>. Structures form, but there is no dynamics involved.</figcaption>
 </figure>
 <p>We can rewrite Equation <a href="#eq:zeldovich">5</a> as</p>
 <p><span id="eq:zeldovich-potential" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf \nabla}(\frac{q^2}{2} - t \Phi_0({\bf q}) + C) = {\bf \nabla} \varphi,\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(6)</span></span></p>
@@ -816,11 +824,11 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="adhesion-node-struct-5" data-line-number="5">  NodeType  <span class="dt">node_type</span>;</a>
 <a class="sourceLine" id="adhesion-node-struct-6" data-line-number="6">};</a></code></pre></div>
 <p>Note that the masses of any cell other then the cluster cells carry no physical meaning, unless somehow corrected for the resolution of the box. If we double the resolution, the average mass of a void particle drops by a factor eight, the average mass of a wall particle by a factor four, and the average mass of a filament particle by a factor two. Also we know that the total mass is conserved.</p>
-<p>On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure <a href="#fig:node-classes">6</a>.</p>
+<p>On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure <a href="#fig:node-classes">7</a>.</p>
 <figure>
-<img src="figures/node-classes.svg" alt="Figure 6: Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges." id="fig:node-classes" /><figcaption><span>Figure 6:</span> Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.</figcaption>
+<img src="figures/node-classes.svg" alt="Figure 7: Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges." id="fig:node-classes" /><figcaption><span>Figure 7:</span> Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.</figcaption>
 </figure>
-<p>Note that there are many species of kurtoparabolic points. The ones listed under ‘kurto-parabolics’ have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurto-parabolic <em>e</em>, which has a filament (and three wall segments) ending in a void.</p>
+<p>Note that there are several species of kurtoparabolic points. The ones listed under ‘kurtoparabolics’ have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurtoparabolic <em>e</em>, which has a filament (and three wall segments) ending in a void.</p>
 <p>There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type <em>c</em>. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.</p>
 <p>The filament and cluster classifications are completely unambiguous. Their number of long edges and number of components connected by short edges both uniquely determine their type.</p>
 <h4 id="filtering-for-structures">Filtering for structures</h4>
@@ -975,7 +983,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb15-28" data-line-number="28">}</a></code></pre></div>
 <h3 id="the-power-diagram-1">The power diagram</h3>
 <p>The power diagram is the dual of the regular triangulation. CGAL supports saving the power diagram directly as an OFF file, or alternatively to send information to GeomView. For our purpose these options are not good enough. Our goal is to make a picture of the structures. For this we need to filter out any structures below a certain threshold. Then we want to store the density of the walls along with the faces and the density of filaments along with the edges.</p>
-<p>In this case we’ll store them as Wavefront OBJ files. This is a text based file format, so we can’t store too large amounts of data. However, it is well supported by most visualisation toolkits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span>. We’ll only use the <span class="math inline">\(u\)</span> coordinate to store the density of the walls. The procedure for saving OBJ files is given in the <a href="#obj-file-format">Appendix</a>.</p>
+<p>In this case we’ll store them as Wavefront OBJ files. This is a text based file format, so we can’t store too large amounts of data. However, it is well supported by most visualisation tool-kits and has the option to store a little bit of extra data in the texture coordinates. Texture coordinates are normally used to map images onto 3D surfaces, hence they have two dimensions, <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span>. We’ll only use the <span class="math inline">\(u\)</span> coordinate to store the density of the walls. The procedure for saving OBJ files is given in the supplementary material.</p>
 <p>We’ll define the function that computes the duals of the regular triangulation and stores it in a structure we call <code>Mesh&lt;Point, double&gt;</code>.</p>
 <p><em>file: «src/power_diagram.hh»=</em></p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;cgal_base.hh&quot;</span></a>
@@ -1078,7 +1086,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="pd-is-big-edge-4" data-line-number="4">  <span class="dt">double</span> l = rt.segment(e).squared_length();</a>
 <a class="sourceLine" id="pd-is-big-edge-5" data-line-number="5">  <span class="cf">return</span> l &lt; threshold;</a>
 <a class="sourceLine" id="pd-is-big-edge-6" data-line-number="6">}</a></code></pre></div>
-<p>For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex. This procedure is illustrated in Figure <a href="#fig:edge-iteration">7</a>.</p>
+<p>For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex. This procedure is illustrated in Figure <a href="#fig:edge-iteration">8</a>.</p>
 <p><em>«pd-is-big-facet»=</em></p>
 <div class="sourceCode" id="pd-is-big-facet"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="pd-is-big-facet-1" data-line-number="1"><span class="kw">inline</span> <span class="dt">bool</span> is_big_facet(</a>
 <a class="sourceLine" id="pd-is-big-facet-2" data-line-number="2">    RT <span class="at">const</span> &amp;rt, RT::Facet <span class="at">const</span> &amp;f, <span class="dt">double</span> threshold)</a>
@@ -1105,7 +1113,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="pd-is-big-facet-23" data-line-number="23">  <span class="cf">return</span> <span class="kw">true</span>;</a>
 <a class="sourceLine" id="pd-is-big-facet-24" data-line-number="24">}</a></code></pre></div>
 <figure>
-<img src="figures/edge-iteration.svg" alt="Figure 7: Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge \overline{AB}, suppose we are checking the validity of the facet \overline{134}. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case (\overline{A},\overline{2}). To iterate the edges of this facet, we find all combinations \overline{ij}, where 1 \le i &lt; j \le 4, and i, j \neq 2." id="fig:edge-iteration" style="width:50.0%" /><figcaption><span>Figure 7:</span> Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge <span class="math inline">\(\overline{AB}\)</span>, suppose we are checking the validity of the facet <span class="math inline">\(\overline{134}\)</span>. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case <span class="math inline">\((\overline{A},\overline{2})\)</span>. To iterate the edges of this facet, we find all combinations <span class="math inline">\(\overline{ij}\)</span>, where <span class="math inline">\(1 \le i &lt; j \le 4\)</span>, and <span class="math inline">\(i, j \neq 2\)</span>.</figcaption>
+<img src="figures/edge-iteration.svg" alt="Figure 8: Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge \overline{AB}, suppose we are checking the validity of the facet \overline{134}. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case (\overline{A},\overline{2}). To iterate the edges of this facet, we find all combinations \overline{ij}, where 1 \le i &lt; j \le 4, and i, j \neq 2." id="fig:edge-iteration" style="width:50.0%" /><figcaption><span>Figure 8:</span> Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge <span class="math inline">\(\overline{AB}\)</span>, suppose we are checking the validity of the facet <span class="math inline">\(\overline{134}\)</span>. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case <span class="math inline">\((\overline{A},\overline{2})\)</span>. To iterate the edges of this facet, we find all combinations <span class="math inline">\(\overline{ij}\)</span>, where <span class="math inline">\(1 \le i &lt; j \le 4\)</span>, and <span class="math inline">\(i, j \neq 2\)</span>.</figcaption>
 </figure>
 <h4 id="function-body-walls">Function body (walls)</h4>
 <p>Collecting these steps, the rest of the implementation of <code>power_diagram_faces</code> is as follows:</p>
@@ -1216,14 +1224,16 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="workflow-7" data-line-number="7"><span class="kw">auto</span> potential = generate_initial_potential(</a>
 <a class="sourceLine" id="workflow-8" data-line-number="8">  box, config);</a></code></pre></div>
 <h5 id="write-initial-conditions-to-file">Write initial conditions to file</h5>
-<p>We write the initial conditions to the output file for future reference. We have written an easy wrapper around the HDF5 routines, letting us write the statement in a single line. The wrapper can be found in the supplementary material.</p>
+<p>We write the initial conditions to the output file for future reference. We have written some easy wrappers around the HDF5 routines, letting us write the statement in a single line. The wrappers can be found in the supplementary material. Next to saving the initial conditions, we also create two attributes, saving the box properties in the file.</p>
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="bu">std::</span>string output_filename</a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">  = config[<span class="st">&quot;output&quot;</span>][<span class="st">&quot;hdf5&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;();</a>
 <a class="sourceLine" id="workflow-3" data-line-number="3">H5::H5File output_file(output_filename, H5F_ACC_TRUNC);</a>
 <a class="sourceLine" id="workflow-4" data-line-number="4"></a>
-<a class="sourceLine" id="workflow-5" data-line-number="5">write_vector_with_shape(</a>
-<a class="sourceLine" id="workflow-6" data-line-number="6">  output_file, <span class="st">&quot;potential&quot;</span>, potential, box.shape());</a></code></pre></div>
+<a class="sourceLine" id="workflow-5" data-line-number="5">write_attribute(output_file, <span class="st">&quot;N&quot;</span>, box.N);</a>
+<a class="sourceLine" id="workflow-6" data-line-number="6">write_attribute(output_file, <span class="st">&quot;L&quot;</span>, box.L);</a>
+<a class="sourceLine" id="workflow-7" data-line-number="7">write_vector_with_shape(</a>
+<a class="sourceLine" id="workflow-8" data-line-number="8">  output_file, <span class="st">&quot;potential&quot;</span>, potential, box.shape());</a></code></pre></div>
 <h5 id="output-configuration">Output configuration</h5>
 <p>We will write the walls and filaments to both HDF5 and OBJ files. In case of the OBJ files we only store a disc shaped selection, which makes the output easier to visualise. We have defined functions that can cut a mesh using planes and spheres. By cutting the mesh with a single sphere and two planes we extract a disc shaped region from the box. These cutting planes are stored in <code>mesh_shape</code>.</p>
 <p><em>«workflow»=+</em></p>
@@ -1266,17 +1276,11 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p><em>«workflow-create-hdf5-group»=</em></p>
 <div class="sourceCode" id="workflow-create-hdf5-group"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-create-hdf5-group-1" data-line-number="1"><span class="kw">auto</span> h5_group = output_file.createGroup(</a>
 <a class="sourceLine" id="workflow-create-hdf5-group-2" data-line-number="2">  fmt::format(<span class="st">&quot;{}&quot;</span>, iteration));</a>
-<a class="sourceLine" id="workflow-create-hdf5-group-3" data-line-number="3"><span class="kw">auto</span> time_attr = h5_group.createAttribute(</a>
-<a class="sourceLine" id="workflow-create-hdf5-group-4" data-line-number="4">  <span class="st">&quot;time&quot;</span>, H5TypeFactory&lt;<span class="dt">double</span>&gt;::get(), H5::DataSpace());</a>
-<a class="sourceLine" id="workflow-create-hdf5-group-5" data-line-number="5">time_attr.write(H5TypeFactory&lt;<span class="dt">double</span>&gt;::get(), &amp;t);</a></code></pre></div>
+<a class="sourceLine" id="workflow-create-hdf5-group-3" data-line-number="3">write_attribute(h5_group, <span class="st">&quot;time&quot;</span>, t);</a></code></pre></div>
 <p>Then we write the node information to that group.</p>
 <p><em>«workflow-write-nodes»=</em></p>
 <div class="sourceCode" id="workflow-write-nodes"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-write-nodes-1" data-line-number="1"><span class="kw">auto</span> nodes = adhesion.get_nodes(threshold);</a>
 <a class="sourceLine" id="workflow-write-nodes-2" data-line-number="2">write_vector(h5_group, <span class="st">&quot;nodes&quot;</span>, nodes);</a></code></pre></div>
-<p>This can then be read back to Python to plot our measurements. For example, the cluster mass function is shown in Figure~<a href="#fig:mass-function">8</a>.</p>
-<figure>
-<img src="figures/mass-functions.svg" alt="Figure 8: Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per h^{-3}{\rm Mpc}^3 per logarithmic bin \Delta \log M/M^* where M^* is \rho_u h^{-3}{\rm Mpc}^3. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters." id="fig:mass-function" /><figcaption><span>Figure 8:</span> Cluster mass function. We took all nodes that identify as clusters and plot the distribution of the logarithm of their mass, that is, the number of objects per <span class="math inline">\(h^{-3}{\rm Mpc}^3\)</span> per logarithmic bin <span class="math inline">\(\Delta \log M/M^*\)</span> where <span class="math inline">\(M^*\)</span> is <span class="math inline">\(\rho_u h^{-3}{\rm Mpc}^3\)</span>. The solid lines show a fit with a log-normal distribution. Note that we see an increase in the number of objects at intermediate redshift, which then get merged into more massive clusters.</figcaption>
-</figure>
 <h5 id="write-the-walls">Write the walls</h5>
 <p>In case of the walls we write a selection to an OBJ file and the entire box to the HDF5 file.</p>
 <p><em>«workflow-write-obj»=</em></p>
@@ -1416,24 +1420,12 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="pp">#pragma once</span></a>
 <a class="sourceLine" id="cb24-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></a>
 <a class="sourceLine" id="cb24-3" data-line-number="3">&lt;&lt;include-optional&gt;&gt;</a>
-<a class="sourceLine" id="cb24-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb24-5" data-line-number="5"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
-<a class="sourceLine" id="cb24-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb24-7" data-line-number="7"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="cb24-8" data-line-number="8"><span class="kw">using</span> Polygon = <span class="bu">std::</span>tuple&lt;</a>
-<a class="sourceLine" id="cb24-9" data-line-number="9">                  <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
-<a class="sourceLine" id="cb24-10" data-line-number="10">                  <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a>
-<a class="sourceLine" id="cb24-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb24-12" data-line-number="12"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="cb24-13" data-line-number="13"><span class="kw">using</span> PolygonPair = <span class="bu">std::</span>tuple&lt;</a>
-<a class="sourceLine" id="cb24-14" data-line-number="14">                      <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
-<a class="sourceLine" id="cb24-15" data-line-number="15">                      <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;,</a>
-<a class="sourceLine" id="cb24-16" data-line-number="16">                      <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a>
-<a class="sourceLine" id="cb24-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb24-18" data-line-number="18">&lt;&lt;surface-<span class="kw">class</span>&gt;&gt;</a>
-<a class="sourceLine" id="cb24-19" data-line-number="19">&lt;&lt;split-polygon&gt;&gt;</a>
-<a class="sourceLine" id="cb24-20" data-line-number="20">&lt;&lt;select-mesh&gt;&gt;</a>
-<a class="sourceLine" id="cb24-21" data-line-number="21">&lt;&lt;clean-mesh&gt;&gt;</a></code></pre></div>
+<a class="sourceLine" id="cb24-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
+<a class="sourceLine" id="cb24-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb24-6" data-line-number="6">&lt;&lt;surface-<span class="kw">class</span>&gt;&gt;</a>
+<a class="sourceLine" id="cb24-7" data-line-number="7">&lt;&lt;split-polygon&gt;&gt;</a>
+<a class="sourceLine" id="cb24-8" data-line-number="8">&lt;&lt;select-mesh&gt;&gt;</a>
+<a class="sourceLine" id="cb24-9" data-line-number="9">&lt;&lt;clean-mesh&gt;&gt;</a></code></pre></div>
 <p>To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.</p>
 <p>To select parts of a mesh we need to define a surface that can tell us on what side a point lies, and if we have two points, if and where the segment between those points intersects. This concept of a <code>Surface</code> is embodied by the following abstract base class:</p>
 <p><em>«surface-class»=</em></p>
@@ -1449,6 +1441,17 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="surface-class-10" data-line-number="10">};</a></code></pre></div>
 <p>Given an implementation of such a class, we can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.</p>
 <p><em>«split-polygon»=</em></p>
+<div class="sourceCode" id="split-polygon"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="split-polygon-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="split-polygon-2" data-line-number="2"><span class="kw">using</span> Polygon = <span class="bu">std::</span>tuple&lt;</a>
+<a class="sourceLine" id="split-polygon-3" data-line-number="3">                  <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
+<a class="sourceLine" id="split-polygon-4" data-line-number="4">                  <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a></code></pre></div>
+<p><em>«split-polygon»=+</em></p>
+<div class="sourceCode" id="split-polygon"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="split-polygon-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="split-polygon-2" data-line-number="2"><span class="kw">using</span> PolygonPair = <span class="bu">std::</span>tuple&lt;</a>
+<a class="sourceLine" id="split-polygon-3" data-line-number="3">    <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
+<a class="sourceLine" id="split-polygon-4" data-line-number="4">    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;,</a>
+<a class="sourceLine" id="split-polygon-5" data-line-number="5">    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a></code></pre></div>
+<p><em>«split-polygon»=+</em></p>
 <div class="sourceCode" id="split-polygon"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="split-polygon-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
 <a class="sourceLine" id="split-polygon-2" data-line-number="2">PolygonPair&lt;Point&gt; split_polygon(</a>
 <a class="sourceLine" id="split-polygon-3" data-line-number="3">    Polygon&lt;Point&gt; <span class="at">const</span> &amp;polygon,</a>
@@ -1754,10 +1757,21 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb26-53" data-line-number="53">  write_vector_with_shape(group, name, v, shape);</a>
 <a class="sourceLine" id="cb26-54" data-line-number="54">}</a>
 <a class="sourceLine" id="cb26-55" data-line-number="55"></a>
-<a class="sourceLine" id="cb26-56" data-line-number="56"><span class="at">extern</span> <span class="dt">void</span> write_mesh(</a>
-<a class="sourceLine" id="cb26-57" data-line-number="57">    FileOrGroup &amp;group,</a>
-<a class="sourceLine" id="cb26-58" data-line-number="58">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
-<a class="sourceLine" id="cb26-59" data-line-number="59">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh);</a></code></pre></div>
+<a class="sourceLine" id="cb26-56" data-line-number="56"><span class="kw">template</span> &lt;<span class="kw">typename</span> Group, <span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb26-57" data-line-number="57"><span class="dt">void</span> write_attribute(</a>
+<a class="sourceLine" id="cb26-58" data-line-number="58">    Group &amp;group,</a>
+<a class="sourceLine" id="cb26-59" data-line-number="59">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb26-60" data-line-number="60">    T <span class="at">const</span> &amp;value)</a>
+<a class="sourceLine" id="cb26-61" data-line-number="61">{</a>
+<a class="sourceLine" id="cb26-62" data-line-number="62">  <span class="kw">auto</span> attr = group.createAttribute(</a>
+<a class="sourceLine" id="cb26-63" data-line-number="63">    name, H5TypeFactory&lt;T&gt;::get(), H5::DataSpace());</a>
+<a class="sourceLine" id="cb26-64" data-line-number="64">  attr.write(H5TypeFactory&lt;T&gt;::get(), &amp;value);</a>
+<a class="sourceLine" id="cb26-65" data-line-number="65">}</a>
+<a class="sourceLine" id="cb26-66" data-line-number="66"></a>
+<a class="sourceLine" id="cb26-67" data-line-number="67"><span class="at">extern</span> <span class="dt">void</span> write_mesh(</a>
+<a class="sourceLine" id="cb26-68" data-line-number="68">    FileOrGroup &amp;group,</a>
+<a class="sourceLine" id="cb26-69" data-line-number="69">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb26-70" data-line-number="70">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh);</a></code></pre></div>
 <p>There has been a very recent change in the API of HDF5. So we define a proxy type that is common to <code>H5::Group</code> and <code>H5::H5File</code>.</p>
 <p><em>«hdf5-file-or-group»=</em></p>
 <div class="sourceCode" id="hdf5-file-or-group"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="hdf5-file-or-group-1" data-line-number="1"><span class="pp">#if H5_VERSION_GE(1, 10, 1)</span></a>
@@ -1953,13 +1967,16 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <h1 id="bibliography" class="unnumbered">References</h1>
 <div id="refs" class="references">
 <div id="ref-Arnold1982">
-<p>Arnold, V. I., S. F. Shandarin, and Ya. B. Zeldovich. 1982. “The large scale structure of the universe. I - General properties One- and two-dimensional models.” <em>Geophysical and Astrophysical Fluid Dynamics</em> 20: 111–30. <a href="https://doi.org/10.1080/03091928208209001" class="uri">https://doi.org/10.1080/03091928208209001</a>.</p>
+<p>Arnold, V. I., S. F. Shandarin, and Ya. B. Zeldovich. 1982. “The large scale structure of the universe. I - General properties One- and two-dimensional models.” <em>Geophysical and Astrophysical Fluid Dynamics</em> 20: 111–30. doi:<a href="https://doi.org/10.1080/03091928208209001">10.1080/03091928208209001</a>.</p>
 </div>
 <div id="ref-Eisenstein1999">
-<p>Eisenstein, D. J., and W. Hu. 1999. “Power Spectra for Cold Dark Matter and Its Variants” 511 (January): 5–15. <a href="https://doi.org/10.1086/306640" class="uri">https://doi.org/10.1086/306640</a>.</p>
+<p>Eisenstein, D. J., and W. Hu. 1999. “Power Spectra for Cold Dark Matter and Its Variants” 511 (January): 5–15. doi:<a href="https://doi.org/10.1086/306640">10.1086/306640</a>.</p>
+</div>
+<div id="ref-HDF5">
+<p>Folk, Mike, Gerd Heber, Quincey Koziol, Elena Pourmal, and Dana Robinson. 2011. “An Overview of the Hdf5 Technology Suite and Its Applications.” In <em>Proceedings of the Edbt/Icdt 2011 Workshop on Array Databases</em>, 36–47. ACM.</p>
 </div>
 <div id="ref-FFTW3">
-<p>Frigo, Matteo, and Steven G. Johnson. 2005. “The Design and Implementation of FFTW3.” <em>Proceedings of the IEEE</em> 93 (2): 216–31.</p>
+<p>Frigo, Matteo, and Steven G. Johnson. 2005. “The Design and Implementation of Fftw3.” <em>Proceedings of the IEEE</em> 93 (2): 216–31.</p>
 </div>
 <div id="ref-Frisch2001">
 <p>Frisch, and Bec. 2001. “Burgulence.” <em>arXiv</em> nlin: 0012033v2.</p>
@@ -1967,14 +1984,14 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <div id="ref-Galassi2002">
 <p>Galassi, Mark, Jim Davies, James Theiler, Brian Gough, Gerard Jungman, Patrick Alken, Michael Booth, and Fabrice Rossi. 2002. “GNU Scientific Library.” <em>Network Theory Ltd</em> 3.</p>
 </div>
+<div id="ref-Hidding2014">
+<p>Hidding, J., S. F. Shandarin, and R. Van de Weygaert. 2014. “The Zel’dovich approximation: key to understanding cosmic web complexity” 437 (February): 3442–72. doi:<a href="https://doi.org/10.1093/mnras/stt2142">10.1093/mnras/stt2142</a>.</p>
+</div>
 <div id="ref-Hidding2018">
 <p>Hidding, Johan, Rien Van de Weygaert, Mark Neyrinck, and Gert Vegter. 2018. “The Adhesion Model – the Dual Geometry of the Cosmic Web” to be subm. (-): –.</p>
 </div>
-<div id="ref-Hidding2014">
-<p>Hidding, J., S. F. Shandarin, and R. Van de Weygaert. 2014. “The Zel’dovich approximation: key to understanding cosmic web complexity” 437 (February): 3442–72. <a href="https://doi.org/10.1093/mnras/stt2142" class="uri">https://doi.org/10.1093/mnras/stt2142</a>.</p>
-</div>
 <div id="ref-Hopf1950">
-<p>Hopf, Eberhard. 1950. “The Partial Differential Equation <span class="math inline">\(u_t + uu_x = \mu_{xx}\)</span>.” <em>Communications on Pure and Applied Mathematics</em> Vol. 3, No. 3: 201–30. <a href="https://doi.org/10.1002/cpa.3160030302" class="uri">https://doi.org/10.1002/cpa.3160030302</a>.</p>
+<p>Hopf, Eberhard. 1950. “The Partial Differential Equation <span class="math inline">\(u_t + uu_x = \mu_{xx}\)</span>.” <em>Communications on Pure and Applied Mathematics</em> Vol. 3, No. 3: 201–30. doi:<a href="https://doi.org/10.1002/cpa.3160030302">10.1002/cpa.3160030302</a>.</p>
 </div>
 <div id="ref-cgal:pt-tds3-18b">
 <p>Jamin, Clément, Sylvain Pion, and Monique Teillaud. 2018a. “3D Triangulation Data Structure.” In <em>CGAL User and Reference Manual</em>, 4.13 ed. CGAL Editorial Board. <a href="https://doc.cgal.org/4.13/Manual/packages.html#PkgTDS3Summary" class="uri">https://doc.cgal.org/4.13/Manual/packages.html#PkgTDS3Summary</a>.</p>
@@ -1992,7 +2009,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p>Ramsey, Norman. 1994. “Literate Programming Simplified.” <em>IEEE Software</em> 11 (5). IEEE: 97–105.</p>
 </div>
 <div id="ref-Shandarin1989">
-<p>Shandarin, S. F., and Ya. B. Zeldovich. 1989. “The large-scale structure of the universe: Turbulence, intermittency, structures in a self-gravitating medium.” <em>Reviews of Modern Physics</em> 61 (April): 185–220. <a href="https://doi.org/10.1103/RevModPhys.61.185" class="uri">https://doi.org/10.1103/RevModPhys.61.185</a>.</p>
+<p>Shandarin, S. F., and Ya. B. Zeldovich. 1989. “The large-scale structure of the universe: Turbulence, intermittency, structures in a self-gravitating medium.” <em>Reviews of Modern Physics</em> 61 (April): 185–220. doi:<a href="https://doi.org/10.1103/RevModPhys.61.185">10.1103/RevModPhys.61.185</a>.</p>
 </div>
 <div id="ref-Sirko2005">
 <p>Sirko, Edwin. 2005. “Initial Conditions to Cosmological N-Body Simulations, or, How to Run an Ensemble of Simulations.” <em>The Astrophysical Journal</em> 634 (2): 728. <a href="http://stacks.iop.org/0004-637X/634/i=2/a=728" class="uri">http://stacks.iop.org/0004-637X/634/i=2/a=728</a>.</p>
