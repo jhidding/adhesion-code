@@ -1520,9 +1520,9 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="sphere-members-2" data-line-number="2"><span class="dt">double</span> radius_squared;</a></code></pre></div>
 <p>Now, any point will have an orientation with respect to this sphere,</p>
 <p><span class="math display">\[{\rm orient}(\vec{o}, r, \vec{p}) = \begin{cases}
--1 &amp; \quad {\rm if}~(\vec{p} - \vec{o}|)^2 &lt; r^2\\
-0 &amp; \quad {\rm if}~(\vec{p} - \vec{o}|)^2 = r^2\\
-1 &amp; \quad {\rm if}~(\vec{p} - \vec{o}|)^2 &gt; r^2\\
+-1 &amp; \quad {\rm if}~(\vec{p} - \vec{o})^2 &lt; r^2\\
+0 &amp; \quad {\rm if}~(\vec{p} - \vec{o})^2 = r^2\\
+1 &amp; \quad {\rm if}~(\vec{p} - \vec{o})^2 &gt; r^2\\
 \end{cases}\]</span></p>
 <p><em>«sphere-oriented-side»=</em></p>
 <div class="sourceCode" id="sphere-oriented-side"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="sphere-oriented-side-1" data-line-number="1"><span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;p) <span class="at">const</span></a>

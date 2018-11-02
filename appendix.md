@@ -170,9 +170,9 @@ double radius_squared;
 Now, any point will have an orientation with respect to this sphere,
 
 $${\rm orient}(\vec{o}, r, \vec{p}) = \begin{cases}
--1 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 < r^2\\
-0 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 = r^2\\
-1 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 > r^2\\
+-1 & \quad {\rm if}~(\vec{p} - \vec{o})^2 < r^2\\
+0 & \quad {\rm if}~(\vec{p} - \vec{o})^2 = r^2\\
+1 & \quad {\rm if}~(\vec{p} - \vec{o})^2 > r^2\\
 \end{cases}$$
 
 ``` {.cpp #sphere-oriented-side}
