@@ -25,7 +25,7 @@ The adhesion model simulates the formation of structure in the Universe on the l
 The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the *cosmic web*.
 The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn't reveal the halo structures that are shown in N-body simulations to form inside these structures.
 
-The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set [@cgal:pt-t3-18b;@cgal:pt-tds3-18b].
+The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set [@cgal:pt-t3-18b; @cgal:pt-tds3-18b].
 
 ![Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for $D_+ = 0.2, 0.4$ and $0.6$. The axes have units of $h^{-1}\ {\rm Mpc}$. The top left part of the rendering shows a large expanding void.](figures/web-evolution.png){#fig:output-example}
 
@@ -643,31 +643,37 @@ This is known as the Zeldovich approximation [@Zeldovich1970; @Shandarin1989]. T
 
 ![The Zeldovich Approximation. Each particle is given a velocity equal to $v = -\nabla \Phi_0$. Structures form, but there is no dynamics involved.](figures/ze.svg){#fig:zeldovich}
 
-We can rewrite Equation\ @eq:zeldovich as
+We can rewrite Equation\ @eq:zeldovich by integrating,
 
-$${\bf x} = {\bf \nabla}(\frac{q^2}{2} - t \Phi_0({\bf q}) + C) = {\bf \nabla} \varphi,$${#eq:zeldovich-potential}
+$${\bf x} = {\bf \nabla_q}\left(\frac{q^2}{2} - t \Phi_0({\bf q}) + C\right) = {\bf \nabla_q} \varphi$$ {#eq:zeldovich-potential}
 
-introducing the new potential $\varphi({\bf q}) = q^2/2 - t\Phi_0$. The adhesion model is found by using not the potential $\varphi$ but its *convex hull* $\varphi_c$. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation. This argument is a gross oversimplification of the underlying theory. We refer to @Hidding2018 for more detail.
+introducing the new potential $\varphi({\bf q}) = q^2/2 - t\Phi_0$. The adhesion model is found by using not the potential $\varphi$ but its *convex hull* $\varphi_c$. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation.
+
+Equation\ @eq:zeldovich-potential can be further rewritten. Taking $C = x^2/2$ we get,
+
+$${\bf \nabla_q} \left(({\bf q} - {\bf x})^2 - 2t\Phi_0\right) = 0.$$ {#eq:zeldovich-par}
 
 ### The power diagram
 
 We won't be computing the convex hull of $\varphi$ explicitly. In stead we use the regular triangulation algorithm. The regular triangulation is the dual of the power diagram. The power diagram is the weighted generalisation of the Voronoi tessellation. Given a subset of points $S \in Q$, we define a cell $V_u$ in the power diagram as follows:
 
-$$V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 + w_u \le ({\bf v} - {\bf x})^2 + w_v \forall {\bf v} \in S \right\}.$$
+$$V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 - w_u \le ({\bf v} - {\bf x})^2 - w_v \forall {\bf v} \in S \right\}.$${#eq:power-diagram}
 
 This is the same as minimising the distance function
 
-$$d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 + w_q\right].$$
+$$d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 - w({\bf q})\right].$$ {#eq:distance-function}
+
+At the minimum, we know that the derivative should vanish. Taking $q^{\star}$ to be the position at which the minimum is attained we may write,
+
+$${\bf \nabla_q}\left(({\bf q} - {\bf x})^2 - w({\bf q})\right)|_{q=q^{\star}} = 0$$ {#eq:power-solution}
 
 Setting the weights to,
 
-$$w(\vec{q}) = 2 t \Phi_0(\vec{q}),$$
+$$w({\bf q}) = 2 t \Phi_0({\bf q}),$$
 
-retrieves an expression similar to Equation\ @eq:zeldovich-potential.
+retrieves an expression similar to Equation\ @eq:zeldovich-par. The only difference is that in Equation\ @eq:distance-function, we took a *global minimum*, whereas in the Zeldovich approximation, *any* combination of ${\bf x}$ and ${\bf q}$ that solves Equation\ @eq:zeldovich-par is valid.
 
-::: TODO
-Clear up argumentation here
-:::
+This argument is a summary of the underlying theory. We refer to @Hidding2018 for more detail.
 
 ## CGAL Geometry kernels
 
