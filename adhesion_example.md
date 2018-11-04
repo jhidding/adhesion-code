@@ -83,7 +83,7 @@ pandoc-fignos    ≥1.3.0    Number and reference figures.
 rsvg-convert     ≥2.40     Convert SVG files.
 ------------------------------------------------------------------------------
 
-All of these packages are available in the Debian GNU/Linux package repositories.
+All of these packages are available in the Debian GNU/Linux package repositories. Install instructions are included in the repository at [https://github.com/jhidding/adhesion-code](https://github.com/jhidding/adhesion-code).
 
 ## Literate programming
 

@@ -5,7 +5,7 @@
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <meta name="author" content="Johan Hidding" />
-  <meta name="dcterms.date" content="2018-09-01" />
+  <meta name="dcterms.date" content="2018-11-04" />
   <title>Computing the adhesion model using C++ and CGAL</title>
   <style type="text/css">
       code{white-space: pre-wrap;}
@@ -86,7 +86,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <header>
 <h1 class="title">Computing the adhesion model using C++ and CGAL</h1>
 <p class="author">Johan Hidding</p>
-<p class="date">September 1, 2018</p>
+<p class="date">November 4, 2018</p>
 </header>
 <nav id="TOC">
 <ul>
@@ -252,7 +252,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>All of these packages are available in the Debian GNU/Linux package repositories.</p>
+<p>All of these packages are available in the Debian GNU/Linux package repositories. Install instructions are included in the repository at <a href="https://github.com/jhidding/adhesion-code" class="uri">https://github.com/jhidding/adhesion-code</a>.</p>
 <h3 id="literate-programming">Literate programming</h3>
 <p>This example is written in a style of <em>literate programming</em> <span class="citation" data-cites="Knuth1984">(Knuth 1984)</span>. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don’t always give the listing of an entire source file in one go. In stead, we use a system of references known as <em>noweb</em> <span class="citation" data-cites="Ramsey1994">(Ramsey 1994)</span>.</p>
 <p>Inside source fragments you may encounter a line with <code>&lt;&lt;...&gt;&gt;</code> marks like,</p>
@@ -276,7 +276,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 id="program-outline">Program outline</h3>
 <p>The program reads a YAML configuration file and writes output data to HDF5 <span class="citation" data-cites="HDF5">(Folk et al. 2011)</span>. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages.</p>
 <p>The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the <span class="math inline">\(\Lambda\)</span>CDM cosmological model in the form of an initial velocity potential <span class="math inline">\(\Phi_0\)</span>. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.</p>
-<p>Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.</p>
+<p>Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used ParaView to create the screenshots presented in this report.</p>
 <figure>
 <img src="figures/app-graph.svg" alt="Figure 2: Outline of the program" id="fig:outline" /><figcaption><span>Figure 2:</span> Outline of the program</figcaption>
 </figure>
