@@ -4,6 +4,10 @@ We present a (relatively) small example of using the CGAL library [http://cgal.o
 
 ![The output structure](figures/web-evolution.png)
 
+## Documentation
+
+Go to [https://jhidding.github.io/adhesion-code](https://jhidding.github.io/adhesion-code).
+
 ## Literate programming
 
 This example is written in a style of *literate programming* [@Knuth1984]. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don't always give the listing of an entire source file in one go. In stead, we use a system of references known as *noweb* [@Ramsey1994].
