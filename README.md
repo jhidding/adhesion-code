@@ -69,9 +69,9 @@ These requirements are available in Debian testing or Ubuntu 18.04, with the exc
 
 To create the PDF version of the report, `xelatex` and a good many fonts are needed.
 
-### Running on Debian (testing)
+### Running on Debian/Ubuntu
 
-(as root) Get the following packages
+Get the following packages
 
 ```shell
 sudo apt install \
@@ -82,11 +82,17 @@ sudo apt install \
     texlive-latex-recommended texlive-xetex wget
 ```
 
-Install a recent version of `pandoc`
+Install a recent version of `pandoc`,
 
 ```shell
 wget https://github.com/jgm/pandoc/releases/download/2.4/pandoc-2.4-1-amd64.deb
 dpkg -i ./pandoc-2.4-1-amd64.deb
+```
+
+Install the `pandoc-fignos` and `pandoc-eqnos` plugins,
+
+```shell
+pip install --user pandoc-fignos pandoc-eqnos
 ```
 
 Go to the root folder of this package and inspect the `Makefile`. The `~/.local/include` directory is already configured as include path. Build the executable by running `make`. Build the PDF by running `make report`.
