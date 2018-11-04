@@ -1,7 +1,7 @@
 ---
 title: Computing the adhesion model using C++ and CGAL
 author: Johan Hidding
-date: September 1, 2018
+date: November 4, 2018
 bibliography: ref.bib
 reference-section-title: References
 ---
@@ -83,7 +83,7 @@ pandoc-fignos    ≥1.3.0    Number and reference figures.
 rsvg-convert     ≥2.40     Convert SVG files.
 ------------------------------------------------------------------------------
 
-All of these packages are available in the Debian GNU/Linux package repositories.
+All of these packages are available in the Debian GNU/Linux package repositories. Install instructions are included in the repository at [https://github.com/jhidding/adhesion-code](https://github.com/jhidding/adhesion-code).
 
 ## Literate programming
 
@@ -126,7 +126,7 @@ The program reads a YAML configuration file and writes output data to HDF5 [@HDF
 
 The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the $\Lambda$CDM cosmological model in the form of an initial velocity potential $\Phi_0$. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.
 
-Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.
+Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used ParaView to create the screenshots presented in this report.
 
 ![Outline of the program](figures/app-graph.svg){#fig:outline}
 

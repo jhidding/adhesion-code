@@ -1,8 +1,12 @@
 # CGAL Adhesion model example code
 
-We present a (relatively) small example of using the CGAL library to run the adhesion model. The adhesion model is a model of cosmic structure formation. It computes the shape of emerging structures in the cosmic web straight from an initial potential.
+We present a (relatively) small example of using the CGAL library ([http://cgal.org](http://cgal.org)) to run the adhesion model. This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
 
-![The output structure](figures/orbit.gif)
+![The output structure](figures/web-evolution.png)
+
+## Documentation
+
+Go to [https://jhidding.github.io/adhesion-code](https://jhidding.github.io/adhesion-code).
 
 ## Literate programming
 
@@ -45,9 +49,11 @@ These blocks of code can be *tangled* into source files. The source code present
 
 ## Build instructions
 
-Some components of this package are bleeding edge. There is a `Dockerfile` in the repository that builds the application as well as the `pdf` of the report successfully. To build this application on your native system can be a bit challenging.
+This code has been tested on Debian testing, Ubuntu 18.04, CentOS (with Conda), and MacOS X. There is a `Dockerfile` in the repository that builds the application as well as the `pdf` of the report successfully.
 
 ### Prerequisites
+
+For building the software:
 
 | Package  | version | description |
 |----------|---------|-------------|
@@ -61,30 +67,36 @@ Some components of this package are bleeding edge. There is a `Dockerfile` in th
 | fmt      | ≥4.1    | [fmt](http://fmtlib.net/latest/index.html) is a string formatting library that has a similar interface as Python's. |
 | Pandoc   | ≥2.2.3  | [Pandoc](http://pandoc.org/) is a universal document converter. To build this example from the markdown, you need version 2.2.3 or higher and the `pandoc-citeproc` extension. |
 
-These requirements are available in Debian testing, except for XTensor, which you need to install manually from [the XTensor github page](https://github.com/quantstack/xtensor).
+These requirements are available in Debian testing or Ubuntu 18.04, with the exception of Pandoc for which the versions may still be too old. More recent binary releases are available on [http://pandoc.org/](http://pandoc.org) for all major distributions of Linux, MacOS and Windows.
 
 ### LaTeX
 
 To create the PDF version of the report, `xelatex` and a good many fonts are needed.
 
-### Running on Debian (testing)
+### Running on Debian/Ubuntu
 
-(as root) Get the following packages
+Get the following packages
 
 ```shell
 sudo apt install \
     argagg-dev cmake g++ libcgal-dev libfftw3-dev \
-    libfmt-dev libhdf5-dev libyaml-cpp-dev lmodern make \
-    pkg-config rsync texlive texlive-fonts-extra \
-    texlive-latex-extra texlive-latex-recommended \
-    texlive-xetex wget git
+    libfmt-dev libgsl-dev libhdf5-dev libyaml-cpp-dev \
+    lmodern make pkg-config python3-pip rsync texlive \
+    texlive-fonts-extra texlive-latex-extra \
+    texlive-latex-recommended texlive-xetex wget
 ```
 
-Install a very recent version of `pandoc`
+Install a recent version of `pandoc`,
 
 ```shell
-wget https://github.com/jgm/pandoc/releases/download/2.2.3.2/pandoc-2.2.3.2-1-amd64.deb
-sudo dpkg -i ./pandoc-2.2.3.2-1-amd64.deb
+wget https://github.com/jgm/pandoc/releases/download/2.4/pandoc-2.4-1-amd64.deb
+dpkg -i ./pandoc-2.4-1-amd64.deb
+```
+
+Install the `pandoc-fignos` and `pandoc-eqnos` plugins,
+
+```shell
+pip install --user pandoc-fignos pandoc-eqnos
 ```
 
 Go to the root folder of this package and inspect the `Makefile`. The `~/.local/include` directory is already configured as include path. Build the executable by running `make`. Build the PDF by running `make report`.
