@@ -1,7 +1,7 @@
 ---
 title: Computing the adhesion model using C++ and CGAL
 author: Johan Hidding
-date: September 1, 2018
+date: November 4, 2018
 bibliography: ref.bib
 reference-section-title: References
 ---
