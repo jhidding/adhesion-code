@@ -12,6 +12,8 @@ reference-section-title: References
 
 We present a (relatively) small example of using the CGAL [@cgal:eb-18b] library to run the adhesion model. This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
 
+This software emanates from NWO project 614.000.908 supervised by Gert Vegter and Rien van de Weygaert.
+
 ## Version
 
 ``` {.cpp #version}
