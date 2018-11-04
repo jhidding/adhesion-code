@@ -673,7 +673,9 @@ $$w({\bf q}) = 2 t \Phi_0({\bf q}),$$
 
 retrieves an expression similar to Equation\ @eq:zeldovich-par. The only difference is that in Equation\ @eq:distance-function, we took a *global minimum*, whereas in the Zeldovich approximation, *any* combination of ${\bf x}$ and ${\bf q}$ that solves Equation\ @eq:zeldovich-par is valid.
 
-This argument is a summary of the underlying theory. We refer to @Hidding2018 for more detail.
+![The adhesion model. We follow the same initial conditions as in Figure\ @fig:zeldovich. This 2D example was produced by computing the convex hull of $\varphi = q^2/2 - t \Phi_0$ (first panel). The second panel shows the resulting regular triangulation. We have given a different colour to regions that are part of filaments and clusters. The third panel shows the power diagram. The mass of filaments is shown in blue colour, the mass of nodes is shown by size of the circles.](figures/adhesion.png){#fig:adhesion}
+
+This argument is a summary of the underlying theory. We refer to @Hidding2018 for more detail. In Figure\ @fig:adhesion we show the adhesion model in 2d. In 2d, each edge in the regular triangulation matches a perpendicular one in the power diagram. In the voids we see the individual power cells that surround the position of the Zeldovich displaced particles. Where, in the Zeldovich Approximation structures formed, we see structures again, but this time they are represented by triangles and edges in the regular triangulation that exceed their sizes in the original grid.
 
 ## CGAL Geometry kernels
 
@@ -871,13 +873,15 @@ Note that the masses of any cell other then the cluster cells carry no physical 
 
 On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure\ @fig:node-classes.
 
-![Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.](figures/node-classes.svg){#fig:node-classes}
+![Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges. Edges that are longer than the threshold are shown in solid red lines, dashed black edges are shorter than the threshold.](figures/node-classes.svg){#fig:node-classes}
 
 Note that there are several species of kurtoparabolic points. The ones listed under 'kurtoparabolics' have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurtoparabolic *e*, which has a filament (and three wall segments) ending in a void.
 
 There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type *c*. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.
 
 The filament and cluster classifications are completely unambiguous. Their number of long edges and number of components connected by short edges both uniquely determine their type.
+
+Note, that when we render the power diagram we are not using this classification. When we show the walls we just take the dual of all the edges that exceed the threshold, and when we show filaments we take the dual of all faces of which all edges exceed the threshold. The different types of nodes show us how walls and filaments interconnect in a sampled regular triangulation.
 
 ### Filtering for structures
 
@@ -1080,7 +1084,7 @@ struct Mesh
 };
 ```
 
-This definition of `Mesh` is slightly more involved than using a `vector<vector<unsigned>>` to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.
+This definition of `Mesh` is slightly more involved than using a `vector<vector<unsigned>>` to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also, when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.
 
 We defined two methods to the `Mesh` structure. The `size()` method gives the amount of polygons in the mesh.
 
