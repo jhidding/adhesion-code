@@ -131,6 +131,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><a href="https://doi.org/10.5281/zenodo.1477536">DOI:10.5281/zenodo.1477535</a></p>
 <h2 id="abstract">Abstract</h2>
 <p>We present a (relatively) small example of using the CGAL <span class="citation" data-cites="cgal:eb-18b">(The CGAL Project 2018)</span> library to run the adhesion model. This literate C++ code generates an initial potential field and computes the <em>regular triangulation</em> to that potential, which is a weighted generalisation of the <em>Delaunay triangulation</em>. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.</p>
+<p>This software emanates from NWO project 614.000.908 supervised by Gert Vegter and Rien van de Weygaert.</p>
 <h3 id="version">Version</h3>
 <p><em>«version»=</em></p>
 <div class="sourceCode" id="version"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="version-1" data-line-number="1"><span class="pp">#define VERSION &quot;1.0&quot;</span></a></code></pre></div>
@@ -138,7 +139,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 id="introduction">Introduction</h2>
 <p>The adhesion model simulates the formation of structure in the Universe on the largest scales. The normal way to do this is to divide matter in the universe into discrete chunks, called particles, and follow their motion and gravitational potential in a lock-step iteration scheme, otherwise known as the N-body simulation.</p>
 <p>The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the <em>cosmic web</em>. The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn’t reveal the halo structures that are shown in N-body simulations to form inside these structures.</p>
-<p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set <span class="citation" data-cites="cgal:pt-t3-18b cgal:pt-tds3-18b">(Jamin, Pion, and Teillaud 2018b; Jamin, Pion, and Teillaud 2018a)</span>.</p>
+<p>The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the <em>regular triangulation</em> of a weighted point set <span class="citation" data-cites="cgal:pt-t3-18b cgal:pt-tds3-18b">(Jamin, Pion, and Teillaud 2018b, 2018a)</span>.</p>
 <figure>
 <img src="figures/web-evolution.png" alt="Figure 1: Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for D_+ = 0.2, 0.4 and 0.6. The axes have units of h^{-1}\ {\rm Mpc}. The top left part of the rendering shows a large expanding void." id="fig:output-example" /><figcaption><span>Figure 1:</span> Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for <span class="math inline">\(D_+ = 0.2, 0.4\)</span> and <span class="math inline">\(0.6\)</span>. The axes have units of <span class="math inline">\(h^{-1}\ {\rm Mpc}\)</span>. The top left part of the rendering shows a large expanding void.</figcaption>
 </figure>
@@ -1211,14 +1212,15 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb22-8" data-line-number="8"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
 <a class="sourceLine" id="cb22-9" data-line-number="9"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
 <a class="sourceLine" id="cb22-10" data-line-number="10"><span class="pp">#include </span><span class="im">&quot;mesh_manipulation.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-11" data-line-number="11"><span class="pp">#include </span><span class="im">&quot;shapes.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-12" data-line-number="12"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-13" data-line-number="13"><span class="pp">#include </span><span class="im">&quot;write_obj.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb22-15" data-line-number="15"><span class="dt">void</span> run(YAML::Node <span class="at">const</span> &amp;config)</a>
-<a class="sourceLine" id="cb22-16" data-line-number="16">{</a>
-<a class="sourceLine" id="cb22-17" data-line-number="17">  &lt;&lt;workflow&gt;&gt;</a>
-<a class="sourceLine" id="cb22-18" data-line-number="18">}</a></code></pre></div>
+<a class="sourceLine" id="cb22-11" data-line-number="11"><span class="pp">#include </span><span class="im">&quot;plane.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-12" data-line-number="12"><span class="pp">#include </span><span class="im">&quot;sphere.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-13" data-line-number="13"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-14" data-line-number="14"><span class="pp">#include </span><span class="im">&quot;write_obj.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb22-16" data-line-number="16"><span class="dt">void</span> run(YAML::Node <span class="at">const</span> &amp;config)</a>
+<a class="sourceLine" id="cb22-17" data-line-number="17">{</a>
+<a class="sourceLine" id="cb22-18" data-line-number="18">  &lt;&lt;workflow&gt;&gt;</a>
+<a class="sourceLine" id="cb22-19" data-line-number="19">}</a></code></pre></div>
 <h5 id="generate-initial-conditions">Generate initial conditions</h5>
 <p>We create a <code>BoxParam</code> instance and generate the initial potential.</p>
 <p><em>«workflow»=</em></p>
@@ -1423,41 +1425,62 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="gsl-integrate-qagiu-30" data-line-number="30">  <span class="cf">return</span> x;</a>
 <a class="sourceLine" id="gsl-integrate-qagiu-31" data-line-number="31">}</a></code></pre></div>
 <h3 id="manipulating-meshes">Manipulating meshes</h3>
+<p>To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.</p>
+<p>In the <code>mesh_manipulation.hh</code> header file we define methods to cut a mesh using a spherical surface or a plane.</p>
 <p><em>file: «src/mesh_manipulation.hh»=</em></p>
 <div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="pp">#pragma once</span></a>
 <a class="sourceLine" id="cb24-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></a>
-<a class="sourceLine" id="cb24-3" data-line-number="3">&lt;&lt;include-optional&gt;&gt;</a>
-<a class="sourceLine" id="cb24-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
+<a class="sourceLine" id="cb24-3" data-line-number="3"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
+<a class="sourceLine" id="cb24-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;surface.hh&quot;</span></a>
 <a class="sourceLine" id="cb24-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb24-6" data-line-number="6">&lt;&lt;surface-<span class="kw">class</span>&gt;&gt;</a>
-<a class="sourceLine" id="cb24-7" data-line-number="7">&lt;&lt;split-polygon&gt;&gt;</a>
-<a class="sourceLine" id="cb24-8" data-line-number="8">&lt;&lt;select-mesh&gt;&gt;</a>
-<a class="sourceLine" id="cb24-9" data-line-number="9">&lt;&lt;clean-mesh&gt;&gt;</a></code></pre></div>
-<p>To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.</p>
+<a class="sourceLine" id="cb24-6" data-line-number="6">&lt;&lt;split-polygon&gt;&gt;</a>
+<a class="sourceLine" id="cb24-7" data-line-number="7">&lt;&lt;select-mesh&gt;&gt;</a>
+<a class="sourceLine" id="cb24-8" data-line-number="8">&lt;&lt;clean-mesh&gt;&gt;</a></code></pre></div>
+<h4 id="surfaces">Surfaces</h4>
 <p>To select parts of a mesh we need to define a surface that can tell us on what side a point lies, and if we have two points, if and where the segment between those points intersects. This concept of a <code>Surface</code> is embodied by the following abstract base class:</p>
-<p><em>«surface-class»=</em></p>
-<div class="sourceCode" id="surface-class"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="surface-class-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="surface-class-2" data-line-number="2"><span class="kw">class</span> Surface</a>
-<a class="sourceLine" id="surface-class-3" data-line-number="3">{</a>
-<a class="sourceLine" id="surface-class-4" data-line-number="4"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="surface-class-5" data-line-number="5">  <span class="kw">virtual</span> <span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;p) <span class="at">const</span> = <span class="dv">0</span>;</a>
-<a class="sourceLine" id="surface-class-6" data-line-number="6">  <span class="kw">virtual</span> <span class="bu">std::</span>optional&lt;Point&gt; intersect(</a>
-<a class="sourceLine" id="surface-class-7" data-line-number="7">    Point <span class="at">const</span> &amp;a, Point <span class="at">const</span> &amp;b) <span class="at">const</span> = <span class="dv">0</span>;</a>
-<a class="sourceLine" id="surface-class-8" data-line-number="8"></a>
-<a class="sourceLine" id="surface-class-9" data-line-number="9">  <span class="kw">virtual</span> ~Surface() {}</a>
-<a class="sourceLine" id="surface-class-10" data-line-number="10">};</a></code></pre></div>
+<p><em>file: «src/surface.hh»=</em></p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb25-2" data-line-number="2">&lt;&lt;include-optional&gt;&gt;</a>
+<a class="sourceLine" id="cb25-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb25-4" data-line-number="4"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="cb25-5" data-line-number="5"><span class="kw">class</span> Surface</a>
+<a class="sourceLine" id="cb25-6" data-line-number="6">{</a>
+<a class="sourceLine" id="cb25-7" data-line-number="7"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb25-8" data-line-number="8">  <span class="kw">virtual</span> <span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;p) <span class="at">const</span> = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb25-9" data-line-number="9">  <span class="kw">virtual</span> <span class="bu">std::</span>optional&lt;Point&gt; intersect(</a>
+<a class="sourceLine" id="cb25-10" data-line-number="10">    Point <span class="at">const</span> &amp;a, Point <span class="at">const</span> &amp;b) <span class="at">const</span> = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb25-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb25-12" data-line-number="12">  <span class="kw">virtual</span> ~Surface() {}</a>
+<a class="sourceLine" id="cb25-13" data-line-number="13">};</a></code></pre></div>
+<h5 id="stdoptional"><code>std::optional</code></h5>
+<p>We’re using a library feature of C++17, namely <code>std::optional</code>. In C++14, this is included in the <code>std::experimental</code> namespace. With this macro, we can use <code>std::optional</code> in both cases.</p>
+<p><em>«include-optional»=</em></p>
+<div class="sourceCode" id="include-optional"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="include-optional-1" data-line-number="1"><span class="pp">#if </span><span class="ot">__cplusplus</span><span class="pp"> == 201402L</span></a>
+<a class="sourceLine" id="include-optional-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;experimental/optional&gt;</span></a>
+<a class="sourceLine" id="include-optional-3" data-line-number="3"><span class="kw">namespace</span> std {</a>
+<a class="sourceLine" id="include-optional-4" data-line-number="4"><span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>experimental;</a>
+<a class="sourceLine" id="include-optional-5" data-line-number="5">}</a>
+<a class="sourceLine" id="include-optional-6" data-line-number="6"><span class="pp">#elif </span><span class="ot">__cplusplus</span><span class="pp"> == 201703L</span></a>
+<a class="sourceLine" id="include-optional-7" data-line-number="7"><span class="pp">#include </span><span class="im">&lt;optional&gt;</span></a>
+<a class="sourceLine" id="include-optional-8" data-line-number="8"><span class="pp">#else</span></a>
+<a class="sourceLine" id="include-optional-9" data-line-number="9"><span class="pp">#error &quot;Unrecognised C++ version.&quot;</span></a>
+<a class="sourceLine" id="include-optional-10" data-line-number="10"><span class="pp">#endif</span></a></code></pre></div>
+<h4 id="split-a-polygon">Split a polygon</h4>
 <p>Given an implementation of such a class, we can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.</p>
+<p>We still have to define the input <code>Polygon</code> type,</p>
 <p><em>«split-polygon»=</em></p>
 <div class="sourceCode" id="split-polygon"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="split-polygon-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
 <a class="sourceLine" id="split-polygon-2" data-line-number="2"><span class="kw">using</span> Polygon = <span class="bu">std::</span>tuple&lt;</a>
-<a class="sourceLine" id="split-polygon-3" data-line-number="3">                  <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
-<a class="sourceLine" id="split-polygon-4" data-line-number="4">                  <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a></code></pre></div>
+<a class="sourceLine" id="split-polygon-3" data-line-number="3">    <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
+<a class="sourceLine" id="split-polygon-4" data-line-number="4">    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a></code></pre></div>
+<p>The algorithm returns two polygons, one of which lies below the surface, the other above.</p>
 <p><em>«split-polygon»=+</em></p>
 <div class="sourceCode" id="split-polygon"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="split-polygon-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
 <a class="sourceLine" id="split-polygon-2" data-line-number="2"><span class="kw">using</span> PolygonPair = <span class="bu">std::</span>tuple&lt;</a>
 <a class="sourceLine" id="split-polygon-3" data-line-number="3">    <span class="bu">std::</span>vector&lt;Point&gt; *,</a>
 <a class="sourceLine" id="split-polygon-4" data-line-number="4">    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;,</a>
 <a class="sourceLine" id="split-polygon-5" data-line-number="5">    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span>&gt;&gt;;</a></code></pre></div>
+<p>The third argument <code>closed</code> tells if the given path is cyclic or not. This is a distinction between having a polygon or a chain of line segments.</p>
 <p><em>«split-polygon»=+</em></p>
 <div class="sourceCode" id="split-polygon"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="split-polygon-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
 <a class="sourceLine" id="split-polygon-2" data-line-number="2">PolygonPair&lt;Point&gt; split_polygon(</a>
@@ -1507,21 +1530,27 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="split-polygon-46" data-line-number="46">  <span class="cf">else</span></a>
 <a class="sourceLine" id="split-polygon-47" data-line-number="47">    <span class="cf">return</span> PolygonPair&lt;Point&gt;(vertices, r2, r1);</a>
 <a class="sourceLine" id="split-polygon-48" data-line-number="48">}</a></code></pre></div>
-<h4 id="stdoptional"><code>std::optional</code></h4>
-<p>We’re using a library feature of C++17, namely <code>std::optional</code>. In C++14, this is included in the <code>std::experimental</code> namespace. With this macro, we can use <code>std::optional</code> in both cases.</p>
-<p><em>«include-optional»=</em></p>
-<div class="sourceCode" id="include-optional"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="include-optional-1" data-line-number="1"><span class="pp">#if </span><span class="ot">__cplusplus</span><span class="pp"> == 201402L</span></a>
-<a class="sourceLine" id="include-optional-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;experimental/optional&gt;</span></a>
-<a class="sourceLine" id="include-optional-3" data-line-number="3"><span class="kw">namespace</span> std {</a>
-<a class="sourceLine" id="include-optional-4" data-line-number="4"><span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>experimental;</a>
-<a class="sourceLine" id="include-optional-5" data-line-number="5">}</a>
-<a class="sourceLine" id="include-optional-6" data-line-number="6"><span class="pp">#elif </span><span class="ot">__cplusplus</span><span class="pp"> == 201703L</span></a>
-<a class="sourceLine" id="include-optional-7" data-line-number="7"><span class="pp">#include </span><span class="im">&lt;optional&gt;</span></a>
-<a class="sourceLine" id="include-optional-8" data-line-number="8"><span class="pp">#else</span></a>
-<a class="sourceLine" id="include-optional-9" data-line-number="9"><span class="pp">#error &quot;Unrecognised C++ version.&quot;</span></a>
-<a class="sourceLine" id="include-optional-10" data-line-number="10"><span class="pp">#endif</span></a></code></pre></div>
 <h4 id="the-sphere">The sphere</h4>
-<p>Unfortunately CGAL seems to have no function to compute the intersection of a <code>Sphere</code> with a <code>Segment</code>. We’ll take the opportunity to do some computational geometry our selves. The <code>Sphere</code> data type will have two members:</p>
+<p>Unfortunately CGAL seems to have no function to compute the intersection of a <code>Sphere</code> with a <code>Segment</code>. We’ll take the opportunity to do a bit computational geometry our selves.</p>
+<p><em>file: «src/sphere.hh»=</em></p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb26-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;surface.hh&quot;</span></a>
+<a class="sourceLine" id="cb26-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb26-4" data-line-number="4"><span class="kw">template</span> &lt;<span class="kw">typename</span> K&gt;</a>
+<a class="sourceLine" id="cb26-5" data-line-number="5"><span class="kw">class</span> Sphere: <span class="kw">public</span> Surface&lt;<span class="kw">typename</span> K::Point_3&gt;</a>
+<a class="sourceLine" id="cb26-6" data-line-number="6">{</a>
+<a class="sourceLine" id="cb26-7" data-line-number="7">  <span class="kw">using</span> Point   = <span class="kw">typename</span> K::Point_3;</a>
+<a class="sourceLine" id="cb26-8" data-line-number="8">  <span class="kw">using</span> Vector  = <span class="kw">typename</span> K::Vector_3;</a>
+<a class="sourceLine" id="cb26-9" data-line-number="9">  &lt;&lt;sphere-members&gt;&gt;</a>
+<a class="sourceLine" id="cb26-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb26-11" data-line-number="11"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb26-12" data-line-number="12">  Sphere(Point <span class="at">const</span> &amp;p, <span class="dt">double</span> r):</a>
+<a class="sourceLine" id="cb26-13" data-line-number="13">      origin(p), radius_squared(r*r) {}</a>
+<a class="sourceLine" id="cb26-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb26-15" data-line-number="15">  &lt;&lt;sphere-oriented-side&gt;&gt;</a>
+<a class="sourceLine" id="cb26-16" data-line-number="16">  &lt;&lt;sphere-intersect&gt;&gt;</a>
+<a class="sourceLine" id="cb26-17" data-line-number="17">};</a></code></pre></div>
+<p>The <code>Sphere</code> data type will have two members:</p>
 <p><em>«sphere-members»=</em></p>
 <div class="sourceCode" id="sphere-members"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="sphere-members-1" data-line-number="1">Point  origin;</a>
 <a class="sourceLine" id="sphere-members-2" data-line-number="2"><span class="dt">double</span> radius_squared;</a></code></pre></div>
@@ -1574,72 +1603,66 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="sphere-intersect-24" data-line-number="24"></a>
 <a class="sourceLine" id="sphere-intersect-25" data-line-number="25">  <span class="cf">return</span> <span class="bu">std::</span>nullopt;                 <span class="co">// shouldn&#39;t happen</span></a>
 <a class="sourceLine" id="sphere-intersect-26" data-line-number="26">}</a></code></pre></div>
-<p>Now that we have implemented these two methods, we can tie them together in the following templated class definition.</p>
-<p><em>«shapes-sphere»=</em></p>
-<div class="sourceCode" id="shapes-sphere"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="shapes-sphere-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> K&gt;</a>
-<a class="sourceLine" id="shapes-sphere-2" data-line-number="2"><span class="kw">class</span> Sphere: <span class="kw">public</span> Surface&lt;<span class="kw">typename</span> K::Point_3&gt;</a>
-<a class="sourceLine" id="shapes-sphere-3" data-line-number="3">{</a>
-<a class="sourceLine" id="shapes-sphere-4" data-line-number="4">  <span class="kw">using</span> Point   = <span class="kw">typename</span> K::Point_3;</a>
-<a class="sourceLine" id="shapes-sphere-5" data-line-number="5">  <span class="kw">using</span> Vector  = <span class="kw">typename</span> K::Vector_3;</a>
-<a class="sourceLine" id="shapes-sphere-6" data-line-number="6"></a>
-<a class="sourceLine" id="shapes-sphere-7" data-line-number="7">  &lt;&lt;sphere-members&gt;&gt;</a>
-<a class="sourceLine" id="shapes-sphere-8" data-line-number="8"></a>
-<a class="sourceLine" id="shapes-sphere-9" data-line-number="9"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="shapes-sphere-10" data-line-number="10">  Sphere(Point <span class="at">const</span> &amp;p, <span class="dt">double</span> r):</a>
-<a class="sourceLine" id="shapes-sphere-11" data-line-number="11">      origin(p), radius_squared(r*r) {}</a>
-<a class="sourceLine" id="shapes-sphere-12" data-line-number="12"></a>
-<a class="sourceLine" id="shapes-sphere-13" data-line-number="13">  &lt;&lt;sphere-oriented-side&gt;&gt;</a>
-<a class="sourceLine" id="shapes-sphere-14" data-line-number="14">  &lt;&lt;sphere-intersect&gt;&gt;</a>
-<a class="sourceLine" id="shapes-sphere-15" data-line-number="15">};</a></code></pre></div>
 <h4 id="plane">Plane</h4>
-<p><em>file: «src/shapes.hh»=</em></p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="pp">#pragma once</span></a>
-<a class="sourceLine" id="cb25-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;mesh_manipulation.hh&quot;</span></a>
-<a class="sourceLine" id="cb25-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb25-4" data-line-number="4"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
-<a class="sourceLine" id="cb25-5" data-line-number="5"><span class="kw">inline</span> <span class="dt">int</span> sign(T a)</a>
-<a class="sourceLine" id="cb25-6" data-line-number="6">{</a>
-<a class="sourceLine" id="cb25-7" data-line-number="7">  <span class="cf">return</span> (a &lt; <span class="dv">0</span> ? <span class="dv">-1</span> : (a == <span class="dv">0</span> ? <span class="dv">0</span> : <span class="dv">1</span>));</a>
-<a class="sourceLine" id="cb25-8" data-line-number="8">}</a>
-<a class="sourceLine" id="cb25-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb25-10" data-line-number="10">&lt;&lt;shapes-sphere&gt;&gt;</a>
-<a class="sourceLine" id="cb25-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb25-12" data-line-number="12"><span class="kw">template</span> &lt;<span class="kw">typename</span> K&gt;</a>
-<a class="sourceLine" id="cb25-13" data-line-number="13"><span class="kw">class</span> Plane: <span class="kw">public</span> Surface&lt;<span class="kw">typename</span> K::Point_3&gt;</a>
-<a class="sourceLine" id="cb25-14" data-line-number="14">{</a>
-<a class="sourceLine" id="cb25-15" data-line-number="15">  <span class="kw">using</span> Point   = <span class="kw">typename</span> K::Point_3;</a>
-<a class="sourceLine" id="cb25-16" data-line-number="16">  <span class="kw">using</span> Vector  = <span class="kw">typename</span> K::Vector_3;</a>
-<a class="sourceLine" id="cb25-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb25-18" data-line-number="18">  Point  centre;</a>
-<a class="sourceLine" id="cb25-19" data-line-number="19">  Vector normal;</a>
-<a class="sourceLine" id="cb25-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb25-21" data-line-number="21"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="cb25-22" data-line-number="22">  Plane(Point <span class="at">const</span> &amp;centre, Vector <span class="at">const</span> &amp;normal)</a>
-<a class="sourceLine" id="cb25-23" data-line-number="23">    : centre(centre)</a>
-<a class="sourceLine" id="cb25-24" data-line-number="24">    , normal(normal)</a>
-<a class="sourceLine" id="cb25-25" data-line-number="25">  {}</a>
-<a class="sourceLine" id="cb25-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb25-27" data-line-number="27">  <span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;a) <span class="at">const</span></a>
-<a class="sourceLine" id="cb25-28" data-line-number="28">  {</a>
-<a class="sourceLine" id="cb25-29" data-line-number="29">    <span class="cf">return</span> sign((a - centre) * normal);</a>
-<a class="sourceLine" id="cb25-30" data-line-number="30">  }</a>
-<a class="sourceLine" id="cb25-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb25-32" data-line-number="32">  <span class="bu">std::</span>optional&lt;Point&gt; intersect(Point <span class="at">const</span> &amp;a, Point <span class="at">const</span> &amp;b) <span class="at">const</span></a>
-<a class="sourceLine" id="cb25-33" data-line-number="33">  {</a>
-<a class="sourceLine" id="cb25-34" data-line-number="34">    Vector u = centre - a,</a>
-<a class="sourceLine" id="cb25-35" data-line-number="35">           v = b - a;</a>
-<a class="sourceLine" id="cb25-36" data-line-number="36"></a>
-<a class="sourceLine" id="cb25-37" data-line-number="37">    <span class="cf">if</span> (v * normal == <span class="dv">0</span>)</a>
-<a class="sourceLine" id="cb25-38" data-line-number="38">      <span class="cf">return</span> <span class="bu">std::</span>nullopt;</a>
-<a class="sourceLine" id="cb25-39" data-line-number="39"></a>
-<a class="sourceLine" id="cb25-40" data-line-number="40">    <span class="dt">double</span> t = (u * normal) / (v * normal);</a>
-<a class="sourceLine" id="cb25-41" data-line-number="41"></a>
-<a class="sourceLine" id="cb25-42" data-line-number="42">    <span class="cf">if</span> (t &lt; <span class="dv">0</span> || t &gt; <span class="dv">1</span>)</a>
-<a class="sourceLine" id="cb25-43" data-line-number="43">      <span class="cf">return</span> <span class="bu">std::</span>nullopt;</a>
-<a class="sourceLine" id="cb25-44" data-line-number="44"></a>
-<a class="sourceLine" id="cb25-45" data-line-number="45">    <span class="cf">return</span> a + t * v;</a>
-<a class="sourceLine" id="cb25-46" data-line-number="46">  }</a>
-<a class="sourceLine" id="cb25-47" data-line-number="47">};</a></code></pre></div>
+<p>Similar to the definition of a sphere, we’ll define a plane.</p>
+<p><em>file: «src/plane.hh»=</em></p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb27-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb27-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;surface.hh&quot;</span></a>
+<a class="sourceLine" id="cb27-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb27-4" data-line-number="4">&lt;&lt;sign-function&gt;&gt;</a>
+<a class="sourceLine" id="cb27-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb27-6" data-line-number="6"><span class="kw">template</span> &lt;<span class="kw">typename</span> K&gt;</a>
+<a class="sourceLine" id="cb27-7" data-line-number="7"><span class="kw">class</span> Plane: <span class="kw">public</span> Surface&lt;<span class="kw">typename</span> K::Point_3&gt;</a>
+<a class="sourceLine" id="cb27-8" data-line-number="8">{</a>
+<a class="sourceLine" id="cb27-9" data-line-number="9">  <span class="kw">using</span> Point   = <span class="kw">typename</span> K::Point_3;</a>
+<a class="sourceLine" id="cb27-10" data-line-number="10">  <span class="kw">using</span> Vector  = <span class="kw">typename</span> K::Vector_3;</a>
+<a class="sourceLine" id="cb27-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb27-12" data-line-number="12">  Point  centre;</a>
+<a class="sourceLine" id="cb27-13" data-line-number="13">  Vector normal;</a>
+<a class="sourceLine" id="cb27-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb27-15" data-line-number="15"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb27-16" data-line-number="16">  Plane(Point <span class="at">const</span> &amp;centre, Vector <span class="at">const</span> &amp;normal)</a>
+<a class="sourceLine" id="cb27-17" data-line-number="17">    : centre(centre)</a>
+<a class="sourceLine" id="cb27-18" data-line-number="18">    , normal(normal)</a>
+<a class="sourceLine" id="cb27-19" data-line-number="19">  {}</a>
+<a class="sourceLine" id="cb27-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb27-21" data-line-number="21">  &lt;&lt;plane-oriented-side&gt;&gt;</a>
+<a class="sourceLine" id="cb27-22" data-line-number="22">  &lt;&lt;plane-intersect&gt;&gt;</a>
+<a class="sourceLine" id="cb27-23" data-line-number="23">};</a></code></pre></div>
+<h5 id="sign-function"><code>sign</code> function</h5>
+<p>This generic function returns -1, 0 or 1 according to the sign of the given number.</p>
+<p><em>«sign-function»=</em></p>
+<div class="sourceCode" id="sign-function"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="sign-function-1" data-line-number="1"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="sign-function-2" data-line-number="2"><span class="kw">inline</span> <span class="dt">int</span> sign(T a) {</a>
+<a class="sourceLine" id="sign-function-3" data-line-number="3">  <span class="cf">return</span> (a &lt; <span class="dv">0</span> ? <span class="dv">-1</span> : (a == <span class="dv">0</span> ? <span class="dv">0</span> : <span class="dv">1</span>));</a>
+<a class="sourceLine" id="sign-function-4" data-line-number="4">}</a></code></pre></div>
+<h5 id="plane-oriented-side">Plane Oriented side</h5>
+<p>The oriented side of a point <span class="math inline">\({\bf a}\)</span> to a plane with normal <span class="math inline">\({\bf n}\)</span> through point <span class="math inline">\({\bf c}\)</span> is given by</p>
+<p><span class="math display">\[{\rm sign}(({\bf a} - {\bf c}) \cdot {\bf n}.\]</span></p>
+<p>A point on the positive side lies in the direction of the normal vector.</p>
+<p><em>«plane-oriented-side»=</em></p>
+<div class="sourceCode" id="plane-oriented-side"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="plane-oriented-side-1" data-line-number="1"><span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;a) <span class="at">const</span> {</a>
+<a class="sourceLine" id="plane-oriented-side-2" data-line-number="2">  <span class="cf">return</span> sign((a - centre) * normal);</a>
+<a class="sourceLine" id="plane-oriented-side-3" data-line-number="3">}</a></code></pre></div>
+<h5 id="plane-intersection">Plane Intersection</h5>
+<p>Given two points <span class="math inline">\({\bf a}\)</span> and <span class="math inline">\({\bf b}\)</span>, we have a vector ${} = {} - {}, and a vector <span class="math inline">\({\bf u} = {\bf c} - {\bf a}\)</span> to the point in the plane. Then we can define a time <span class="math inline">\(t\)</span> to parametrise the line segment from <span class="math inline">\({\bf a}\)</span> at <span class="math inline">\(t = 0\)</span> to <span class="math inline">\({\bf b}\)</span> at <span class="math inline">\(t = 1\)</span>. The intersection with the plane is at</p>
+<p><span class="math display">\[t = \frac{{\bf u} \cdot {\bf n}}{{\bf v} \cdot {\bf n}}.\]</span></p>
+<p><em>«plane-intersect»=</em></p>
+<div class="sourceCode" id="plane-intersect"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="plane-intersect-1" data-line-number="1"><span class="bu">std::</span>optional&lt;Point&gt; intersect(Point <span class="at">const</span> &amp;a, Point <span class="at">const</span> &amp;b) <span class="at">const</span></a>
+<a class="sourceLine" id="plane-intersect-2" data-line-number="2">{</a>
+<a class="sourceLine" id="plane-intersect-3" data-line-number="3">  Vector u = centre - a,</a>
+<a class="sourceLine" id="plane-intersect-4" data-line-number="4">         v = b - a;</a>
+<a class="sourceLine" id="plane-intersect-5" data-line-number="5"></a>
+<a class="sourceLine" id="plane-intersect-6" data-line-number="6">  <span class="cf">if</span> (v * normal == <span class="dv">0</span>)</a>
+<a class="sourceLine" id="plane-intersect-7" data-line-number="7">    <span class="cf">return</span> <span class="bu">std::</span>nullopt;</a>
+<a class="sourceLine" id="plane-intersect-8" data-line-number="8"></a>
+<a class="sourceLine" id="plane-intersect-9" data-line-number="9">  <span class="dt">double</span> t = (u * normal) / (v * normal);</a>
+<a class="sourceLine" id="plane-intersect-10" data-line-number="10"></a>
+<a class="sourceLine" id="plane-intersect-11" data-line-number="11">  <span class="cf">if</span> (t &lt; <span class="dv">0</span> || t &gt; <span class="dv">1</span>)</a>
+<a class="sourceLine" id="plane-intersect-12" data-line-number="12">    <span class="cf">return</span> <span class="bu">std::</span>nullopt;</a>
+<a class="sourceLine" id="plane-intersect-13" data-line-number="13"></a>
+<a class="sourceLine" id="plane-intersect-14" data-line-number="14">  <span class="cf">return</span> a + t * v;</a>
+<a class="sourceLine" id="plane-intersect-15" data-line-number="15">}</a></code></pre></div>
 <h4 id="clean-mesh">Clean mesh</h4>
 <p>Once we have selected a part of the mesh by cutting polygons, the mesh contains a lot of vertices that have no associated polygon. These vertices need to be removed. This also means that the vertex indices contained in the logical polygon data need to be remapped. The <code>clean</code> function takes a <code>Mesh</code>, only copies the vertices that are referenced in the polygons and remaps the polygons, creating a new <code>Mesh</code> instance.</p>
 <p><em>«clean-mesh»=</em></p>
@@ -1709,76 +1732,76 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p>For reading and writing HDF5, there is a C++ interface available. This interface is still too low level for our purposes.</p>
 <h4 id="interface">Interface</h4>
 <p><em>file: «src/writers.hh»=</em></p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="pp">#pragma once</span></a>
-<a class="sourceLine" id="cb26-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;cgal_base.hh&quot;</span></a>
-<a class="sourceLine" id="cb26-3" data-line-number="3"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
-<a class="sourceLine" id="cb26-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
-<a class="sourceLine" id="cb26-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;H5Cpp.h&gt;</span></a>
-<a class="sourceLine" id="cb26-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb26-7" data-line-number="7">&lt;&lt;hdf5-file-<span class="kw">or</span>-group&gt;&gt;</a>
-<a class="sourceLine" id="cb26-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb26-9" data-line-number="9"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
-<a class="sourceLine" id="cb26-10" data-line-number="10"><span class="kw">struct</span> H5TypeFactory {};</a>
-<a class="sourceLine" id="cb26-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb26-12" data-line-number="12"><span class="kw">template</span> &lt;&gt;</a>
-<a class="sourceLine" id="cb26-13" data-line-number="13"><span class="kw">struct</span> H5TypeFactory&lt;<span class="dt">double</span>&gt;</a>
-<a class="sourceLine" id="cb26-14" data-line-number="14">{</a>
-<a class="sourceLine" id="cb26-15" data-line-number="15">  <span class="at">static</span> H5::FloatType get()</a>
-<a class="sourceLine" id="cb26-16" data-line-number="16">  {</a>
-<a class="sourceLine" id="cb26-17" data-line-number="17">    <span class="cf">return</span> H5::FloatType(H5::PredType::NATIVE_DOUBLE);</a>
-<a class="sourceLine" id="cb26-18" data-line-number="18">  }</a>
-<a class="sourceLine" id="cb26-19" data-line-number="19">};</a>
-<a class="sourceLine" id="cb26-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb26-21" data-line-number="21"><span class="kw">template</span> &lt;&gt;</a>
-<a class="sourceLine" id="cb26-22" data-line-number="22"><span class="kw">struct</span> H5TypeFactory&lt;<span class="dt">unsigned</span>&gt;</a>
-<a class="sourceLine" id="cb26-23" data-line-number="23">{</a>
-<a class="sourceLine" id="cb26-24" data-line-number="24">  <span class="at">static</span> H5::IntType get()</a>
-<a class="sourceLine" id="cb26-25" data-line-number="25">  {</a>
-<a class="sourceLine" id="cb26-26" data-line-number="26">    <span class="cf">return</span> H5::IntType(H5::PredType::NATIVE_UINT);</a>
-<a class="sourceLine" id="cb26-27" data-line-number="27">  }</a>
-<a class="sourceLine" id="cb26-28" data-line-number="28">};</a>
-<a class="sourceLine" id="cb26-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb26-30" data-line-number="30"><span class="pp">#include </span><span class="im">&quot;writers/h5_node_type.ih&quot;</span></a>
-<a class="sourceLine" id="cb26-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb26-32" data-line-number="32"><span class="kw">template</span> &lt;<span class="kw">typename</span> V, <span class="kw">typename</span> S&gt;</a>
-<a class="sourceLine" id="cb26-33" data-line-number="33"><span class="dt">void</span> write_vector_with_shape(</a>
-<a class="sourceLine" id="cb26-34" data-line-number="34">    FileOrGroup &amp;group,</a>
-<a class="sourceLine" id="cb26-35" data-line-number="35">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
-<a class="sourceLine" id="cb26-36" data-line-number="36">    V <span class="at">const</span> &amp;v,</a>
-<a class="sourceLine" id="cb26-37" data-line-number="37">    S <span class="at">const</span> &amp;shape)</a>
-<a class="sourceLine" id="cb26-38" data-line-number="38">{</a>
-<a class="sourceLine" id="cb26-39" data-line-number="39">  <span class="bu">std::</span>vector&lt;<span class="dt">hsize_t</span>&gt; hshape(shape.begin(), shape.end());</a>
-<a class="sourceLine" id="cb26-40" data-line-number="40">  <span class="kw">auto</span>          <span class="dt">data_type</span> = H5TypeFactory&lt;<span class="kw">typename</span> V::<span class="dt">value_type</span>&gt;::get();</a>
-<a class="sourceLine" id="cb26-41" data-line-number="41">  H5::DataSpace data_space(hshape.size(), hshape.data());</a>
-<a class="sourceLine" id="cb26-42" data-line-number="42">  <span class="kw">auto</span>          data_set = group.createDataSet(name, <span class="dt">data_type</span>, data_space);</a>
-<a class="sourceLine" id="cb26-43" data-line-number="43">  data_set.write(v.data(), <span class="dt">data_type</span>);</a>
-<a class="sourceLine" id="cb26-44" data-line-number="44">}</a>
-<a class="sourceLine" id="cb26-45" data-line-number="45"></a>
-<a class="sourceLine" id="cb26-46" data-line-number="46"><span class="kw">template</span> &lt;<span class="kw">typename</span> V&gt;</a>
-<a class="sourceLine" id="cb26-47" data-line-number="47"><span class="dt">void</span> write_vector(</a>
-<a class="sourceLine" id="cb26-48" data-line-number="48">    FileOrGroup &amp;group,</a>
-<a class="sourceLine" id="cb26-49" data-line-number="49">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
-<a class="sourceLine" id="cb26-50" data-line-number="50">    V <span class="at">const</span> &amp;v)</a>
-<a class="sourceLine" id="cb26-51" data-line-number="51">{</a>
-<a class="sourceLine" id="cb26-52" data-line-number="52">  <span class="bu">std::</span>vector&lt;<span class="dt">hsize_t</span>&gt; shape { v.size() };</a>
-<a class="sourceLine" id="cb26-53" data-line-number="53">  write_vector_with_shape(group, name, v, shape);</a>
-<a class="sourceLine" id="cb26-54" data-line-number="54">}</a>
-<a class="sourceLine" id="cb26-55" data-line-number="55"></a>
-<a class="sourceLine" id="cb26-56" data-line-number="56"><span class="kw">template</span> &lt;<span class="kw">typename</span> Group, <span class="kw">typename</span> T&gt;</a>
-<a class="sourceLine" id="cb26-57" data-line-number="57"><span class="dt">void</span> write_attribute(</a>
-<a class="sourceLine" id="cb26-58" data-line-number="58">    Group &amp;group,</a>
-<a class="sourceLine" id="cb26-59" data-line-number="59">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
-<a class="sourceLine" id="cb26-60" data-line-number="60">    T <span class="at">const</span> &amp;value)</a>
-<a class="sourceLine" id="cb26-61" data-line-number="61">{</a>
-<a class="sourceLine" id="cb26-62" data-line-number="62">  <span class="kw">auto</span> attr = group.createAttribute(</a>
-<a class="sourceLine" id="cb26-63" data-line-number="63">    name, H5TypeFactory&lt;T&gt;::get(), H5::DataSpace());</a>
-<a class="sourceLine" id="cb26-64" data-line-number="64">  attr.write(H5TypeFactory&lt;T&gt;::get(), &amp;value);</a>
-<a class="sourceLine" id="cb26-65" data-line-number="65">}</a>
-<a class="sourceLine" id="cb26-66" data-line-number="66"></a>
-<a class="sourceLine" id="cb26-67" data-line-number="67"><span class="at">extern</span> <span class="dt">void</span> write_mesh(</a>
-<a class="sourceLine" id="cb26-68" data-line-number="68">    FileOrGroup &amp;group,</a>
-<a class="sourceLine" id="cb26-69" data-line-number="69">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
-<a class="sourceLine" id="cb26-70" data-line-number="70">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh);</a></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb28-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;cgal_base.hh&quot;</span></a>
+<a class="sourceLine" id="cb28-3" data-line-number="3"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
+<a class="sourceLine" id="cb28-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
+<a class="sourceLine" id="cb28-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;H5Cpp.h&gt;</span></a>
+<a class="sourceLine" id="cb28-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb28-7" data-line-number="7">&lt;&lt;hdf5-file-<span class="kw">or</span>-group&gt;&gt;</a>
+<a class="sourceLine" id="cb28-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb28-9" data-line-number="9"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb28-10" data-line-number="10"><span class="kw">struct</span> H5TypeFactory {};</a>
+<a class="sourceLine" id="cb28-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb28-12" data-line-number="12"><span class="kw">template</span> &lt;&gt;</a>
+<a class="sourceLine" id="cb28-13" data-line-number="13"><span class="kw">struct</span> H5TypeFactory&lt;<span class="dt">double</span>&gt;</a>
+<a class="sourceLine" id="cb28-14" data-line-number="14">{</a>
+<a class="sourceLine" id="cb28-15" data-line-number="15">  <span class="at">static</span> H5::FloatType get()</a>
+<a class="sourceLine" id="cb28-16" data-line-number="16">  {</a>
+<a class="sourceLine" id="cb28-17" data-line-number="17">    <span class="cf">return</span> H5::FloatType(H5::PredType::NATIVE_DOUBLE);</a>
+<a class="sourceLine" id="cb28-18" data-line-number="18">  }</a>
+<a class="sourceLine" id="cb28-19" data-line-number="19">};</a>
+<a class="sourceLine" id="cb28-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb28-21" data-line-number="21"><span class="kw">template</span> &lt;&gt;</a>
+<a class="sourceLine" id="cb28-22" data-line-number="22"><span class="kw">struct</span> H5TypeFactory&lt;<span class="dt">unsigned</span>&gt;</a>
+<a class="sourceLine" id="cb28-23" data-line-number="23">{</a>
+<a class="sourceLine" id="cb28-24" data-line-number="24">  <span class="at">static</span> H5::IntType get()</a>
+<a class="sourceLine" id="cb28-25" data-line-number="25">  {</a>
+<a class="sourceLine" id="cb28-26" data-line-number="26">    <span class="cf">return</span> H5::IntType(H5::PredType::NATIVE_UINT);</a>
+<a class="sourceLine" id="cb28-27" data-line-number="27">  }</a>
+<a class="sourceLine" id="cb28-28" data-line-number="28">};</a>
+<a class="sourceLine" id="cb28-29" data-line-number="29"></a>
+<a class="sourceLine" id="cb28-30" data-line-number="30"><span class="pp">#include </span><span class="im">&quot;writers/h5_node_type.ih&quot;</span></a>
+<a class="sourceLine" id="cb28-31" data-line-number="31"></a>
+<a class="sourceLine" id="cb28-32" data-line-number="32"><span class="kw">template</span> &lt;<span class="kw">typename</span> V, <span class="kw">typename</span> S&gt;</a>
+<a class="sourceLine" id="cb28-33" data-line-number="33"><span class="dt">void</span> write_vector_with_shape(</a>
+<a class="sourceLine" id="cb28-34" data-line-number="34">    FileOrGroup &amp;group,</a>
+<a class="sourceLine" id="cb28-35" data-line-number="35">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb28-36" data-line-number="36">    V <span class="at">const</span> &amp;v,</a>
+<a class="sourceLine" id="cb28-37" data-line-number="37">    S <span class="at">const</span> &amp;shape)</a>
+<a class="sourceLine" id="cb28-38" data-line-number="38">{</a>
+<a class="sourceLine" id="cb28-39" data-line-number="39">  <span class="bu">std::</span>vector&lt;<span class="dt">hsize_t</span>&gt; hshape(shape.begin(), shape.end());</a>
+<a class="sourceLine" id="cb28-40" data-line-number="40">  <span class="kw">auto</span>          <span class="dt">data_type</span> = H5TypeFactory&lt;<span class="kw">typename</span> V::<span class="dt">value_type</span>&gt;::get();</a>
+<a class="sourceLine" id="cb28-41" data-line-number="41">  H5::DataSpace data_space(hshape.size(), hshape.data());</a>
+<a class="sourceLine" id="cb28-42" data-line-number="42">  <span class="kw">auto</span>          data_set = group.createDataSet(name, <span class="dt">data_type</span>, data_space);</a>
+<a class="sourceLine" id="cb28-43" data-line-number="43">  data_set.write(v.data(), <span class="dt">data_type</span>);</a>
+<a class="sourceLine" id="cb28-44" data-line-number="44">}</a>
+<a class="sourceLine" id="cb28-45" data-line-number="45"></a>
+<a class="sourceLine" id="cb28-46" data-line-number="46"><span class="kw">template</span> &lt;<span class="kw">typename</span> V&gt;</a>
+<a class="sourceLine" id="cb28-47" data-line-number="47"><span class="dt">void</span> write_vector(</a>
+<a class="sourceLine" id="cb28-48" data-line-number="48">    FileOrGroup &amp;group,</a>
+<a class="sourceLine" id="cb28-49" data-line-number="49">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb28-50" data-line-number="50">    V <span class="at">const</span> &amp;v)</a>
+<a class="sourceLine" id="cb28-51" data-line-number="51">{</a>
+<a class="sourceLine" id="cb28-52" data-line-number="52">  <span class="bu">std::</span>vector&lt;<span class="dt">hsize_t</span>&gt; shape { v.size() };</a>
+<a class="sourceLine" id="cb28-53" data-line-number="53">  write_vector_with_shape(group, name, v, shape);</a>
+<a class="sourceLine" id="cb28-54" data-line-number="54">}</a>
+<a class="sourceLine" id="cb28-55" data-line-number="55"></a>
+<a class="sourceLine" id="cb28-56" data-line-number="56"><span class="kw">template</span> &lt;<span class="kw">typename</span> Group, <span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb28-57" data-line-number="57"><span class="dt">void</span> write_attribute(</a>
+<a class="sourceLine" id="cb28-58" data-line-number="58">    Group &amp;group,</a>
+<a class="sourceLine" id="cb28-59" data-line-number="59">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb28-60" data-line-number="60">    T <span class="at">const</span> &amp;value)</a>
+<a class="sourceLine" id="cb28-61" data-line-number="61">{</a>
+<a class="sourceLine" id="cb28-62" data-line-number="62">  <span class="kw">auto</span> attr = group.createAttribute(</a>
+<a class="sourceLine" id="cb28-63" data-line-number="63">    name, H5TypeFactory&lt;T&gt;::get(), H5::DataSpace());</a>
+<a class="sourceLine" id="cb28-64" data-line-number="64">  attr.write(H5TypeFactory&lt;T&gt;::get(), &amp;value);</a>
+<a class="sourceLine" id="cb28-65" data-line-number="65">}</a>
+<a class="sourceLine" id="cb28-66" data-line-number="66"></a>
+<a class="sourceLine" id="cb28-67" data-line-number="67"><span class="at">extern</span> <span class="dt">void</span> write_mesh(</a>
+<a class="sourceLine" id="cb28-68" data-line-number="68">    FileOrGroup &amp;group,</a>
+<a class="sourceLine" id="cb28-69" data-line-number="69">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb28-70" data-line-number="70">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh);</a></code></pre></div>
 <p>There has been a very recent change in the API of HDF5. So we define a proxy type that is common to <code>H5::Group</code> and <code>H5::H5File</code>.</p>
 <p><em>«hdf5-file-or-group»=</em></p>
 <div class="sourceCode" id="hdf5-file-or-group"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="hdf5-file-or-group-1" data-line-number="1"><span class="pp">#if H5_VERSION_GE(1, 10, 1)</span></a>
@@ -1788,202 +1811,202 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="hdf5-file-or-group-5" data-line-number="5"><span class="pp">#endif</span></a></code></pre></div>
 <h4 id="saving-to-hdf5">Saving to HDF5</h4>
 <p><em>file: «src/writers/h5_node_type.ih»=</em></p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb27-1" data-line-number="1"><span class="at">extern</span> H5::CompType <span class="dt">h5_node_type</span>();</a>
-<a class="sourceLine" id="cb27-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb27-3" data-line-number="3"><span class="kw">template</span> &lt;&gt;</a>
-<a class="sourceLine" id="cb27-4" data-line-number="4"><span class="kw">struct</span> H5TypeFactory&lt;Adhesion::Node&gt;</a>
-<a class="sourceLine" id="cb27-5" data-line-number="5">{</a>
-<a class="sourceLine" id="cb27-6" data-line-number="6">  <span class="at">static</span> H5::CompType get()</a>
-<a class="sourceLine" id="cb27-7" data-line-number="7">  {</a>
-<a class="sourceLine" id="cb27-8" data-line-number="8">    <span class="cf">return</span> <span class="dt">h5_node_type</span>();</a>
-<a class="sourceLine" id="cb27-9" data-line-number="9">  }</a>
-<a class="sourceLine" id="cb27-10" data-line-number="10">};</a></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb29-1" data-line-number="1"><span class="at">extern</span> H5::CompType <span class="dt">h5_node_type</span>();</a>
+<a class="sourceLine" id="cb29-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb29-3" data-line-number="3"><span class="kw">template</span> &lt;&gt;</a>
+<a class="sourceLine" id="cb29-4" data-line-number="4"><span class="kw">struct</span> H5TypeFactory&lt;Adhesion::Node&gt;</a>
+<a class="sourceLine" id="cb29-5" data-line-number="5">{</a>
+<a class="sourceLine" id="cb29-6" data-line-number="6">  <span class="at">static</span> H5::CompType get()</a>
+<a class="sourceLine" id="cb29-7" data-line-number="7">  {</a>
+<a class="sourceLine" id="cb29-8" data-line-number="8">    <span class="cf">return</span> <span class="dt">h5_node_type</span>();</a>
+<a class="sourceLine" id="cb29-9" data-line-number="9">  }</a>
+<a class="sourceLine" id="cb29-10" data-line-number="10">};</a></code></pre></div>
 <p><em>file: «src/writers/h5_node_type.cc»=</em></p>
-<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
-<a class="sourceLine" id="cb28-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
-<a class="sourceLine" id="cb28-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;cstddef&gt;</span></a>
-<a class="sourceLine" id="cb28-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb28-5" data-line-number="5">H5::CompType <span class="dt">h5_node_type</span>()</a>
-<a class="sourceLine" id="cb28-6" data-line-number="6">{</a>
-<a class="sourceLine" id="cb28-7" data-line-number="7">  <span class="dt">hsize_t</span> dim = <span class="dv">3</span>;</a>
-<a class="sourceLine" id="cb28-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb28-9" data-line-number="9">  H5::FloatType ft(H5::PredType::NATIVE_DOUBLE);</a>
-<a class="sourceLine" id="cb28-10" data-line-number="10">  H5::IntType   it(H5::PredType::NATIVE_UINT32);</a>
-<a class="sourceLine" id="cb28-11" data-line-number="11">  H5::ArrayType at(ft, <span class="dv">1</span>, &amp;dim);</a>
-<a class="sourceLine" id="cb28-12" data-line-number="12">  H5::CompType  ct(<span class="kw">sizeof</span>(Adhesion::Node));</a>
-<a class="sourceLine" id="cb28-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb28-14" data-line-number="14">  ct.insertMember(<span class="st">&quot;position&quot;</span>,  <span class="dv">0</span>, at);</a>
-<a class="sourceLine" id="cb28-15" data-line-number="15">  ct.insertMember(<span class="st">&quot;velocity&quot;</span>,  offsetof(Adhesion::Node, velocity), at);</a>
-<a class="sourceLine" id="cb28-16" data-line-number="16">  ct.insertMember(<span class="st">&quot;mass&quot;</span>,      offsetof(Adhesion::Node, mass), ft);</a>
-<a class="sourceLine" id="cb28-17" data-line-number="17">  ct.insertMember(<span class="st">&quot;node_type&quot;</span>, offsetof(Adhesion::Node, <span class="dt">node_type</span>), it);</a>
-<a class="sourceLine" id="cb28-18" data-line-number="18">  <span class="cf">return</span> ct;</a>
-<a class="sourceLine" id="cb28-19" data-line-number="19">}</a></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb30-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
+<a class="sourceLine" id="cb30-2" data-line-number="2"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
+<a class="sourceLine" id="cb30-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;cstddef&gt;</span></a>
+<a class="sourceLine" id="cb30-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb30-5" data-line-number="5">H5::CompType <span class="dt">h5_node_type</span>()</a>
+<a class="sourceLine" id="cb30-6" data-line-number="6">{</a>
+<a class="sourceLine" id="cb30-7" data-line-number="7">  <span class="dt">hsize_t</span> dim = <span class="dv">3</span>;</a>
+<a class="sourceLine" id="cb30-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb30-9" data-line-number="9">  H5::FloatType ft(H5::PredType::NATIVE_DOUBLE);</a>
+<a class="sourceLine" id="cb30-10" data-line-number="10">  H5::IntType   it(H5::PredType::NATIVE_UINT32);</a>
+<a class="sourceLine" id="cb30-11" data-line-number="11">  H5::ArrayType at(ft, <span class="dv">1</span>, &amp;dim);</a>
+<a class="sourceLine" id="cb30-12" data-line-number="12">  H5::CompType  ct(<span class="kw">sizeof</span>(Adhesion::Node));</a>
+<a class="sourceLine" id="cb30-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb30-14" data-line-number="14">  ct.insertMember(<span class="st">&quot;position&quot;</span>,  <span class="dv">0</span>, at);</a>
+<a class="sourceLine" id="cb30-15" data-line-number="15">  ct.insertMember(<span class="st">&quot;velocity&quot;</span>,  offsetof(Adhesion::Node, velocity), at);</a>
+<a class="sourceLine" id="cb30-16" data-line-number="16">  ct.insertMember(<span class="st">&quot;mass&quot;</span>,      offsetof(Adhesion::Node, mass), ft);</a>
+<a class="sourceLine" id="cb30-17" data-line-number="17">  ct.insertMember(<span class="st">&quot;node_type&quot;</span>, offsetof(Adhesion::Node, <span class="dt">node_type</span>), it);</a>
+<a class="sourceLine" id="cb30-18" data-line-number="18">  <span class="cf">return</span> ct;</a>
+<a class="sourceLine" id="cb30-19" data-line-number="19">}</a></code></pre></div>
 <h4 id="writing-meshes-to-hdf5">Writing meshes to HDF5</h4>
 <p><em>file: «src/writers/hdf5-mesh.cc»=</em></p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb29-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
-<a class="sourceLine" id="cb29-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb29-3" data-line-number="3"><span class="dt">void</span> write_mesh(</a>
-<a class="sourceLine" id="cb29-4" data-line-number="4">    FileOrGroup &amp;file,</a>
-<a class="sourceLine" id="cb29-5" data-line-number="5">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
-<a class="sourceLine" id="cb29-6" data-line-number="6">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
-<a class="sourceLine" id="cb29-7" data-line-number="7">{</a>
-<a class="sourceLine" id="cb29-8" data-line-number="8">  <span class="kw">auto</span> group = file.createGroup(name);</a>
-<a class="sourceLine" id="cb29-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb29-10" data-line-number="10">  <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; vertex_data;</a>
-<a class="sourceLine" id="cb29-11" data-line-number="11">  <span class="cf">for</span> (Point <span class="at">const</span> &amp;v : mesh.vertices) {</a>
-<a class="sourceLine" id="cb29-12" data-line-number="12">    vertex_data.push_back(v[<span class="dv">0</span>]);</a>
-<a class="sourceLine" id="cb29-13" data-line-number="13">    vertex_data.push_back(v[<span class="dv">1</span>]);</a>
-<a class="sourceLine" id="cb29-14" data-line-number="14">    vertex_data.push_back(v[<span class="dv">2</span>]);</a>
-<a class="sourceLine" id="cb29-15" data-line-number="15">  }</a>
-<a class="sourceLine" id="cb29-16" data-line-number="16"></a>
-<a class="sourceLine" id="cb29-17" data-line-number="17">  <span class="bu">std::</span>vector&lt;<span class="dt">hsize_t</span>&gt; vertex_shape { mesh.vertices.size(), <span class="dv">3</span> };</a>
-<a class="sourceLine" id="cb29-18" data-line-number="18">  write_vector_with_shape(group, <span class="st">&quot;vertices&quot;</span>, vertex_data, vertex_shape);</a>
-<a class="sourceLine" id="cb29-19" data-line-number="19">  write_vector(group, <span class="st">&quot;info&quot;</span>,  mesh.info);</a>
-<a class="sourceLine" id="cb29-20" data-line-number="20">  write_vector(group, <span class="st">&quot;sizes&quot;</span>, mesh.sizes);</a>
-<a class="sourceLine" id="cb29-21" data-line-number="21">  write_vector(group, <span class="st">&quot;data&quot;</span>,  mesh.data);</a>
-<a class="sourceLine" id="cb29-22" data-line-number="22">}</a></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb31-1" data-line-number="1"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
+<a class="sourceLine" id="cb31-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb31-3" data-line-number="3"><span class="dt">void</span> write_mesh(</a>
+<a class="sourceLine" id="cb31-4" data-line-number="4">    FileOrGroup &amp;file,</a>
+<a class="sourceLine" id="cb31-5" data-line-number="5">    <span class="bu">std::</span>string <span class="at">const</span> &amp;name,</a>
+<a class="sourceLine" id="cb31-6" data-line-number="6">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
+<a class="sourceLine" id="cb31-7" data-line-number="7">{</a>
+<a class="sourceLine" id="cb31-8" data-line-number="8">  <span class="kw">auto</span> group = file.createGroup(name);</a>
+<a class="sourceLine" id="cb31-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb31-10" data-line-number="10">  <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; vertex_data;</a>
+<a class="sourceLine" id="cb31-11" data-line-number="11">  <span class="cf">for</span> (Point <span class="at">const</span> &amp;v : mesh.vertices) {</a>
+<a class="sourceLine" id="cb31-12" data-line-number="12">    vertex_data.push_back(v[<span class="dv">0</span>]);</a>
+<a class="sourceLine" id="cb31-13" data-line-number="13">    vertex_data.push_back(v[<span class="dv">1</span>]);</a>
+<a class="sourceLine" id="cb31-14" data-line-number="14">    vertex_data.push_back(v[<span class="dv">2</span>]);</a>
+<a class="sourceLine" id="cb31-15" data-line-number="15">  }</a>
+<a class="sourceLine" id="cb31-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb31-17" data-line-number="17">  <span class="bu">std::</span>vector&lt;<span class="dt">hsize_t</span>&gt; vertex_shape { mesh.vertices.size(), <span class="dv">3</span> };</a>
+<a class="sourceLine" id="cb31-18" data-line-number="18">  write_vector_with_shape(group, <span class="st">&quot;vertices&quot;</span>, vertex_data, vertex_shape);</a>
+<a class="sourceLine" id="cb31-19" data-line-number="19">  write_vector(group, <span class="st">&quot;info&quot;</span>,  mesh.info);</a>
+<a class="sourceLine" id="cb31-20" data-line-number="20">  write_vector(group, <span class="st">&quot;sizes&quot;</span>, mesh.sizes);</a>
+<a class="sourceLine" id="cb31-21" data-line-number="21">  write_vector(group, <span class="st">&quot;data&quot;</span>,  mesh.data);</a>
+<a class="sourceLine" id="cb31-22" data-line-number="22">}</a></code></pre></div>
 <h4 id="obj-file-format">Writing an OBJ file</h4>
 <p><em>file: «src/write_obj.hh»=</em></p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb30-1" data-line-number="1"><span class="pp">#pragma once</span></a>
-<a class="sourceLine" id="cb30-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
-<a class="sourceLine" id="cb30-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb30-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
-<a class="sourceLine" id="cb30-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb30-6" data-line-number="6"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="cb30-7" data-line-number="7"><span class="dt">void</span> write_to_obj(</a>
-<a class="sourceLine" id="cb30-8" data-line-number="8">    <span class="bu">std::</span>ostream &amp;out, <span class="bu">std::</span>string <span class="at">const</span> &amp;pre,</a>
-<a class="sourceLine" id="cb30-9" data-line-number="9">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
-<a class="sourceLine" id="cb30-10" data-line-number="10">{</a>
-<a class="sourceLine" id="cb30-11" data-line-number="11">  <span class="cf">for</span> (Point <span class="at">const</span> &amp;p : mesh.vertices) {</a>
-<a class="sourceLine" id="cb30-12" data-line-number="12">    out &lt;&lt; <span class="st">&quot;v &quot;</span> &lt;&lt; p &lt;&lt; <span class="st">&quot; 1.0</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
-<a class="sourceLine" id="cb30-13" data-line-number="13">  }</a>
-<a class="sourceLine" id="cb30-14" data-line-number="14">  out &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
-<a class="sourceLine" id="cb30-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb30-16" data-line-number="16">  <span class="cf">for</span> (<span class="dt">double</span> a : mesh.info) {</a>
-<a class="sourceLine" id="cb30-17" data-line-number="17">    out &lt;&lt; <span class="st">&quot;vt &quot;</span> &lt;&lt; a &lt;&lt; <span class="st">&quot; 0</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
-<a class="sourceLine" id="cb30-18" data-line-number="18">  }</a>
-<a class="sourceLine" id="cb30-19" data-line-number="19">  out &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
-<a class="sourceLine" id="cb30-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb30-21" data-line-number="21">  <span class="dt">unsigned</span> i = <span class="dv">1</span>, j = <span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb30-22" data-line-number="22">  <span class="cf">for</span> (<span class="dt">unsigned</span> s : mesh.sizes) {</a>
-<a class="sourceLine" id="cb30-23" data-line-number="23">    out &lt;&lt; pre;</a>
-<a class="sourceLine" id="cb30-24" data-line-number="24">    <span class="cf">for</span> (<span class="dt">unsigned</span> k = <span class="dv">0</span>; k &lt; s; ++k) {</a>
-<a class="sourceLine" id="cb30-25" data-line-number="25">      out &lt;&lt; <span class="st">&quot; &quot;</span> &lt;&lt; mesh.data[j] + <span class="dv">1</span> &lt;&lt; <span class="st">&quot;/&quot;</span> &lt;&lt; i;</a>
-<a class="sourceLine" id="cb30-26" data-line-number="26">      ++j;</a>
-<a class="sourceLine" id="cb30-27" data-line-number="27">    }</a>
-<a class="sourceLine" id="cb30-28" data-line-number="28">    out &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
-<a class="sourceLine" id="cb30-29" data-line-number="29">    ++i;</a>
-<a class="sourceLine" id="cb30-30" data-line-number="30">  }</a>
-<a class="sourceLine" id="cb30-31" data-line-number="31">}</a>
-<a class="sourceLine" id="cb30-32" data-line-number="32"></a>
-<a class="sourceLine" id="cb30-33" data-line-number="33"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="cb30-34" data-line-number="34"><span class="dt">void</span> write_edges_to_obj(</a>
-<a class="sourceLine" id="cb30-35" data-line-number="35">    <span class="bu">std::</span>ostream &amp;out,</a>
-<a class="sourceLine" id="cb30-36" data-line-number="36">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
-<a class="sourceLine" id="cb30-37" data-line-number="37">{</a>
-<a class="sourceLine" id="cb30-38" data-line-number="38">  write_to_obj(out, <span class="st">&quot;l&quot;</span>, mesh);</a>
-<a class="sourceLine" id="cb30-39" data-line-number="39">}</a>
-<a class="sourceLine" id="cb30-40" data-line-number="40"></a>
-<a class="sourceLine" id="cb30-41" data-line-number="41"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
-<a class="sourceLine" id="cb30-42" data-line-number="42"><span class="dt">void</span> write_faces_to_obj(<span class="bu">std::</span>ostream &amp;out, Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
-<a class="sourceLine" id="cb30-43" data-line-number="43">{</a>
-<a class="sourceLine" id="cb30-44" data-line-number="44">  write_to_obj(out, <span class="st">&quot;f&quot;</span>, mesh);</a>
-<a class="sourceLine" id="cb30-45" data-line-number="45">}</a></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb32-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb32-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
+<a class="sourceLine" id="cb32-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb32-4" data-line-number="4"><span class="pp">#include </span><span class="im">&quot;mesh.hh&quot;</span></a>
+<a class="sourceLine" id="cb32-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb32-6" data-line-number="6"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="cb32-7" data-line-number="7"><span class="dt">void</span> write_to_obj(</a>
+<a class="sourceLine" id="cb32-8" data-line-number="8">    <span class="bu">std::</span>ostream &amp;out, <span class="bu">std::</span>string <span class="at">const</span> &amp;pre,</a>
+<a class="sourceLine" id="cb32-9" data-line-number="9">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
+<a class="sourceLine" id="cb32-10" data-line-number="10">{</a>
+<a class="sourceLine" id="cb32-11" data-line-number="11">  <span class="cf">for</span> (Point <span class="at">const</span> &amp;p : mesh.vertices) {</a>
+<a class="sourceLine" id="cb32-12" data-line-number="12">    out &lt;&lt; <span class="st">&quot;v &quot;</span> &lt;&lt; p &lt;&lt; <span class="st">&quot; 1.0</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
+<a class="sourceLine" id="cb32-13" data-line-number="13">  }</a>
+<a class="sourceLine" id="cb32-14" data-line-number="14">  out &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
+<a class="sourceLine" id="cb32-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb32-16" data-line-number="16">  <span class="cf">for</span> (<span class="dt">double</span> a : mesh.info) {</a>
+<a class="sourceLine" id="cb32-17" data-line-number="17">    out &lt;&lt; <span class="st">&quot;vt &quot;</span> &lt;&lt; a &lt;&lt; <span class="st">&quot; 0</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
+<a class="sourceLine" id="cb32-18" data-line-number="18">  }</a>
+<a class="sourceLine" id="cb32-19" data-line-number="19">  out &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
+<a class="sourceLine" id="cb32-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb32-21" data-line-number="21">  <span class="dt">unsigned</span> i = <span class="dv">1</span>, j = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb32-22" data-line-number="22">  <span class="cf">for</span> (<span class="dt">unsigned</span> s : mesh.sizes) {</a>
+<a class="sourceLine" id="cb32-23" data-line-number="23">    out &lt;&lt; pre;</a>
+<a class="sourceLine" id="cb32-24" data-line-number="24">    <span class="cf">for</span> (<span class="dt">unsigned</span> k = <span class="dv">0</span>; k &lt; s; ++k) {</a>
+<a class="sourceLine" id="cb32-25" data-line-number="25">      out &lt;&lt; <span class="st">&quot; &quot;</span> &lt;&lt; mesh.data[j] + <span class="dv">1</span> &lt;&lt; <span class="st">&quot;/&quot;</span> &lt;&lt; i;</a>
+<a class="sourceLine" id="cb32-26" data-line-number="26">      ++j;</a>
+<a class="sourceLine" id="cb32-27" data-line-number="27">    }</a>
+<a class="sourceLine" id="cb32-28" data-line-number="28">    out &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</a>
+<a class="sourceLine" id="cb32-29" data-line-number="29">    ++i;</a>
+<a class="sourceLine" id="cb32-30" data-line-number="30">  }</a>
+<a class="sourceLine" id="cb32-31" data-line-number="31">}</a>
+<a class="sourceLine" id="cb32-32" data-line-number="32"></a>
+<a class="sourceLine" id="cb32-33" data-line-number="33"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="cb32-34" data-line-number="34"><span class="dt">void</span> write_edges_to_obj(</a>
+<a class="sourceLine" id="cb32-35" data-line-number="35">    <span class="bu">std::</span>ostream &amp;out,</a>
+<a class="sourceLine" id="cb32-36" data-line-number="36">    Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
+<a class="sourceLine" id="cb32-37" data-line-number="37">{</a>
+<a class="sourceLine" id="cb32-38" data-line-number="38">  write_to_obj(out, <span class="st">&quot;l&quot;</span>, mesh);</a>
+<a class="sourceLine" id="cb32-39" data-line-number="39">}</a>
+<a class="sourceLine" id="cb32-40" data-line-number="40"></a>
+<a class="sourceLine" id="cb32-41" data-line-number="41"><span class="kw">template</span> &lt;<span class="kw">typename</span> Point&gt;</a>
+<a class="sourceLine" id="cb32-42" data-line-number="42"><span class="dt">void</span> write_faces_to_obj(<span class="bu">std::</span>ostream &amp;out, Mesh&lt;Point, <span class="dt">double</span>&gt; <span class="at">const</span> &amp;mesh)</a>
+<a class="sourceLine" id="cb32-43" data-line-number="43">{</a>
+<a class="sourceLine" id="cb32-44" data-line-number="44">  write_to_obj(out, <span class="st">&quot;f&quot;</span>, mesh);</a>
+<a class="sourceLine" id="cb32-45" data-line-number="45">}</a></code></pre></div>
 <h3 id="fourier-interface">Fourier interface</h3>
 <p><em>file: «src/fft.hh»=</em></p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb31-1" data-line-number="1"><span class="pp">#pragma once</span></a>
-<a class="sourceLine" id="cb31-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;fftw3.h&gt;</span></a>
-<a class="sourceLine" id="cb31-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;memory&gt;</span></a>
-<a class="sourceLine" id="cb31-4" data-line-number="4"><span class="pp">#include </span><span class="im">&lt;complex&gt;</span></a>
-<a class="sourceLine" id="cb31-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;vector&gt;</span></a>
-<a class="sourceLine" id="cb31-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb31-7" data-line-number="7"><span class="pp">#include </span><span class="im">&quot;boxparam.hh&quot;</span></a>
-<a class="sourceLine" id="cb31-8" data-line-number="8"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
-<a class="sourceLine" id="cb31-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb31-10" data-line-number="10"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
-<a class="sourceLine" id="cb31-11" data-line-number="11"><span class="kw">class</span> FFTW_allocator: <span class="kw">public</span> <span class="bu">std::</span>allocator&lt;T&gt;</a>
-<a class="sourceLine" id="cb31-12" data-line-number="12">{</a>
-<a class="sourceLine" id="cb31-13" data-line-number="13"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="cb31-14" data-line-number="14">  <span class="kw">typedef</span> T           <span class="dt">value_type</span>;</a>
-<a class="sourceLine" id="cb31-15" data-line-number="15">  <span class="kw">typedef</span> T *         pointer;</a>
-<a class="sourceLine" id="cb31-16" data-line-number="16">  <span class="kw">typedef</span> T &amp;         reference;</a>
-<a class="sourceLine" id="cb31-17" data-line-number="17">  <span class="kw">typedef</span> T <span class="at">const</span> *   const_pointer;</a>
-<a class="sourceLine" id="cb31-18" data-line-number="18">  <span class="kw">typedef</span> T <span class="at">const</span> &amp;   const_reference;</a>
-<a class="sourceLine" id="cb31-19" data-line-number="19">  <span class="kw">typedef</span> <span class="dt">size_t</span>      <span class="dt">size_type</span>;</a>
-<a class="sourceLine" id="cb31-20" data-line-number="20">  <span class="kw">typedef</span> <span class="dt">ptrdiff_t</span>   <span class="dt">difference_type</span>;</a>
-<a class="sourceLine" id="cb31-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb31-22" data-line-number="22">  pointer allocate(</a>
-<a class="sourceLine" id="cb31-23" data-line-number="23">      <span class="dt">size_t</span> n,</a>
-<a class="sourceLine" id="cb31-24" data-line-number="24">      <span class="bu">std::</span>allocator&lt;<span class="dt">void</span>&gt;::const_pointer hint = <span class="dv">0</span>)</a>
-<a class="sourceLine" id="cb31-25" data-line-number="25">  {</a>
-<a class="sourceLine" id="cb31-26" data-line-number="26">    <span class="cf">return</span> <span class="kw">reinterpret_cast</span>&lt;T *&gt;(fftw_malloc(n * <span class="kw">sizeof</span>(T)));</a>
-<a class="sourceLine" id="cb31-27" data-line-number="27">  }</a>
-<a class="sourceLine" id="cb31-28" data-line-number="28"></a>
-<a class="sourceLine" id="cb31-29" data-line-number="29">  <span class="dt">void</span> deallocate(</a>
-<a class="sourceLine" id="cb31-30" data-line-number="30">      pointer p,</a>
-<a class="sourceLine" id="cb31-31" data-line-number="31">      <span class="dt">size_t</span> n)</a>
-<a class="sourceLine" id="cb31-32" data-line-number="32">  {</a>
-<a class="sourceLine" id="cb31-33" data-line-number="33">    fftw_free(p);</a>
-<a class="sourceLine" id="cb31-34" data-line-number="34">  }</a>
-<a class="sourceLine" id="cb31-35" data-line-number="35">};</a>
-<a class="sourceLine" id="cb31-36" data-line-number="36"></a>
-<a class="sourceLine" id="cb31-37" data-line-number="37"><span class="kw">class</span> RFFT3</a>
-<a class="sourceLine" id="cb31-38" data-line-number="38">{</a>
-<a class="sourceLine" id="cb31-39" data-line-number="39"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="cb31-40" data-line-number="40">  <span class="kw">using</span> c64 = <span class="bu">std::</span>complex&lt;<span class="dt">double</span>&gt;;</a>
-<a class="sourceLine" id="cb31-41" data-line-number="41">  <span class="bu">std::</span>vector&lt;c64, FFTW_allocator&lt;c64&gt;&gt;</a>
-<a class="sourceLine" id="cb31-42" data-line-number="42">    fourier_space;</a>
-<a class="sourceLine" id="cb31-43" data-line-number="43">  <span class="bu">std::</span>vector&lt;<span class="dt">double</span>, FFTW_allocator&lt;<span class="dt">double</span>&gt;&gt;</a>
-<a class="sourceLine" id="cb31-44" data-line-number="44">    real_space;</a>
-<a class="sourceLine" id="cb31-45" data-line-number="45"></a>
-<a class="sourceLine" id="cb31-46" data-line-number="46"><span class="kw">private</span>:</a>
-<a class="sourceLine" id="cb31-47" data-line-number="47">  BoxParam    box;</a>
-<a class="sourceLine" id="cb31-48" data-line-number="48">  fftw_plan   d_plan_fwd, d_plan_bwd;</a>
-<a class="sourceLine" id="cb31-49" data-line-number="49"></a>
-<a class="sourceLine" id="cb31-50" data-line-number="50"><span class="kw">public</span>:</a>
-<a class="sourceLine" id="cb31-51" data-line-number="51">  RFFT3(BoxParam <span class="at">const</span> &amp;<span class="va">box_</span>):</a>
-<a class="sourceLine" id="cb31-52" data-line-number="52">    fourier_space(<span class="va">box_</span>.rfft_size()),</a>
-<a class="sourceLine" id="cb31-53" data-line-number="53">    real_space(<span class="va">box_</span>.size()),</a>
-<a class="sourceLine" id="cb31-54" data-line-number="54">    box(<span class="va">box_</span>)</a>
-<a class="sourceLine" id="cb31-55" data-line-number="55">  {</a>
-<a class="sourceLine" id="cb31-56" data-line-number="56">    <span class="dt">int</span> N = <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(box.N);</a>
-<a class="sourceLine" id="cb31-57" data-line-number="57"></a>
-<a class="sourceLine" id="cb31-58" data-line-number="58">    d_plan_fwd = fftw_plan_dft_r2c_3d(N, N, N,</a>
-<a class="sourceLine" id="cb31-59" data-line-number="59">      <span class="kw">reinterpret_cast</span>&lt;<span class="dt">double</span> *&gt;(real_space.data()),</a>
-<a class="sourceLine" id="cb31-60" data-line-number="60">      <span class="kw">reinterpret_cast</span>&lt;fftw_complex *&gt;(fourier_space.data()),</a>
-<a class="sourceLine" id="cb31-61" data-line-number="61">      FFTW_ESTIMATE);</a>
-<a class="sourceLine" id="cb31-62" data-line-number="62"></a>
-<a class="sourceLine" id="cb31-63" data-line-number="63">    d_plan_bwd = fftw_plan_dft_c2r_3d(N, N, N,</a>
-<a class="sourceLine" id="cb31-64" data-line-number="64">      <span class="kw">reinterpret_cast</span>&lt;fftw_complex *&gt;(fourier_space.data()),</a>
-<a class="sourceLine" id="cb31-65" data-line-number="65">      <span class="kw">reinterpret_cast</span>&lt;<span class="dt">double</span> *&gt;(real_space.data()),</a>
-<a class="sourceLine" id="cb31-66" data-line-number="66">      FFTW_ESTIMATE);</a>
-<a class="sourceLine" id="cb31-67" data-line-number="67">  }</a>
-<a class="sourceLine" id="cb31-68" data-line-number="68"></a>
-<a class="sourceLine" id="cb31-69" data-line-number="69">  <span class="dt">void</span> forward_transform()</a>
-<a class="sourceLine" id="cb31-70" data-line-number="70">  {</a>
-<a class="sourceLine" id="cb31-71" data-line-number="71">      fftw_execute(d_plan_fwd);</a>
-<a class="sourceLine" id="cb31-72" data-line-number="72">  }</a>
-<a class="sourceLine" id="cb31-73" data-line-number="73"></a>
-<a class="sourceLine" id="cb31-74" data-line-number="74">  <span class="dt">void</span> backward_transform()</a>
-<a class="sourceLine" id="cb31-75" data-line-number="75">  {</a>
-<a class="sourceLine" id="cb31-76" data-line-number="76">      fftw_execute(d_plan_bwd);</a>
-<a class="sourceLine" id="cb31-77" data-line-number="77">      <span class="cf">for</span> (<span class="dt">double</span> &amp;z : real_space) z /= box.size();</a>
-<a class="sourceLine" id="cb31-78" data-line-number="78">  }</a>
-<a class="sourceLine" id="cb31-79" data-line-number="79">};</a></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb33-1" data-line-number="1"><span class="pp">#pragma once</span></a>
+<a class="sourceLine" id="cb33-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;fftw3.h&gt;</span></a>
+<a class="sourceLine" id="cb33-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;memory&gt;</span></a>
+<a class="sourceLine" id="cb33-4" data-line-number="4"><span class="pp">#include </span><span class="im">&lt;complex&gt;</span></a>
+<a class="sourceLine" id="cb33-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;vector&gt;</span></a>
+<a class="sourceLine" id="cb33-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb33-7" data-line-number="7"><span class="pp">#include </span><span class="im">&quot;boxparam.hh&quot;</span></a>
+<a class="sourceLine" id="cb33-8" data-line-number="8"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
+<a class="sourceLine" id="cb33-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb33-10" data-line-number="10"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;</a>
+<a class="sourceLine" id="cb33-11" data-line-number="11"><span class="kw">class</span> FFTW_allocator: <span class="kw">public</span> <span class="bu">std::</span>allocator&lt;T&gt;</a>
+<a class="sourceLine" id="cb33-12" data-line-number="12">{</a>
+<a class="sourceLine" id="cb33-13" data-line-number="13"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb33-14" data-line-number="14">  <span class="kw">typedef</span> T           <span class="dt">value_type</span>;</a>
+<a class="sourceLine" id="cb33-15" data-line-number="15">  <span class="kw">typedef</span> T *         pointer;</a>
+<a class="sourceLine" id="cb33-16" data-line-number="16">  <span class="kw">typedef</span> T &amp;         reference;</a>
+<a class="sourceLine" id="cb33-17" data-line-number="17">  <span class="kw">typedef</span> T <span class="at">const</span> *   const_pointer;</a>
+<a class="sourceLine" id="cb33-18" data-line-number="18">  <span class="kw">typedef</span> T <span class="at">const</span> &amp;   const_reference;</a>
+<a class="sourceLine" id="cb33-19" data-line-number="19">  <span class="kw">typedef</span> <span class="dt">size_t</span>      <span class="dt">size_type</span>;</a>
+<a class="sourceLine" id="cb33-20" data-line-number="20">  <span class="kw">typedef</span> <span class="dt">ptrdiff_t</span>   <span class="dt">difference_type</span>;</a>
+<a class="sourceLine" id="cb33-21" data-line-number="21"></a>
+<a class="sourceLine" id="cb33-22" data-line-number="22">  pointer allocate(</a>
+<a class="sourceLine" id="cb33-23" data-line-number="23">      <span class="dt">size_t</span> n,</a>
+<a class="sourceLine" id="cb33-24" data-line-number="24">      <span class="bu">std::</span>allocator&lt;<span class="dt">void</span>&gt;::const_pointer hint = <span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb33-25" data-line-number="25">  {</a>
+<a class="sourceLine" id="cb33-26" data-line-number="26">    <span class="cf">return</span> <span class="kw">reinterpret_cast</span>&lt;T *&gt;(fftw_malloc(n * <span class="kw">sizeof</span>(T)));</a>
+<a class="sourceLine" id="cb33-27" data-line-number="27">  }</a>
+<a class="sourceLine" id="cb33-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb33-29" data-line-number="29">  <span class="dt">void</span> deallocate(</a>
+<a class="sourceLine" id="cb33-30" data-line-number="30">      pointer p,</a>
+<a class="sourceLine" id="cb33-31" data-line-number="31">      <span class="dt">size_t</span> n)</a>
+<a class="sourceLine" id="cb33-32" data-line-number="32">  {</a>
+<a class="sourceLine" id="cb33-33" data-line-number="33">    fftw_free(p);</a>
+<a class="sourceLine" id="cb33-34" data-line-number="34">  }</a>
+<a class="sourceLine" id="cb33-35" data-line-number="35">};</a>
+<a class="sourceLine" id="cb33-36" data-line-number="36"></a>
+<a class="sourceLine" id="cb33-37" data-line-number="37"><span class="kw">class</span> RFFT3</a>
+<a class="sourceLine" id="cb33-38" data-line-number="38">{</a>
+<a class="sourceLine" id="cb33-39" data-line-number="39"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb33-40" data-line-number="40">  <span class="kw">using</span> c64 = <span class="bu">std::</span>complex&lt;<span class="dt">double</span>&gt;;</a>
+<a class="sourceLine" id="cb33-41" data-line-number="41">  <span class="bu">std::</span>vector&lt;c64, FFTW_allocator&lt;c64&gt;&gt;</a>
+<a class="sourceLine" id="cb33-42" data-line-number="42">    fourier_space;</a>
+<a class="sourceLine" id="cb33-43" data-line-number="43">  <span class="bu">std::</span>vector&lt;<span class="dt">double</span>, FFTW_allocator&lt;<span class="dt">double</span>&gt;&gt;</a>
+<a class="sourceLine" id="cb33-44" data-line-number="44">    real_space;</a>
+<a class="sourceLine" id="cb33-45" data-line-number="45"></a>
+<a class="sourceLine" id="cb33-46" data-line-number="46"><span class="kw">private</span>:</a>
+<a class="sourceLine" id="cb33-47" data-line-number="47">  BoxParam    box;</a>
+<a class="sourceLine" id="cb33-48" data-line-number="48">  fftw_plan   d_plan_fwd, d_plan_bwd;</a>
+<a class="sourceLine" id="cb33-49" data-line-number="49"></a>
+<a class="sourceLine" id="cb33-50" data-line-number="50"><span class="kw">public</span>:</a>
+<a class="sourceLine" id="cb33-51" data-line-number="51">  RFFT3(BoxParam <span class="at">const</span> &amp;<span class="va">box_</span>):</a>
+<a class="sourceLine" id="cb33-52" data-line-number="52">    fourier_space(<span class="va">box_</span>.rfft_size()),</a>
+<a class="sourceLine" id="cb33-53" data-line-number="53">    real_space(<span class="va">box_</span>.size()),</a>
+<a class="sourceLine" id="cb33-54" data-line-number="54">    box(<span class="va">box_</span>)</a>
+<a class="sourceLine" id="cb33-55" data-line-number="55">  {</a>
+<a class="sourceLine" id="cb33-56" data-line-number="56">    <span class="dt">int</span> N = <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(box.N);</a>
+<a class="sourceLine" id="cb33-57" data-line-number="57"></a>
+<a class="sourceLine" id="cb33-58" data-line-number="58">    d_plan_fwd = fftw_plan_dft_r2c_3d(N, N, N,</a>
+<a class="sourceLine" id="cb33-59" data-line-number="59">      <span class="kw">reinterpret_cast</span>&lt;<span class="dt">double</span> *&gt;(real_space.data()),</a>
+<a class="sourceLine" id="cb33-60" data-line-number="60">      <span class="kw">reinterpret_cast</span>&lt;fftw_complex *&gt;(fourier_space.data()),</a>
+<a class="sourceLine" id="cb33-61" data-line-number="61">      FFTW_ESTIMATE);</a>
+<a class="sourceLine" id="cb33-62" data-line-number="62"></a>
+<a class="sourceLine" id="cb33-63" data-line-number="63">    d_plan_bwd = fftw_plan_dft_c2r_3d(N, N, N,</a>
+<a class="sourceLine" id="cb33-64" data-line-number="64">      <span class="kw">reinterpret_cast</span>&lt;fftw_complex *&gt;(fourier_space.data()),</a>
+<a class="sourceLine" id="cb33-65" data-line-number="65">      <span class="kw">reinterpret_cast</span>&lt;<span class="dt">double</span> *&gt;(real_space.data()),</a>
+<a class="sourceLine" id="cb33-66" data-line-number="66">      FFTW_ESTIMATE);</a>
+<a class="sourceLine" id="cb33-67" data-line-number="67">  }</a>
+<a class="sourceLine" id="cb33-68" data-line-number="68"></a>
+<a class="sourceLine" id="cb33-69" data-line-number="69">  <span class="dt">void</span> forward_transform()</a>
+<a class="sourceLine" id="cb33-70" data-line-number="70">  {</a>
+<a class="sourceLine" id="cb33-71" data-line-number="71">      fftw_execute(d_plan_fwd);</a>
+<a class="sourceLine" id="cb33-72" data-line-number="72">  }</a>
+<a class="sourceLine" id="cb33-73" data-line-number="73"></a>
+<a class="sourceLine" id="cb33-74" data-line-number="74">  <span class="dt">void</span> backward_transform()</a>
+<a class="sourceLine" id="cb33-75" data-line-number="75">  {</a>
+<a class="sourceLine" id="cb33-76" data-line-number="76">      fftw_execute(d_plan_bwd);</a>
+<a class="sourceLine" id="cb33-77" data-line-number="77">      <span class="cf">for</span> (<span class="dt">double</span> &amp;z : real_space) z /= box.size();</a>
+<a class="sourceLine" id="cb33-78" data-line-number="78">  }</a>
+<a class="sourceLine" id="cb33-79" data-line-number="79">};</a></code></pre></div>
 
 <h1 id="bibliography" class="unnumbered">References</h1>
 <div id="refs" class="references">
 <div id="ref-Arnold1982">
-<p>Arnold, V. I., S. F. Shandarin, and Ya. B. Zeldovich. 1982. “The large scale structure of the universe. I - General properties One- and two-dimensional models.” <em>Geophysical and Astrophysical Fluid Dynamics</em> 20: 111–30. doi:<a href="https://doi.org/10.1080/03091928208209001">10.1080/03091928208209001</a>.</p>
+<p>Arnold, V. I., S. F. Shandarin, and Ya. B. Zeldovich. 1982. “The large scale structure of the universe. I - General properties One- and two-dimensional models.” <em>Geophysical and Astrophysical Fluid Dynamics</em> 20: 111–30. <a href="https://doi.org/10.1080/03091928208209001" class="uri">https://doi.org/10.1080/03091928208209001</a>.</p>
 </div>
 <div id="ref-Eisenstein1999">
-<p>Eisenstein, D. J., and W. Hu. 1999. “Power Spectra for Cold Dark Matter and Its Variants” 511 (January): 5–15. doi:<a href="https://doi.org/10.1086/306640">10.1086/306640</a>.</p>
+<p>Eisenstein, D. J., and W. Hu. 1999. “Power Spectra for Cold Dark Matter and Its Variants” 511 (January): 5–15. <a href="https://doi.org/10.1086/306640" class="uri">https://doi.org/10.1086/306640</a>.</p>
 </div>
 <div id="ref-HDF5">
 <p>Folk, Mike, Gerd Heber, Quincey Koziol, Elena Pourmal, and Dana Robinson. 2011. “An Overview of the Hdf5 Technology Suite and Its Applications.” In <em>Proceedings of the Edbt/Icdt 2011 Workshop on Array Databases</em>, 36–47. ACM.</p>
 </div>
 <div id="ref-FFTW3">
-<p>Frigo, Matteo, and Steven G. Johnson. 2005. “The Design and Implementation of Fftw3.” <em>Proceedings of the IEEE</em> 93 (2): 216–31.</p>
+<p>Frigo, Matteo, and Steven G. Johnson. 2005. “The Design and Implementation of FFTW3.” <em>Proceedings of the IEEE</em> 93 (2): 216–31.</p>
 </div>
 <div id="ref-Frisch2001">
 <p>Frisch, and Bec. 2001. “Burgulence.” <em>arXiv</em> nlin: 0012033v2.</p>
@@ -1991,14 +2014,14 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <div id="ref-Galassi2002">
 <p>Galassi, Mark, Jim Davies, James Theiler, Brian Gough, Gerard Jungman, Patrick Alken, Michael Booth, and Fabrice Rossi. 2002. “GNU Scientific Library.” <em>Network Theory Ltd</em> 3.</p>
 </div>
-<div id="ref-Hidding2014">
-<p>Hidding, J., S. F. Shandarin, and R. Van de Weygaert. 2014. “The Zel’dovich approximation: key to understanding cosmic web complexity” 437 (February): 3442–72. doi:<a href="https://doi.org/10.1093/mnras/stt2142">10.1093/mnras/stt2142</a>.</p>
-</div>
 <div id="ref-Hidding2018">
 <p>Hidding, Johan, Rien Van de Weygaert, Mark Neyrinck, and Gert Vegter. 2018. “The Adhesion Model – the Dual Geometry of the Cosmic Web” to be subm. (-): –.</p>
 </div>
+<div id="ref-Hidding2014">
+<p>Hidding, J., S. F. Shandarin, and R. Van de Weygaert. 2014. “The Zel’dovich approximation: key to understanding cosmic web complexity” 437 (February): 3442–72. <a href="https://doi.org/10.1093/mnras/stt2142" class="uri">https://doi.org/10.1093/mnras/stt2142</a>.</p>
+</div>
 <div id="ref-Hopf1950">
-<p>Hopf, Eberhard. 1950. “The Partial Differential Equation <span class="math inline">\(u_t + uu_x = \mu_{xx}\)</span>.” <em>Communications on Pure and Applied Mathematics</em> Vol. 3, No. 3: 201–30. doi:<a href="https://doi.org/10.1002/cpa.3160030302">10.1002/cpa.3160030302</a>.</p>
+<p>Hopf, Eberhard. 1950. “The Partial Differential Equation <span class="math inline">\(u_t + uu_x = \mu_{xx}\)</span>.” <em>Communications on Pure and Applied Mathematics</em> Vol. 3, No. 3: 201–30. <a href="https://doi.org/10.1002/cpa.3160030302" class="uri">https://doi.org/10.1002/cpa.3160030302</a>.</p>
 </div>
 <div id="ref-cgal:pt-tds3-18b">
 <p>Jamin, Clément, Sylvain Pion, and Monique Teillaud. 2018a. “3D Triangulation Data Structure.” In <em>CGAL User and Reference Manual</em>, 4.13 ed. CGAL Editorial Board. <a href="https://doc.cgal.org/4.13/Manual/packages.html#PkgTDS3Summary" class="uri">https://doc.cgal.org/4.13/Manual/packages.html#PkgTDS3Summary</a>.</p>
@@ -2016,7 +2039,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p>Ramsey, Norman. 1994. “Literate Programming Simplified.” <em>IEEE Software</em> 11 (5). IEEE: 97–105.</p>
 </div>
 <div id="ref-Shandarin1989">
-<p>Shandarin, S. F., and Ya. B. Zeldovich. 1989. “The large-scale structure of the universe: Turbulence, intermittency, structures in a self-gravitating medium.” <em>Reviews of Modern Physics</em> 61 (April): 185–220. doi:<a href="https://doi.org/10.1103/RevModPhys.61.185">10.1103/RevModPhys.61.185</a>.</p>
+<p>Shandarin, S. F., and Ya. B. Zeldovich. 1989. “The large-scale structure of the universe: Turbulence, intermittency, structures in a self-gravitating medium.” <em>Reviews of Modern Physics</em> 61 (April): 185–220. <a href="https://doi.org/10.1103/RevModPhys.61.185" class="uri">https://doi.org/10.1103/RevModPhys.61.185</a>.</p>
 </div>
 <div id="ref-Sirko2005">
 <p>Sirko, Edwin. 2005. “Initial Conditions to Cosmological N-Body Simulations, or, How to Run an Ensemble of Simulations.” <em>The Astrophysical Journal</em> 634 (2): 728. <a href="http://stacks.iop.org/0004-637X/634/i=2/a=728" class="uri">http://stacks.iop.org/0004-637X/634/i=2/a=728</a>.</p>
