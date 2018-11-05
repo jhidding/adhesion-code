@@ -1330,7 +1330,8 @@ As we discuss each step in the workflow, we add code onto *«workflow»*.
 #include "initial_conditions.hh"
 #include "adhesion.hh"
 #include "mesh_manipulation.hh"
-#include "shapes.hh"
+#include "plane.hh"
+#include "sphere.hh"
 #include "writers.hh"
 #include "write_obj.hh"
 

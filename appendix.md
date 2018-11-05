@@ -48,23 +48,26 @@ To visualise a structure it is important to limit the visualisation to a specifi
 
 In the `mesh_manipulation.hh` header file we define methods to cut a mesh using a spherical surface or a plane.
 
+
 ``` {.cpp file=src/mesh_manipulation.hh}
 #pragma once
 #include <tuple>
-<<include-optional>>
 #include "mesh.hh"
+#include "surface.hh"
 
-<<surface-class>>
 <<split-polygon>>
 <<select-mesh>>
 <<clean-mesh>>
 ```
 
-#### Surfaces
+### Surfaces
 
 To select parts of a mesh we need to define a surface that can tell us on what side a point lies, and if we have two points, if and where the segment between those points intersects. This concept of a `Surface` is embodied by the following abstract base class:
 
-``` {.cpp #surface-class}
+``` {.cpp file=src/surface.hh}
+#pragma once
+<<include-optional>>
+
 template <typename Point>
 class Surface
 {
@@ -77,7 +80,24 @@ public:
 };
 ```
 
-#### Split a polygon
+#### `std::optional`
+
+We're using a library feature of C++17, namely `std::optional`. In C++14, this is included in the `std::experimental` namespace. With this macro, we can use `std::optional` in both cases.
+
+``` {.cpp #include-optional}
+#if __cplusplus == 201402L
+#include <experimental/optional>
+namespace std {
+using namespace std::experimental;
+}
+#elif __cplusplus == 201703L
+#include <optional>
+#else
+#error "Unrecognised C++ version."
+#endif
+```
+
+### Split a polygon
 
 Given an implementation of such a class, we  can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.
 
@@ -153,26 +173,31 @@ PolygonPair<Point> split_polygon(
 }
 ```
 
-### `std::optional`
-
-We're using a library feature of C++17, namely `std::optional`. In C++14, this is included in the `std::experimental` namespace. With this macro, we can use `std::optional` in both cases.
-
-``` {.cpp #include-optional}
-#if __cplusplus == 201402L
-#include <experimental/optional>
-namespace std {
-using namespace std::experimental;
-}
-#elif __cplusplus == 201703L
-#include <optional>
-#else
-#error "Unrecognised C++ version."
-#endif
-```
-
 ### The sphere
 
-Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do some computational geometry our selves. The `Sphere` data type will have two members:
+Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do a bit computational geometry our selves.
+
+``` {.cpp file=src/sphere.hh}
+#pragma once
+#include "surface.hh"
+
+template <typename K>
+class Sphere: public Surface<typename K::Point_3>
+{
+  using Point   = typename K::Point_3;
+  using Vector  = typename K::Vector_3;
+  <<sphere-members>>
+
+public:
+  Sphere(Point const &p, double r):
+      origin(p), radius_squared(r*r) {}
+
+  <<sphere-oriented-side>>
+  <<sphere-intersect>>
+};
+```
+
+The `Sphere` data type will have two members:
 
 ``` {.cpp #sphere-members}
 Point  origin;
@@ -244,39 +269,15 @@ std::optional<Point> intersect(Point const &a, Point const &b) const
 }
 ```
 
-Now that we have implemented these two methods, we can tie them together in the following templated class definition.
-
-``` {.cpp #shapes-sphere}
-template <typename K>
-class Sphere: public Surface<typename K::Point_3>
-{
-  using Point   = typename K::Point_3;
-  using Vector  = typename K::Vector_3;
-
-  <<sphere-members>>
-
-public:
-  Sphere(Point const &p, double r):
-      origin(p), radius_squared(r*r) {}
-
-  <<sphere-oriented-side>>
-  <<sphere-intersect>>
-};
-```
-
 ### Plane
 
-``` {.cpp file=src/shapes.hh}
+Similar to the definition of a sphere, we'll define a plane.
+
+``` {.cpp file=src/plane.hh}
 #pragma once
-#include "mesh_manipulation.hh"
+#include "surface.hh"
 
-template <typename T>
-inline int sign(T a)
-{
-  return (a < 0 ? -1 : (a == 0 ? 0 : 1));
-}
-
-<<shapes-sphere>>
+<<sign-function>>
 
 template <typename K>
 class Plane: public Surface<typename K::Point_3>
@@ -293,27 +294,58 @@ public:
     , normal(normal)
   {}
 
-  int oriented_side(Point const &a) const
-  {
-    return sign((a - centre) * normal);
-  }
-
-  std::optional<Point> intersect(Point const &a, Point const &b) const
-  {
-    Vector u = centre - a,
-           v = b - a;
-
-    if (v * normal == 0)
-      return std::nullopt;
-
-    double t = (u * normal) / (v * normal);
-
-    if (t < 0 || t > 1)
-      return std::nullopt;
-
-    return a + t * v;
-  }
+  <<plane-oriented-side>>
+  <<plane-intersect>>
 };
+```
+
+#### `sign` function
+
+This generic function returns -1, 0 or 1 according to the sign of the given number.
+
+``` {.cpp #sign-function}
+template <typename T>
+inline int sign(T a) {
+  return (a < 0 ? -1 : (a == 0 ? 0 : 1));
+}
+```
+
+#### Plane Oriented side
+
+The oriented side of a point ${\bf a}$ to a plane with normal ${\bf n}$ through point ${\bf c}$ is given by
+
+$${\rm sign}(({\bf a} - {\bf c}) \cdot {\bf n}.$$
+
+A point on the positive side lies in the direction of the normal vector.
+
+``` {.cpp #plane-oriented-side}
+int oriented_side(Point const &a) const {
+  return sign((a - centre) * normal);
+}
+```
+
+#### Plane Intersection
+
+Given two points ${\bf a}$ and ${\bf b}$, we have a vector ${\bf v} = {\bf b} - {\bf a}, and a vector ${\bf u} = {\bf c} - {\bf a}$ to the point in the plane. Then we can define a time $t$ to parametrise the line segment from ${\bf a}$ at $t = 0$ to ${\bf b}$ at $t = 1$. The intersection with the plane is at
+
+$$t = \frac{{\bf u} \cdot {\bf n}}{{\bf v} \cdot {\bf n}}.$$
+
+``` {.cpp #plane-intersect}
+std::optional<Point> intersect(Point const &a, Point const &b) const
+{
+  Vector u = centre - a,
+         v = b - a;
+
+  if (v * normal == 0)
+    return std::nullopt;
+
+  double t = (u * normal) / (v * normal);
+
+  if (t < 0 || t > 1)
+    return std::nullopt;
+
+  return a + t * v;
+}
 ```
 
 ### Clean mesh
