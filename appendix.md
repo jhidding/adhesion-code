@@ -314,7 +314,7 @@ inline int sign(T a) {
 
 The oriented side of a point ${\bf a}$ to a plane with normal ${\bf n}$ through point ${\bf c}$ is given by
 
-$${\rm sign}(({\bf a} - {\bf c}) \cdot {\bf n}.$$
+$${\rm sign}(({\bf a} - {\bf c}) \cdot {\bf n}).$$
 
 A point on the positive side lies in the direction of the normal vector.
 
