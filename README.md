@@ -61,7 +61,7 @@ For building the software:
 
 | Package  | version | description |
 |----------|---------|-------------|
-| C++ compiler | C++17 standard | Tested with GCC 8. |
+| C++ compiler | C++17 standard | Tested with GCC 8, and Clang 6 |
 | GNU Make | - | - |
 | CGAL     | ≥4.12   | [The Computational Geometry Algorithm Library](http://cgal.org) |
 | FFTW3    | ≥3.3    | [The Fastest Fourier Transform in the West](http://www.fftw.org/) |

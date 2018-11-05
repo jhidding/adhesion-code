@@ -1205,22 +1205,25 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></a>
 <a class="sourceLine" id="cb22-2" data-line-number="2"><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></a>
 <a class="sourceLine" id="cb22-3" data-line-number="3"><span class="pp">#include </span><span class="im">&lt;exception&gt;</span></a>
-<a class="sourceLine" id="cb22-4" data-line-number="4"><span class="pp">#include </span><span class="im">&lt;H5Cpp.h&gt;</span></a>
-<a class="sourceLine" id="cb22-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;fmt/format.h&gt;</span></a>
-<a class="sourceLine" id="cb22-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb22-7" data-line-number="7"><span class="pp">#include </span><span class="im">&quot;run.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-8" data-line-number="8"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-9" data-line-number="9"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-10" data-line-number="10"><span class="pp">#include </span><span class="im">&quot;mesh_manipulation.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-11" data-line-number="11"><span class="pp">#include </span><span class="im">&quot;plane.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-12" data-line-number="12"><span class="pp">#include </span><span class="im">&quot;sphere.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-13" data-line-number="13"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-14" data-line-number="14"><span class="pp">#include </span><span class="im">&quot;write_obj.hh&quot;</span></a>
-<a class="sourceLine" id="cb22-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb22-16" data-line-number="16"><span class="dt">void</span> run(YAML::Node <span class="at">const</span> &amp;config)</a>
-<a class="sourceLine" id="cb22-17" data-line-number="17">{</a>
-<a class="sourceLine" id="cb22-18" data-line-number="18">  &lt;&lt;workflow&gt;&gt;</a>
-<a class="sourceLine" id="cb22-19" data-line-number="19">}</a></code></pre></div>
+<a class="sourceLine" id="cb22-4" data-line-number="4"><span class="pp">#include </span><span class="im">&lt;filesystem&gt;</span></a>
+<a class="sourceLine" id="cb22-5" data-line-number="5"><span class="pp">#include </span><span class="im">&lt;H5Cpp.h&gt;</span></a>
+<a class="sourceLine" id="cb22-6" data-line-number="6"><span class="pp">#include </span><span class="im">&lt;fmt/format.h&gt;</span></a>
+<a class="sourceLine" id="cb22-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb22-8" data-line-number="8"><span class="pp">#include </span><span class="im">&quot;run.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-9" data-line-number="9"><span class="pp">#include </span><span class="im">&quot;initial_conditions.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-10" data-line-number="10"><span class="pp">#include </span><span class="im">&quot;adhesion.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-11" data-line-number="11"><span class="pp">#include </span><span class="im">&quot;mesh_manipulation.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-12" data-line-number="12"><span class="pp">#include </span><span class="im">&quot;plane.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-13" data-line-number="13"><span class="pp">#include </span><span class="im">&quot;sphere.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-14" data-line-number="14"><span class="pp">#include </span><span class="im">&quot;writers.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-15" data-line-number="15"><span class="pp">#include </span><span class="im">&quot;write_obj.hh&quot;</span></a>
+<a class="sourceLine" id="cb22-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb22-17" data-line-number="17"><span class="kw">namespace</span> fs = <span class="bu">std::</span>filesystem;</a>
+<a class="sourceLine" id="cb22-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb22-19" data-line-number="19"><span class="dt">void</span> run(YAML::Node <span class="at">const</span> &amp;config)</a>
+<a class="sourceLine" id="cb22-20" data-line-number="20">{</a>
+<a class="sourceLine" id="cb22-21" data-line-number="21">  &lt;&lt;workflow&gt;&gt;</a>
+<a class="sourceLine" id="cb22-22" data-line-number="22">}</a></code></pre></div>
 <h5 id="generate-initial-conditions">Generate initial conditions</h5>
 <p>We create a <code>BoxParam</code> instance and generate the initial potential.</p>
 <p><em>«workflow»=</em></p>
@@ -1237,12 +1240,14 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <p><em>«workflow»=+</em></p>
 <div class="sourceCode" id="workflow"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="workflow-1" data-line-number="1"><span class="bu">std::</span>string output_filename</a>
 <a class="sourceLine" id="workflow-2" data-line-number="2">  = config[<span class="st">&quot;output&quot;</span>][<span class="st">&quot;hdf5&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;();</a>
-<a class="sourceLine" id="workflow-3" data-line-number="3">H5::H5File output_file(output_filename, H5F_ACC_TRUNC);</a>
-<a class="sourceLine" id="workflow-4" data-line-number="4"></a>
-<a class="sourceLine" id="workflow-5" data-line-number="5">write_attribute(output_file, <span class="st">&quot;N&quot;</span>, box.N);</a>
-<a class="sourceLine" id="workflow-6" data-line-number="6">write_attribute(output_file, <span class="st">&quot;L&quot;</span>, box.L);</a>
-<a class="sourceLine" id="workflow-7" data-line-number="7">write_vector_with_shape(</a>
-<a class="sourceLine" id="workflow-8" data-line-number="8">  output_file, <span class="st">&quot;potential&quot;</span>, potential, box.shape());</a></code></pre></div>
+<a class="sourceLine" id="workflow-3" data-line-number="3">fs::create_directories(</a>
+<a class="sourceLine" id="workflow-4" data-line-number="4">  fs::path(output_filename).parent_path());</a>
+<a class="sourceLine" id="workflow-5" data-line-number="5">H5::H5File output_file(output_filename, H5F_ACC_TRUNC);</a>
+<a class="sourceLine" id="workflow-6" data-line-number="6"></a>
+<a class="sourceLine" id="workflow-7" data-line-number="7">write_attribute(output_file, <span class="st">&quot;N&quot;</span>, box.N);</a>
+<a class="sourceLine" id="workflow-8" data-line-number="8">write_attribute(output_file, <span class="st">&quot;L&quot;</span>, box.L);</a>
+<a class="sourceLine" id="workflow-9" data-line-number="9">write_vector_with_shape(</a>
+<a class="sourceLine" id="workflow-10" data-line-number="10">  output_file, <span class="st">&quot;potential&quot;</span>, potential, box.shape());</a></code></pre></div>
 <h5 id="output-configuration">Output configuration</h5>
 <p>We will write the walls and filaments to both HDF5 and OBJ files. In case of the OBJ files we only store a disc shaped selection, which makes the output easier to visualise. We have defined functions that can cut a mesh using planes and spheres. By cutting the mesh with a single sphere and two planes we extract a disc shaped region from the box. These cutting planes are stored in <code>mesh_shape</code>.</p>
 <p><em>«workflow»=+</em></p>

@@ -42,9 +42,9 @@ libs = -L${HOME}/.local/lib
 # libs =
 
 compile = g++
-compile_flags = -std=c++14 -Wall -Isrc  $(cflags) $(hdf5_cflags) $(cgal_cflags) $(tbb_cflags)
+compile_flags = -std=c++17 -Wall -Isrc  $(cflags) $(hdf5_cflags) $(cgal_cflags) $(tbb_cflags)
 link = g++
-link_flags = -lfftw3 -lyaml-cpp -lfmt $(libs) $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tbb_libs)
+link_flags = -lstdc++fs -lfftw3 -lyaml-cpp -lfmt $(libs) $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tbb_libs)
 
 # ===========================================================================
 

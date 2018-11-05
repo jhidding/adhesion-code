@@ -1323,6 +1323,7 @@ As we discuss each step in the workflow, we add code onto *«workflow»*.
 #include <iostream>
 #include <fstream>
 #include <exception>
+#include <filesystem>
 #include <H5Cpp.h>
 #include <fmt/format.h>
 
@@ -1334,6 +1335,8 @@ As we discuss each step in the workflow, we add code onto *«workflow»*.
 #include "sphere.hh"
 #include "writers.hh"
 #include "write_obj.hh"
+
+namespace fs = std::filesystem;
 
 void run(YAML::Node const &config)
 {
@@ -1363,6 +1366,8 @@ We write the initial conditions to the output file for future reference. We have
 ``` {.cpp #workflow}
 std::string output_filename
   = config["output"]["hdf5"].as<std::string>();
+fs::create_directories(
+  fs::path(output_filename).parent_path());
 H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
 
 write_attribute(output_file, "N", box.N);
