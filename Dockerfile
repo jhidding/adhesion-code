@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     g++ \
     git \
-    haskell-stack \
     libcgal-dev \
     libfftw3-dev \
     libfmt-dev \
@@ -15,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lmodern \
     make \
     pkg-config \
+    python3-pip \
     rsync \
     texlive \
     texlive-fonts-extra \
@@ -23,30 +23,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-xetex \
     wget
 
-ENV PATH /root/.local/bin:$PATH
+# == Python packages ==
+RUN apt-get install -y --no-install-recommends \
+    python3-dev python3-wheel python3-setuptools
+RUN pip3 install pandoc-eqnos pandoc-fignos
 
 # == We need at least version 2.2.3 of Pandoc ==
-RUN wget https://github.com/jgm/pandoc/releases/download/2.2.3.2/pandoc-2.2.3.2-1-amd64.deb
-RUN dpkg -i ./pandoc-2.2.3.2-1-amd64.deb
+RUN wget https://github.com/jgm/pandoc/releases/download/2.4/pandoc-2.4-1-amd64.deb
+RUN dpkg -i ./pandoc-2.4-1-amd64.deb
 
-# == We need the latest version of XTensor ==
-WORKDIR /root
-RUN git clone https://github.com/QuantStack/xtl.git \
- && cd xtl \
- && mkdir build \
- && cd build \
- && cmake .. -DCMAKE_INSTALL_PREFIX=~/.local \
- && make install
-RUN git clone https://github.com/QuantStack/xtensor.git \
- && cd xtensor \
- && mkdir build \
- && cd build \
- && cmake .. -DCMAKE_INSTALL_PREFIX=~/.local \
- && make install
+RUN apt-get install -y --no-install-recommends \
+    libgsl-dev
 
 # == Build the project and the report ==
 COPY . /app
 WORKDIR /app
-RUN  make && make report
+RUN  make && make html
 
 CMD /bin/bash

@@ -1,14 +1,18 @@
 ---
 title: Computing the adhesion model using C++ and CGAL
 author: Johan Hidding
-date: September 1, 2018
+date: November 4, 2018
 bibliography: ref.bib
 reference-section-title: References
 ---
 
+[DOI:10.5281/zenodo.1477535](https://doi.org/10.5281/zenodo.1477536)
+
 # Abstract
 
 We present a (relatively) small example of using the CGAL [@cgal:eb-18b] library to run the adhesion model. This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
+
+This software emanates from NWO project 614.000.908 supervised by Gert Vegter and Rien van de Weygaert.
 
 ## Version
 
@@ -25,7 +29,7 @@ The adhesion model simulates the formation of structure in the Universe on the l
 The adhesion model takes an entirely different approach. It takes as input the initial velocity potential by which particles move, and from that, computes a direct approximation of the geometry of the structures that will form. This geometry is completely specified in terms of voids, walls, filaments and clusters, the structures that together shape the *cosmic web*.
 The adhesion model is accurate enough to predict the structures that will form the megaparsec scale of the cosmic web but doesn't reveal the halo structures that are shown in N-body simulations to form inside these structures.
 
-The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set [@cgal:pt-t3-18b;@cgal:pt-tds3-18b].
+The code presented here computes the adhesion model using the Computational Geometry Algorithm Library (CGAL). The algorithms implemented in this library represent the state-of-the-art of computational geometry, among which is the algorithm to compute the *regular triangulation* of a weighted point set [@cgal:pt-t3-18b; @cgal:pt-tds3-18b].
 
 ![Example output of the program, rendered with ParaView. We show the adhesion generated cosmic web using an Eisenstein-Hu CDM power spectrum, showing three time frames for $D_+ = 0.2, 0.4$ and $0.6$. The axes have units of $h^{-1}\ {\rm Mpc}$. The top left part of the rendering shows a large expanding void.](figures/web-evolution.png){#fig:output-example}
 
@@ -83,7 +87,7 @@ pandoc-fignos    ≥1.3.0    Number and reference figures.
 rsvg-convert     ≥2.40     Convert SVG files.
 ------------------------------------------------------------------------------
 
-All of these packages are available in the Debian GNU/Linux package repositories.
+All of these packages are available in the Debian GNU/Linux package repositories. Install instructions are included in the repository at [https://github.com/jhidding/adhesion-code](https://github.com/jhidding/adhesion-code).
 
 ## Literate programming
 
@@ -126,7 +130,7 @@ The program reads a YAML configuration file and writes output data to HDF5 [@HDF
 
 The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the $\Lambda$CDM cosmological model in the form of an initial velocity potential $\Phi_0$. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.
 
-Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.
+Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used ParaView to create the screenshots presented in this report.
 
 ![Outline of the program](figures/app-graph.svg){#fig:outline}
 
@@ -643,31 +647,39 @@ This is known as the Zeldovich approximation [@Zeldovich1970; @Shandarin1989]. T
 
 ![The Zeldovich Approximation. Each particle is given a velocity equal to $v = -\nabla \Phi_0$. Structures form, but there is no dynamics involved.](figures/ze.svg){#fig:zeldovich}
 
-We can rewrite Equation\ @eq:zeldovich as
+We can rewrite Equation\ @eq:zeldovich by integrating,
 
-$${\bf x} = {\bf \nabla}(\frac{q^2}{2} - t \Phi_0({\bf q}) + C) = {\bf \nabla} \varphi,$${#eq:zeldovich-potential}
+$${\bf x} = {\bf \nabla_q}\left(\frac{q^2}{2} - t \Phi_0({\bf q}) + C\right) = {\bf \nabla_q} \varphi$$ {#eq:zeldovich-potential}
 
-introducing the new potential $\varphi({\bf q}) = q^2/2 - t\Phi_0$. The adhesion model is found by using not the potential $\varphi$ but its *convex hull* $\varphi_c$. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation. This argument is a gross oversimplification of the underlying theory. We refer to @Hidding2018 for more detail.
+introducing the new potential $\varphi({\bf q}) = q^2/2 - t\Phi_0$. The adhesion model is found by using not the potential $\varphi$ but its *convex hull* $\varphi_c$. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation.
+
+Equation\ @eq:zeldovich-potential can be further rewritten. Taking $C = x^2/2$ we get,
+
+$${\bf \nabla_q} \left(({\bf q} - {\bf x})^2 - 2t\Phi_0\right) = 0.$$ {#eq:zeldovich-par}
 
 ### The power diagram
 
 We won't be computing the convex hull of $\varphi$ explicitly. In stead we use the regular triangulation algorithm. The regular triangulation is the dual of the power diagram. The power diagram is the weighted generalisation of the Voronoi tessellation. Given a subset of points $S \in Q$, we define a cell $V_u$ in the power diagram as follows:
 
-$$V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 + w_u \le ({\bf v} - {\bf x})^2 + w_v \forall {\bf v} \in S \right\}.$$
+$$V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 - w_u \le ({\bf v} - {\bf x})^2 - w_v \forall {\bf v} \in S \right\}.$${#eq:power-diagram}
 
 This is the same as minimising the distance function
 
-$$d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 + w_q\right].$$
+$$d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 - w({\bf q})\right].$$ {#eq:distance-function}
+
+At the minimum, we know that the derivative should vanish. Taking $q^{\star}$ to be the position at which the minimum is attained we may write,
+
+$${\bf \nabla_q}\left(({\bf q} - {\bf x})^2 - w({\bf q})\right)|_{q=q^{\star}} = 0$$ {#eq:power-solution}
 
 Setting the weights to,
 
-$$w(\vec{q}) = 2 t \Phi_0(\vec{q}),$$
+$$w({\bf q}) = 2 t \Phi_0({\bf q}),$$
 
-retrieves an expression similar to Equation\ @eq:zeldovich-potential.
+retrieves an expression similar to Equation\ @eq:zeldovich-par. The only difference is that in Equation\ @eq:distance-function, we took a *global minimum*, whereas in the Zeldovich approximation, *any* combination of ${\bf x}$ and ${\bf q}$ that solves Equation\ @eq:zeldovich-par is valid.
 
-::: TODO
-Clear up argumentation here
-:::
+![The adhesion model. We follow the same initial conditions as in Figure\ @fig:zeldovich. This 2D example was produced by computing the convex hull of $\varphi = q^2/2 - t \Phi_0$ (first panel). The second panel shows the resulting regular triangulation. We have given a different colour to regions that are part of filaments and clusters. The third panel shows the power diagram. The mass of filaments is shown in blue colour, the mass of nodes is shown by size of the circles.](figures/adhesion.png){#fig:adhesion}
+
+This argument is a summary of the underlying theory. We refer to @Hidding2018 for more detail. In Figure\ @fig:adhesion we show the adhesion model in 2d. In 2d, each edge in the regular triangulation matches a perpendicular one in the power diagram. In the voids we see the individual power cells that surround the position of the Zeldovich displaced particles. Where, in the Zeldovich Approximation structures formed, we see structures again, but this time they are represented by triangles and edges in the regular triangulation that exceed their sizes in the original grid.
 
 ## CGAL Geometry kernels
 
@@ -865,13 +877,15 @@ Note that the masses of any cell other then the cluster cells carry no physical 
 
 On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure\ @fig:node-classes.
 
-![Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.](figures/node-classes.svg){#fig:node-classes}
+![Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges. Edges that are longer than the threshold are shown in solid red lines, dashed black edges are shorter than the threshold.](figures/node-classes.svg){#fig:node-classes}
 
 Note that there are several species of kurtoparabolic points. The ones listed under 'kurtoparabolics' have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurtoparabolic *e*, which has a filament (and three wall segments) ending in a void.
 
 There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type *c*. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.
 
 The filament and cluster classifications are completely unambiguous. Their number of long edges and number of components connected by short edges both uniquely determine their type.
+
+Note, that when we render the power diagram we are not using this classification. When we show the walls we just take the dual of all the edges that exceed the threshold, and when we show filaments we take the dual of all faces of which all edges exceed the threshold. The different types of nodes show us how walls and filaments interconnect in a sampled regular triangulation.
 
 ### Filtering for structures
 
@@ -1074,7 +1088,7 @@ struct Mesh
 };
 ```
 
-This definition of `Mesh` is slightly more involved than using a `vector<vector<unsigned>>` to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.
+This definition of `Mesh` is slightly more involved than using a `vector<vector<unsigned>>` to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also, when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.
 
 We defined two methods to the `Mesh` structure. The `size()` method gives the amount of polygons in the mesh.
 

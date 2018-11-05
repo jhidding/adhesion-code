@@ -172,7 +172,7 @@ using namespace std::experimental;
 
 ### The sphere
 
-Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do some algebraic geometry our selves. The `Sphere` data type will have two members:
+Unfortunately CGAL seems to have no function to compute the intersection of a `Sphere` with a `Segment`. We'll take the opportunity to do some computational geometry our selves. The `Sphere` data type will have two members:
 
 ``` {.cpp #sphere-members}
 Point  origin;
@@ -182,9 +182,9 @@ double radius_squared;
 Now, any point will have an orientation with respect to this sphere,
 
 $${\rm orient}(\vec{o}, r, \vec{p}) = \begin{cases}
--1 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 < r^2\\
-0 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 = r^2\\
-1 & \quad {\rm if}~(\vec{p} - \vec{o}|)^2 > r^2\\
+-1 & \quad {\rm if}~(\vec{p} - \vec{o})^2 < r^2\\
+0 & \quad {\rm if}~(\vec{p} - \vec{o})^2 = r^2\\
+1 & \quad {\rm if}~(\vec{p} - \vec{o})^2 > r^2\\
 \end{cases}$$
 
 ``` {.cpp #sphere-oriented-side}

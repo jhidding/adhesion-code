@@ -5,7 +5,7 @@
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <meta name="author" content="Johan Hidding" />
-  <meta name="dcterms.date" content="2018-09-01" />
+  <meta name="dcterms.date" content="2018-11-04" />
   <title>Computing the adhesion model using C++ and CGAL</title>
   <style type="text/css">
       code{white-space: pre-wrap;}
@@ -86,7 +86,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <header>
 <h1 class="title">Computing the adhesion model using C++ and CGAL</h1>
 <p class="author">Johan Hidding</p>
-<p class="date">September 1, 2018</p>
+<p class="date">November 4, 2018</p>
 </header>
 <nav id="TOC">
 <ul>
@@ -128,6 +128,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#bibliography">References</a></li>
 </ul>
 </nav>
+<p><a href="https://doi.org/10.5281/zenodo.1477536">DOI:10.5281/zenodo.1477535</a></p>
 <h2 id="abstract">Abstract</h2>
 <p>We present a (relatively) small example of using the CGAL <span class="citation" data-cites="cgal:eb-18b">(The CGAL Project 2018)</span> library to run the adhesion model. This literate C++ code generates an initial potential field and computes the <em>regular triangulation</em> to that potential, which is a weighted generalisation of the <em>Delaunay triangulation</em>. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.</p>
 <h3 id="version">Version</h3>
@@ -252,7 +253,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>All of these packages are available in the Debian GNU/Linux package repositories.</p>
+<p>All of these packages are available in the Debian GNU/Linux package repositories. Install instructions are included in the repository at <a href="https://github.com/jhidding/adhesion-code" class="uri">https://github.com/jhidding/adhesion-code</a>.</p>
 <h3 id="literate-programming">Literate programming</h3>
 <p>This example is written in a style of <em>literate programming</em> <span class="citation" data-cites="Knuth1984">(Knuth 1984)</span>. This document contains a complete and functioning example of working with CGAL to compute the adhesion model. For didactic reasons we don’t always give the listing of an entire source file in one go. In stead, we use a system of references known as <em>noweb</em> <span class="citation" data-cites="Ramsey1994">(Ramsey 1994)</span>.</p>
 <p>Inside source fragments you may encounter a line with <code>&lt;&lt;...&gt;&gt;</code> marks like,</p>
@@ -276,7 +277,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 id="program-outline">Program outline</h3>
 <p>The program reads a YAML configuration file and writes output data to HDF5 <span class="citation" data-cites="HDF5">(Folk et al. 2011)</span>. YAML is an extension of the JSON data format aimed at human readability and is supported across many programming languages.</p>
 <p>The configuration file contains information about box size, initial conditions, and output specification. We generate initial conditions based on the <span class="math inline">\(\Lambda\)</span>CDM cosmological model in the form of an initial velocity potential <span class="math inline">\(\Phi_0\)</span>. Then we run the CGAL regular triangulation algorithm on those initial conditions for any number of specified time steps. Note that the adhesion model is not an iterative scheme, so each time step is an independent computation.</p>
-<p>Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used Paraview to create the screenshots presented in this report.</p>
+<p>Information about the nodes, filaments and walls is then extracted from the regular triangulation and stored in the HDF5 file. Additionally, we will create Wavefront OBJ files containing a sample of the generated structures. These files are suitable for display in most scientific visualisation packages. We used ParaView to create the screenshots presented in this report.</p>
 <figure>
 <img src="figures/app-graph.svg" alt="Figure 2: Outline of the program" id="fig:outline" /><figcaption><span>Figure 2:</span> Outline of the program</figcaption>
 </figure>
@@ -670,20 +671,25 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <figure>
 <img src="figures/ze.svg" alt="Figure 6: The Zeldovich Approximation. Each particle is given a velocity equal to v = -\nabla \Phi_0. Structures form, but there is no dynamics involved." id="fig:zeldovich" /><figcaption><span>Figure 6:</span> The Zeldovich Approximation. Each particle is given a velocity equal to <span class="math inline">\(v = -\nabla \Phi_0\)</span>. Structures form, but there is no dynamics involved.</figcaption>
 </figure>
-<p>We can rewrite Equation <a href="#eq:zeldovich">5</a> as</p>
-<p><span id="eq:zeldovich-potential" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf \nabla}(\frac{q^2}{2} - t \Phi_0({\bf q}) + C) = {\bf \nabla} \varphi,\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(6)</span></span></p>
-<p>introducing the new potential <span class="math inline">\(\varphi({\bf q}) = q^2/2 - t\Phi_0\)</span>. The adhesion model is found by using not the potential <span class="math inline">\(\varphi\)</span> but its <em>convex hull</em> <span class="math inline">\(\varphi_c\)</span>. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation. This argument is a gross oversimplification of the underlying theory. We refer to <span class="citation" data-cites="Hidding2018">Hidding et al. (2018)</span> for more detail.</p>
+<p>We can rewrite Equation <a href="#eq:zeldovich">5</a> by integrating,</p>
+<p><span id="eq:zeldovich-potential" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf x} = {\bf \nabla_q}\left(\frac{q^2}{2} - t \Phi_0({\bf q}) + C\right) = {\bf \nabla_q} \varphi\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(6)</span></span> </p>
+<p>introducing the new potential <span class="math inline">\(\varphi({\bf q}) = q^2/2 - t\Phi_0\)</span>. The adhesion model is found by using not the potential <span class="math inline">\(\varphi\)</span> but its <em>convex hull</em> <span class="math inline">\(\varphi_c\)</span>. The derivative of a convex function is monotonic, therefore particles can no longer cross as they do in the Zeldovich Approximation.</p>
+<p>Equation <a href="#eq:zeldovich-potential">6</a> can be further rewritten. Taking <span class="math inline">\(C = x^2/2\)</span> we get,</p>
+<p><span id="eq:zeldovich-par" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf \nabla_q} \left(({\bf q} - {\bf x})^2 - 2t\Phi_0\right) = 0.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(7)</span></span> </p>
 <h4 id="the-power-diagram">The power diagram</h4>
 <p>We won’t be computing the convex hull of <span class="math inline">\(\varphi\)</span> explicitly. In stead we use the regular triangulation algorithm. The regular triangulation is the dual of the power diagram. The power diagram is the weighted generalisation of the Voronoi tessellation. Given a subset of points <span class="math inline">\(S \in Q\)</span>, we define a cell <span class="math inline">\(V_u\)</span> in the power diagram as follows:</p>
-<p><span class="math display">\[V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 + w_u \le ({\bf v} - {\bf x})^2 + w_v \forall {\bf v} \in S \right\}.\]</span></p>
+<p><span id="eq:power-diagram" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[V_u = \left\{ {\bf x} \in X \big| ({\bf u} - {\bf x})^2 - w_u \le ({\bf v} - {\bf x})^2 - w_v \forall {\bf v} \in S \right\}.\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(8)</span></span></p>
 <p>This is the same as minimising the distance function</p>
-<p><span class="math display">\[d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 + w_q\right].\]</span></p>
+<p><span id="eq:distance-function" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[d({\bf x}) = \min_q \left[({\bf q} - {\bf x})^2 - w({\bf q})\right].\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(9)</span></span> </p>
+<p>At the minimum, we know that the derivative should vanish. Taking <span class="math inline">\(q^{\star}\)</span> to be the position at which the minimum is attained we may write,</p>
+<p><span id="eq:power-solution" style="display: inline-block; position: relative; width: 100%"><span class="math display">\[{\bf \nabla_q}\left(({\bf q} - {\bf x})^2 - w({\bf q})\right)|_{q=q^{\star}} = 0\]</span><span style="position: absolute; right: 0em; top: 50%; line-height:0; text-align: right">(10)</span></span> </p>
 <p>Setting the weights to,</p>
-<p><span class="math display">\[w(\vec{q}) = 2 t \Phi_0(\vec{q}),\]</span></p>
-<p>retrieves an expression similar to Equation <a href="#eq:zeldovich-potential">6</a>.</p>
-<div class="TODO">
-<p>Clear up argumentation here</p>
-</div>
+<p><span class="math display">\[w({\bf q}) = 2 t \Phi_0({\bf q}),\]</span></p>
+<p>retrieves an expression similar to Equation <a href="#eq:zeldovich-par">7</a>. The only difference is that in Equation <a href="#eq:distance-function">9</a>, we took a <em>global minimum</em>, whereas in the Zeldovich approximation, <em>any</em> combination of <span class="math inline">\({\bf x}\)</span> and <span class="math inline">\({\bf q}\)</span> that solves Equation <a href="#eq:zeldovich-par">7</a> is valid.</p>
+<figure>
+<img src="figures/adhesion.png" alt="Figure 7: The adhesion model. We follow the same initial conditions as in Figure 6. This 2D example was produced by computing the convex hull of \varphi = q^2/2 - t \Phi_0 (first panel). The second panel shows the resulting regular triangulation. We have given a different colour to regions that are part of filaments and clusters. The third panel shows the power diagram. The mass of filaments is shown in blue colour, the mass of nodes is shown by size of the circles." id="fig:adhesion" /><figcaption><span>Figure 7:</span> The adhesion model. We follow the same initial conditions as in Figure <a href="#fig:zeldovich">6</a>. This 2D example was produced by computing the convex hull of <span class="math inline">\(\varphi = q^2/2 - t \Phi_0\)</span> (first panel). The second panel shows the resulting regular triangulation. We have given a different colour to regions that are part of filaments and clusters. The third panel shows the power diagram. The mass of filaments is shown in blue colour, the mass of nodes is shown by size of the circles.</figcaption>
+</figure>
+<p>This argument is a summary of the underlying theory. We refer to <span class="citation" data-cites="Hidding2018">Hidding et al. (2018)</span> for more detail. In Figure <a href="#fig:adhesion">7</a> we show the adhesion model in 2d. In 2d, each edge in the regular triangulation matches a perpendicular one in the power diagram. In the voids we see the individual power cells that surround the position of the Zeldovich displaced particles. Where, in the Zeldovich Approximation structures formed, we see structures again, but this time they are represented by triangles and edges in the regular triangulation that exceed their sizes in the original grid.</p>
 <h3 id="cgal-geometry-kernels">CGAL Geometry kernels</h3>
 <p>CGAL comes with a set of <em>geometry kernels</em>. Each kernel bundles basic type definitions like <code>Point</code>, <code>Vector</code>, <code>Circle</code>, etc. and geometric operations on those types. Depending on the requirements of the programmer, we can choose different implementations of these concepts. These implementations vary in representation of real numbers, vector quantities, and how geometric operations are computed on them. Some abstract applications require an exact representation of numbers while other more cosmological applications can afford to be more liberal with regards to exactness.</p>
 <p>The algorithms that actually do the advanced geometric computations, like the regular triangulations we use, are implemented in generic terms using C++ template techniques. We need to supply those algorithms the correct geometry kernel for our application. This is why all CGAL programs start with a list of template type definitions.</p>
@@ -824,13 +830,14 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="adhesion-node-struct-5" data-line-number="5">  NodeType  <span class="dt">node_type</span>;</a>
 <a class="sourceLine" id="adhesion-node-struct-6" data-line-number="6">};</a></code></pre></div>
 <p>Note that the masses of any cell other then the cluster cells carry no physical meaning, unless somehow corrected for the resolution of the box. If we double the resolution, the average mass of a void particle drops by a factor eight, the average mass of a wall particle by a factor four, and the average mass of a filament particle by a factor two. Also we know that the total mass is conserved.</p>
-<p>On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure <a href="#fig:node-classes">7</a>.</p>
+<p>On the other hand, part of the distribution in masses is determined by the kind of shapes a tetrahedron can take. We show all possibilities in Figure <a href="#fig:node-classes">8</a>.</p>
 <figure>
-<img src="figures/node-classes.svg" alt="Figure 7: Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges." id="fig:node-classes" /><figcaption><span>Figure 7:</span> Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges.</figcaption>
+<img src="figures/node-classes.svg" alt="Figure 8: Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges. Edges that are longer than the threshold are shown in solid red lines, dashed black edges are shorter than the threshold." id="fig:node-classes" /><figcaption><span>Figure 8:</span> Shapes of tetrahedra. Here we list all possible shapes a tetrahedron can take, given that we put a threshold on the length of the edges. Edges that are longer than the threshold are shown in solid red lines, dashed black edges are shorter than the threshold.</figcaption>
 </figure>
 <p>Note that there are several species of kurtoparabolic points. The ones listed under ‘kurtoparabolics’ have all their vertices connected by short edges. Most of these would show walls ending in voids, but there is one, kurtoparabolic <em>e</em>, which has a filament (and three wall segments) ending in a void.</p>
 <p>There is a sixth tetrahedron for which the simple classification of void, wall, filament or cluster is ambiguous, namely wall type <em>c</em>. One of the faces of this tetrahedron would classify as a filament, but looking at the connectivity of the vertices this tetrahedron would classify as a wall. At such a tetrahedron a filament runs into a wall.</p>
 <p>The filament and cluster classifications are completely unambiguous. Their number of long edges and number of components connected by short edges both uniquely determine their type.</p>
+<p>Note, that when we render the power diagram we are not using this classification. When we show the walls we just take the dual of all the edges that exceed the threshold, and when we show filaments we take the dual of all faces of which all edges exceed the threshold. The different types of nodes show us how walls and filaments interconnect in a sampled regular triangulation.</p>
 <h4 id="filtering-for-structures">Filtering for structures</h4>
 <p>When we want to select filaments or clusters we need to count how many edges of a certain cell in the regular triangulation exceeds a given threshold. The function <code>Adhesion::edge_count</code> takes a cell handle and a threshold and returns the number of long edges. This count determines if the cell is part of a void, wall, filament or node.</p>
 <table>
@@ -1010,7 +1017,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="cb17-11" data-line-number="11"></a>
 <a class="sourceLine" id="cb17-12" data-line-number="12">  &lt;&lt;mesh-methods&gt;&gt;</a>
 <a class="sourceLine" id="cb17-13" data-line-number="13">};</a></code></pre></div>
-<p>This definition of <code>Mesh</code> is slightly more involved than using a <code>vector&lt;vector&lt;unsigned&gt;&gt;</code> to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.</p>
+<p>This definition of <code>Mesh</code> is slightly more involved than using a <code>vector&lt;vector&lt;unsigned&gt;&gt;</code> to encode the polygons of the mesh. However, the added complexity of such a data structure makes it harder to save and restore binary versions in standard data containers like HDF5. Also, when data sizes get very large, using one large vector to store the data is more efficient than using many smaller ones.</p>
 <p>We defined two methods to the <code>Mesh</code> structure. The <code>size()</code> method gives the amount of polygons in the mesh.</p>
 <p><em>«mesh-methods»=</em></p>
 <div class="sourceCode" id="mesh-methods"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="mesh-methods-1" data-line-number="1"><span class="dt">size_t</span> size() <span class="at">const</span> { <span class="cf">return</span> sizes.size(); }</a></code></pre></div>
@@ -1086,7 +1093,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="pd-is-big-edge-4" data-line-number="4">  <span class="dt">double</span> l = rt.segment(e).squared_length();</a>
 <a class="sourceLine" id="pd-is-big-edge-5" data-line-number="5">  <span class="cf">return</span> l &lt; threshold;</a>
 <a class="sourceLine" id="pd-is-big-edge-6" data-line-number="6">}</a></code></pre></div>
-<p>For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex. This procedure is illustrated in Figure <a href="#fig:edge-iteration">8</a>.</p>
+<p>For filaments this procedure is slightly more involved. A filament is the dual of a regular facet. The facet is encoded as a cell (one of the co-faces of the facet) and the vertex of that cell that is opposite the facet. We need to check the lengths of all the edges of the facet, so we need to iterate all combinations of vertices of the co-face not containing the given opposite vertex. This procedure is illustrated in Figure <a href="#fig:edge-iteration">9</a>.</p>
 <p><em>«pd-is-big-facet»=</em></p>
 <div class="sourceCode" id="pd-is-big-facet"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="pd-is-big-facet-1" data-line-number="1"><span class="kw">inline</span> <span class="dt">bool</span> is_big_facet(</a>
 <a class="sourceLine" id="pd-is-big-facet-2" data-line-number="2">    RT <span class="at">const</span> &amp;rt, RT::Facet <span class="at">const</span> &amp;f, <span class="dt">double</span> threshold)</a>
@@ -1113,7 +1120,7 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="pd-is-big-facet-23" data-line-number="23">  <span class="cf">return</span> <span class="kw">true</span>;</a>
 <a class="sourceLine" id="pd-is-big-facet-24" data-line-number="24">}</a></code></pre></div>
 <figure>
-<img src="figures/edge-iteration.svg" alt="Figure 8: Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge \overline{AB}, suppose we are checking the validity of the facet \overline{134}. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case (\overline{A},\overline{2}). To iterate the edges of this facet, we find all combinations \overline{ij}, where 1 \le i &lt; j \le 4, and i, j \neq 2." id="fig:edge-iteration" style="width:50.0%" /><figcaption><span>Figure 8:</span> Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge <span class="math inline">\(\overline{AB}\)</span>, suppose we are checking the validity of the facet <span class="math inline">\(\overline{134}\)</span>. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case <span class="math inline">\((\overline{A},\overline{2})\)</span>. To iterate the edges of this facet, we find all combinations <span class="math inline">\(\overline{ij}\)</span>, where <span class="math inline">\(1 \le i &lt; j \le 4\)</span>, and <span class="math inline">\(i, j \neq 2\)</span>.</figcaption>
+<img src="figures/edge-iteration.svg" alt="Figure 9: Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge \overline{AB}, suppose we are checking the validity of the facet \overline{134}. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case (\overline{A},\overline{2}). To iterate the edges of this facet, we find all combinations \overline{ij}, where 1 \le i &lt; j \le 4, and i, j \neq 2." id="fig:edge-iteration" style="width:50.0%" /><figcaption><span>Figure 9:</span> Selecting filaments. The dual of a facet in the regular triangulation is an edge in the power diagram. The power edge represents a filament in the adhesion model if all edges of the regular facet exceed the threshold. For this power edge <span class="math inline">\(\overline{AB}\)</span>, suppose we are checking the validity of the facet <span class="math inline">\(\overline{134}\)</span>. This facet is returned as the combination of a cell and the vertex opposite the facet, in this case <span class="math inline">\((\overline{A},\overline{2})\)</span>. To iterate the edges of this facet, we find all combinations <span class="math inline">\(\overline{ij}\)</span>, where <span class="math inline">\(1 \le i &lt; j \le 4\)</span>, and <span class="math inline">\(i, j \neq 2\)</span>.</figcaption>
 </figure>
 <h4 id="function-body-walls">Function body (walls)</h4>
 <p>Collecting these steps, the rest of the implementation of <code>power_diagram_faces</code> is as follows:</p>
@@ -1514,15 +1521,15 @@ C_0(q) &amp;=&amp; 14.2 + \frac{731}{1 + 62.5 q},
 <a class="sourceLine" id="include-optional-9" data-line-number="9"><span class="pp">#error &quot;Unrecognised C++ version.&quot;</span></a>
 <a class="sourceLine" id="include-optional-10" data-line-number="10"><span class="pp">#endif</span></a></code></pre></div>
 <h4 id="the-sphere">The sphere</h4>
-<p>Unfortunately CGAL seems to have no function to compute the intersection of a <code>Sphere</code> with a <code>Segment</code>. We’ll take the opportunity to do some algebraic geometry our selves. The <code>Sphere</code> data type will have two members:</p>
+<p>Unfortunately CGAL seems to have no function to compute the intersection of a <code>Sphere</code> with a <code>Segment</code>. We’ll take the opportunity to do some computational geometry our selves. The <code>Sphere</code> data type will have two members:</p>
 <p><em>«sphere-members»=</em></p>
 <div class="sourceCode" id="sphere-members"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="sphere-members-1" data-line-number="1">Point  origin;</a>
 <a class="sourceLine" id="sphere-members-2" data-line-number="2"><span class="dt">double</span> radius_squared;</a></code></pre></div>
 <p>Now, any point will have an orientation with respect to this sphere,</p>
 <p><span class="math display">\[{\rm orient}(\vec{o}, r, \vec{p}) = \begin{cases}
--1 &amp; \quad {\rm if}~(\vec{p} - \vec{o}|)^2 &lt; r^2\\
-0 &amp; \quad {\rm if}~(\vec{p} - \vec{o}|)^2 = r^2\\
-1 &amp; \quad {\rm if}~(\vec{p} - \vec{o}|)^2 &gt; r^2\\
+-1 &amp; \quad {\rm if}~(\vec{p} - \vec{o})^2 &lt; r^2\\
+0 &amp; \quad {\rm if}~(\vec{p} - \vec{o})^2 = r^2\\
+1 &amp; \quad {\rm if}~(\vec{p} - \vec{o})^2 &gt; r^2\\
 \end{cases}\]</span></p>
 <p><em>«sphere-oriented-side»=</em></p>
 <div class="sourceCode" id="sphere-oriented-side"><pre class="sourceCode cpp"><code class="sourceCode cpp"><a class="sourceLine" id="sphere-oriented-side-1" data-line-number="1"><span class="dt">int</span> oriented_side(Point <span class="at">const</span> &amp;p) <span class="at">const</span></a>
