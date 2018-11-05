@@ -44,6 +44,10 @@ double integrate_qagiu(
 
 ## Manipulating meshes
 
+To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.
+
+In the `mesh_manipulation.hh` header file we define methods to cut a mesh using a spherical surface or a plane.
+
 ``` {.cpp file=src/mesh_manipulation.hh}
 #pragma once
 #include <tuple>
@@ -56,7 +60,7 @@ double integrate_qagiu(
 <<clean-mesh>>
 ```
 
-To visualise a structure it is important to limit the visualisation to a specific region. Otherwise the image is flooded with too many polygons and we lose the aim of visualisation: making structures visible.
+#### Surfaces
 
 To select parts of a mesh we need to define a surface that can tell us on what side a point lies, and if we have two points, if and where the segment between those points intersects. This concept of a `Surface` is embodied by the following abstract base class:
 
@@ -73,14 +77,20 @@ public:
 };
 ```
 
+#### Split a polygon
+
 Given an implementation of such a class, we  can implement a function that will split a polygon in two parts, each on either side of the surface. This makes certain assumptions about the surface and the polygon that will not always hold, but suffice for our purposes of visualisation.
+
+We still have to define the input `Polygon` type,
 
 ``` {.cpp #split-polygon}
 template <typename Point>
 using Polygon = std::tuple<
-                  std::vector<Point> *,
-                  std::vector<unsigned>>;
+    std::vector<Point> *,
+    std::vector<unsigned>>;
 ```
+
+The algorithm returns two polygons, one of which lies below the surface, the other above.
 
 ``` {.cpp #split-polygon}
 template <typename Point>
@@ -89,6 +99,8 @@ using PolygonPair = std::tuple<
     std::vector<unsigned>,
     std::vector<unsigned>>;
 ```
+
+The third argument `closed` tells if the given path is cyclic or not. This is a distinction between having a polygon or a chain of line segments.
 
 ``` {.cpp #split-polygon}
 template <typename Point>
@@ -436,17 +448,6 @@ void write_vector(
 {
   std::vector<hsize_t> shape { v.size() };
   write_vector_with_shape(group, name, v, shape);
-}
-
-template <typename Group, typename T>
-void write_attribute(
-    Group &group,
-    std::string const &name,
-    T const &value)
-{
-  auto attr = group.createAttribute(
-    name, H5TypeFactory<T>::get(), H5::DataSpace());
-  attr.write(H5TypeFactory<T>::get(), &value);
 }
 
 extern void write_mesh(
