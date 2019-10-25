@@ -227,6 +227,7 @@ The interface to these steps is collected in `initial_conditions.hh`.
 #include "boxparam.hh"
 #include <vector>
 #include <yaml-cpp/yaml.h>
+#include <functional>
 
 using PowerSpectrum = std::function<double (double)>;
 using Config = YAML::Node;

@@ -10,14 +10,14 @@ pdf_files = $(build_dir)/main.pdf
 html_files = $(html_dir)/index.html
 
 # Get HDF5 compilation flags using pkg-config
-hdf5_cflags = $(shell pkg-config --cflags hdf5)
-hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
+# hdf5_cflags = $(shell pkg-config --cflags hdf5)
+# hdf5_libs = $(shell pkg-config --libs hdf5) -lhdf5_cpp
 
 # Get HDF5 compilation flags manually if pkg-config does not work
-# hdf5_cc = $(shell which h5c++)
-# hdf5_root = $(shell dirname `dirname $(hdf5_cc)`)
-# hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-) -I$(hdf5_root)/include
-# hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
+hdf5_cc = $(shell which h5c++)
+hdf5_root = $(shell dirname `dirname $(hdf5_cc)`)
+hdf5_cflags = $(shell h5c++ -show '%' | cut -d% -f1 | cut -d' ' -f2-) -I$(hdf5_root)/include
+hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
 
 # CGAL compile flags when compiling with GCC
 # Note that CLANG does not support -frounding-math
@@ -35,7 +35,7 @@ coverage_cflags = --coverage
 # In case we're compiling with GCC 6
 # cflags = -D_GLIBCXX_USE_CXX11_ABI=0 -I${HOME}/.local/include $(tbb_cflags)
 # cflags = -O3
-cflags = -O3 -Iinclude -I${HOME}/.local/include
+cflags = -O3 -g -Iinclude -I${HOME}/.local/include
 
 # If some of the dependencies are installed locally
 libs = -L${HOME}/.local/lib
@@ -121,7 +121,7 @@ $(sources): tangle
 -include $(tests_dep_files)
 -include $(main_dep_file)
 
-$(build_dir)/%.o : %.cc
+$(build_dir)/%.o : %.cc Makefile
 	mkdir -p $(@D)
 	$(compile) $(compile_flags) -MMD -c $< -o $@
 

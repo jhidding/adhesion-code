@@ -390,7 +390,8 @@ Mesh<Point, Info> select_mesh(
   unsigned i = 0, j = 0;
   for (unsigned s : mesh.sizes)
   {
-    std::vector<unsigned> vs(&mesh.data[j], &mesh.data[j+s]);
+    auto x = mesh.data.begin() + j;
+    std::vector<unsigned> vs(x, x + s);
 
     auto below = std::get<1>(split_polygon(
       Polygon<Point>(&result.vertices, vs),
