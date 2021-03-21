@@ -1485,6 +1485,33 @@ The same goes for the filaments. The difference with the previous code block is 
 
 The `main` function provides the primary interface to the user. It parses command-line arguments, prints help if needed, loads the configuration, and runs the rest of the program by calling `run`.
 
+``` {.cpp #cpp-default-config}
+const char *default_config = R"YAML(
+# Default configuration
+
+box:
+  N:      128       # logical box size
+  L:       50.0     # physical box size
+
+cosmology:
+  power-spectrum: Eisenstein & Hu (no baryons)
+  h:        0.674   # Hubble parameter / 100
+  ns:       0.965   # primordial power spectrum index
+  Omega0:   1.0     # density in units of critical density
+  sigma8:   0.811   # amplitude over 8 Mpc/h
+
+run:
+  seed:     8
+  time:     [0.2, 0.5, 1.0]
+
+output:
+  hdf5:            output/lcdm.h5
+  walls:           output/lcdm-{time:02.1f}-walls.obj
+  filaments:       output/lcdm-{time:02.1f}-filaments.obj
+  threshold:       1.0
+)YAML";
+```
+
 ``` {.cpp file=src/main.cc}
 #include <iostream>
 #include <argagg/argagg.hpp>
@@ -1494,10 +1521,7 @@ The `main` function provides the primary interface to the user. It parses comman
 
 <<version>>
 <<main-arguments>>
-
-const char *default_config = R"YAML(
-<<default-config>>
-)YAML";
+<<cpp-default-config>>
 
 int main(int argc, char **argv)
 {
