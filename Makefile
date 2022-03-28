@@ -22,7 +22,7 @@ hdf5_libs = $(shell h5c++ -show '%' | cut -d% -f2 | cut -d' ' -f2-)
 # CGAL compile flags when compiling with GCC
 # Note that CLANG does not support -frounding-math
 cgal_cflags = -frounding-math
-cgal_libs = -lm -lCGAL -lgmp -lboost_thread -lmpfr
+cgal_libs = -lm -lgmp -lboost_thread -lmpfr
 
 # Uncomment if you want to compile with TBB
 # tbb_cflags = -DCGAL_LINKED_WITH_TBB -pthread
@@ -57,11 +57,7 @@ report_args = --toc $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotat
 latex_args = --toc $(pandoc_latex_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --natbib --listings
 html_args = -s --toc --toc-depth=3 $(pandoc_filters:%=--filter %) --lua-filter "scripts/annotate-code-blocks.lua" --mathjax --css "style.css" --base-header-level=2
 
-pd_call = pandoc -f $(format) --lua-filter "scripts/$(1).lua" -t plain
-pd_list = $(call pd_call,list)
-pd_tangle = $(call pd_call,tangle)
-
-sources = $(shell $(pd_list) $(input_files))
+sources = $(shell find src -name '*.cc')
 
 cc_files = $(filter-out src/main.cc, $(filter src/%.cc, $(sources)))
 obj_files = $(cc_files:%.cc=$(build_dir)/%.o)
@@ -84,11 +80,6 @@ adhesion: $(build_dir)/adhesion
 parallel-test: $(build_dir)/parallel-test
 
 run-tests: $(build_dir)/run-tests
-
-tangle: $(input_files)
-	mkdir -p $(build_dir)
-	$(pd_tangle) $^ > $(build_dir)/tangle.sh
-	source $(build_dir)/tangle.sh
 
 report: $(pdf_files)
 
@@ -113,8 +104,6 @@ $(html_dir)/%.html: $(input_files)
 
 $(build_dir)/%.pdf : $(input_files)
 	pandoc $^ -f $(format) $(report_args) -t latex -o $@ --pdf-engine=xelatex
-
-$(sources): tangle
 
 # Include all .d files
 -include $(dep_files)

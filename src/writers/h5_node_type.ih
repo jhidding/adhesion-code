@@ -1,0 +1,13 @@
+// ~\~ language=C++ filename=src/writers/h5_node_type.ih
+// ~\~ begin <<appendix.md|src/writers/h5_node_type.ih>>[0]
+extern H5::CompType h5_node_type();
+
+template <>
+struct H5TypeFactory<Adhesion::Node>
+{
+  static H5::CompType get()
+  {
+    return h5_node_type();
+  }
+};
+// ~\~ end
