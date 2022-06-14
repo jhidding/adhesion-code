@@ -51,6 +51,7 @@ potential = np.fft.ifftn(potential_fourier).real
 np.seterr(**np_default_err)
 ```
 
+## Write output and run
 Write this to HDF5
 
 ``` {.python #create-ic}
