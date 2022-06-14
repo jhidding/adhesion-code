@@ -13,3 +13,26 @@ authors:
     email: j.hidding@esciencecenter.nl
     affiliation: Netherlands eScience Center
     orcid: 'https://orcid.org/0000-0002-7550-1796'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.1477535
+    description: Zenodo archive
+repository-code: 'https://github.com/jhidding/adhesion-code'
+url: 'https://jhidding.github.io/adhesion-code/'
+abstract: >-
+  We present a (relatively) small example of using
+  the CGAL library to run the adhesion model. This
+  literate C++ code generates an initial potential
+  field and computes the regular triangulation to
+  that potential, which is a weighted generalisation
+  of the Delaunay triangulation. The output is a
+  selection of its dual, the power diagram or
+  weighted Voronoi tessellation, written in a form
+  that is ready for analysis and visualisation.
+keywords:
+  - cosmic web
+  - adhesion model
+  - cosmology
+  - structure formation
+license: Apache-2.0
+date-released: '2018-11-04'
