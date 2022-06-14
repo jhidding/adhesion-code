@@ -27,7 +27,7 @@ density = np.fft.ifftn(density_fourier).real
 density /= density.std()
 # ~\~ end
 # ~\~ begin <<tutorial.md|create-ic>>[4]
-potential_fourier = np.fft.fftn(density_fourier) * k**-2
+potential_fourier = np.fft.fftn(density) * k**-2
 potential_fourier.flat[0] = 0
 potential = np.fft.ifftn(potential_fourier).real
 np.seterr(**np_default_err)

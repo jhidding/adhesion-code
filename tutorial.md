@@ -45,7 +45,7 @@ density /= density.std()
 Now we should compute the potential.
 
 ``` {.python #create-ic}
-potential_fourier = np.fft.fftn(density_fourier) * k**-2
+potential_fourier = np.fft.fftn(density) * k**-2
 potential_fourier.flat[0] = 0
 potential = np.fft.ifftn(potential_fourier).real
 np.seterr(**np_default_err)
