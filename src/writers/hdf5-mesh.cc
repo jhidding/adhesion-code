@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/writers/hdf5-mesh.cc
-// ~\~ begin <<appendix.md|src/writers/hdf5-mesh.cc>>[0]
+// ~\~ begin <<appendix.md|src/writers/hdf5-mesh.cc>>[init]
 #include "writers.hh"
 
 void write_mesh(

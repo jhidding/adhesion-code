@@ -1,15 +1,15 @@
 // ~\~ language=C++ filename=src/boxparam.hh
-// ~\~ begin <<adhesion_example.md|src/boxparam.hh>>[0]
+// ~\~ begin <<adhesion_example.md|src/boxparam.hh>>[init]
 #pragma once
 #include <cstdlib>
 #include <cmath>
 #include <array>
 
-// ~\~ begin <<adhesion_example.md|helper-functions>>[0]
+// ~\~ begin <<adhesion_example.md|helper-functions>>[init]
 template <typename T>
 inline T sqr(T x) { return x*x; }
 // ~\~ end
-// ~\~ begin <<adhesion_example.md|increment-index>>[0]
+// ~\~ begin <<adhesion_example.md|increment-index>>[init]
 template <unsigned R>
 inline unsigned increment_index(
     std::array<size_t, R> const &shape,
@@ -39,7 +39,7 @@ public:
     , L(L_)
   {}
 
-  // ~\~ begin <<adhesion_example.md|fourier-properties>>[0]
+  // ~\~ begin <<adhesion_example.md|fourier-properties>>[init]
   std::array<size_t, 3> rfft_shape() const {
     return std::array<size_t, 3>{ N, N, N/2 + 1 };
   }
@@ -63,7 +63,7 @@ public:
     return sqrt(x);
   }
   // ~\~ end
-  // ~\~ begin <<adhesion_example.md|boxparam-methods>>[0]
+  // ~\~ begin <<adhesion_example.md|boxparam-methods>>[init]
   std::array<size_t, 3> shape() const {
     return std::array<size_t, 3>({ N, N, N });
   }

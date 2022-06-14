@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/adhesion/get_walls.cc
-// ~\~ begin <<adhesion_example.md|src/adhesion/get_walls.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/adhesion/get_walls.cc>>[init]
 #include "adhesion.hh"
 #include "power_diagram.hh"
 

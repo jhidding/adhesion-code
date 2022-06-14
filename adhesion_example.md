@@ -10,14 +10,18 @@ reference-section-title: References
 
 # Abstract
 
-We present a (relatively) small example of using the CGAL [@cgal:eb-18b] library to run the adhesion model. This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
+We present a (relatively) small example of using the CGAL [@cgal:eb-18b] library to run the adhesion model.
+
+According to the currently accepted theory of structure formation, the Universe started out with a nearly homogeneous matter distribution. Slight deviations from homogeneity, initial density perturbations, grow under the influence of gravity to form stars, galaxies and the cosmic web. This process of gravitational collapse is a driver for the development of complexity on every scale that we can observe. The adhesion model is meant to capture that complexity as it develops on the largest scales, that of the cosmic web.
+
+This literate C++ code generates an initial potential field and computes the *regular triangulation* to that potential, which is a weighted generalisation of the *Delaunay triangulation*. The output is a selection of its dual, the power diagram or weighted Voronoi tessellation, written in a form that is ready for analysis and visualisation.
 
 This software emanates from NWO project 614.000.908 supervised by Gert Vegter and Rien van de Weygaert.
 
 ## Version
 
 ``` {.cpp #version}
-#define VERSION "1.0"
+#define VERSION "2.0"
 ```
 
 \pagebreak
@@ -42,11 +46,11 @@ From the reader a basic knowledge of programming is required. Familiarity with C
 ------------------------------------------------------------------------------
 Package          Version   Description
 ---------------- --------- ---------------------------------------------------
-C++ compiler     C++17     Tested with GCC 8 and LLVM 6.
+C++ compiler     C++17     Tested with GCC 8 through 12 and LLVM 6 through 14.
 
 GNU Make         ≥4.0      Build everything.
 
-CGAL             ≥4.12     [The Computational Geometry Algorithm Library](http://cgal.org)
+CGAL             ≥5.4      [The Computational Geometry Algorithm Library](http://cgal.org)
 
 FFTW3            ≥3.3      [The Fastest Fourier Transform in the West](http://www.fftw.org/)
 
@@ -87,7 +91,7 @@ pandoc-fignos    ≥1.3.0    Number and reference figures.
 rsvg-convert     ≥2.40     Convert SVG files.
 ------------------------------------------------------------------------------
 
-All of these packages are available in the Debian GNU/Linux package repositories. Install instructions are included in the repository at [https://github.com/jhidding/adhesion-code](https://github.com/jhidding/adhesion-code).
+All of these packages are generaly available in most popular GNU/Linux distributions. Install instructions are included in the repository at [https://github.com/jhidding/adhesion-code](https://github.com/jhidding/adhesion-code).
 
 ## Literate programming
 
@@ -141,19 +145,20 @@ We read the configuration from a YAML file. This file specifies the box size, co
 ``` {.yaml #default-config}
 # Default configuration
 
-box:
-  N:      128       # logical box size
-  L:       50.0     # physical box size
-
 cosmology:
-  power-spectrum: Eisenstein & Hu (no baryons)
   h:        0.674   # Hubble parameter / 100
   ns:       0.965   # primordial power spectrum index
   Omega0:   1.0     # density in units of critical density
   sigma8:   0.811   # amplitude over 8 Mpc/h
 
+initial-conditions:
+  random:
+    seed:              8
+    resolution:      128       # logical box size
+    box-size:         50.0     # physical box size in Mpc/h
+    power-spectrum:  Eisenstein & Hu (no baryons)
+
 run:
-  seed:     8
   time:     [0.2, 0.5, 1.0]
 
 output:
@@ -267,8 +272,8 @@ std::vector<double> generate_initial_potential(
     Config const &config)
 {
   std::clog << "# Generating white noise with seed:\n"
-            << config["run"]["seed"] << "\n";
-  auto seed = config["run"]["seed"].as<unsigned long>();
+            << config["initial-conditions"]["random"]["seed"] << "\n";
+  auto seed = config["initial-conditions"]["random"]["seed"].as<unsigned long>();
   auto field = generate_white_noise(box, seed);
 
   std::clog << "Applying power spectrum with cosmology:\n"
@@ -1325,6 +1330,7 @@ As we discuss each step in the workflow, we add code onto *«workflow»*.
 #include <fstream>
 #include <exception>
 #include <filesystem>
+#include <tuple>
 #include <H5Cpp.h>
 #include <fmt/format.h>
 
@@ -1339,8 +1345,36 @@ As we discuss each step in the workflow, we add code onto *«workflow»*.
 
 namespace fs = std::filesystem;
 
+std::tuple<BoxParam,std::vector<double>> random_ic(YAML::Node const &config)
+{
+  std::clog << "# Using box with parameters:\n"
+            << config["initial-conditions"]["random"] << "\n";
+  BoxParam box(
+    config["initial-conditions"]["random"]["resolution"].as<int>(),
+    config["initial-conditions"]["random"]["box-size"].as<double>());
+  auto potential = generate_initial_potential(
+    box, config);
+  return std::make_tuple(box, potential);
+}
+
+std::tuple<BoxParam,std::vector<double>> load_ic(YAML::Node const &config)
+{
+  auto input_filename = config["initial-conditions"]["file"].as<std::string>();
+  H5::H5File input_file(input_filename);
+
+  unsigned N = read_attribute<unsigned>(input_file, "N");
+  double L = read_attribute<double>(input_file, "L");
+
+  BoxParam box(N, L);
+  auto potential = read_vector<double>(input_file, "potential");
+  return std::make_tuple(box, potential);
+}
+
 void run(YAML::Node const &config)
 {
+  auto [box, potential] = (config["initial-conditions"]["file"] ?
+      load_ic(config) : random_ic(config));
+
   <<workflow>>
 }
 ```
@@ -1350,14 +1384,7 @@ void run(YAML::Node const &config)
 We create a `BoxParam` instance and generate the initial potential.
 
 ``` {.cpp #workflow}
-std::clog << "# Using box with parameters:\n"
-          << config["box"] << "\n";
-BoxParam box(
-  config["box"]["N"].as<int>(),
-  config["box"]["L"].as<double>());
 
-auto potential = generate_initial_potential(
-  box, config);
 ```
 
 #### Write initial conditions to file

@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/writers/h5_node_type.cc
-// ~\~ begin <<appendix.md|src/writers/h5_node_type.cc>>[0]
+// ~\~ begin <<appendix.md|src/writers/h5_node_type.cc>>[init]
 #include "adhesion.hh"
 #include "writers.hh"
 #include <cstddef>

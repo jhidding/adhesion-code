@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/initial_conditions/white_noise.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/white_noise.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/initial_conditions/white_noise.cc>>[init]
 #include "initial_conditions.hh"
 #include <random>
 

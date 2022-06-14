@@ -1,9 +1,10 @@
 // ~\~ language=C++ filename=src/run.cc
-// ~\~ begin <<adhesion_example.md|src/run.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/run.cc>>[init]
 #include <iostream>
 #include <fstream>
 #include <exception>
 #include <filesystem>
+#include <tuple>
 #include <H5Cpp.h>
 #include <fmt/format.h>
 
@@ -18,17 +19,38 @@
 
 namespace fs = std::filesystem;
 
-void run(YAML::Node const &config)
+std::tuple<BoxParam,std::vector<double>> random_ic(YAML::Node const &config)
 {
-  // ~\~ begin <<adhesion_example.md|workflow>>[0]
   std::clog << "# Using box with parameters:\n"
-            << config["box"] << "\n";
+            << config["initial-conditions"]["random"] << "\n";
   BoxParam box(
-    config["box"]["N"].as<int>(),
-    config["box"]["L"].as<double>());
-
+    config["initial-conditions"]["random"]["resolution"].as<int>(),
+    config["initial-conditions"]["random"]["box-size"].as<double>());
   auto potential = generate_initial_potential(
     box, config);
+  return std::make_tuple(box, potential);
+}
+
+std::tuple<BoxParam,std::vector<double>> load_ic(YAML::Node const &config)
+{
+  auto input_filename = config["initial-conditions"]["file"].as<std::string>();
+  H5::H5File input_file(input_filename);
+
+  unsigned N = read_attribute<unsigned>(input_file, "N");
+  double L = read_attribute<double>(input_file, "L");
+
+  BoxParam box(N, L);
+  auto potential = read_vector<double>(input_file, "potential");
+  return std::make_tuple(box, potential);
+}
+
+void run(YAML::Node const &config)
+{
+  auto [box, potential] = (config["initial-conditions"]["file"] ?
+      load_ic(config) : random_ic(config));
+
+  // ~\~ begin <<adhesion_example.md|workflow>>[init]
+
   // ~\~ end
   // ~\~ begin <<adhesion_example.md|workflow>>[1]
   std::string output_filename
@@ -64,22 +86,22 @@ void run(YAML::Node const &config)
 
   unsigned iteration = 0;
   for (double t : time) {
-    // ~\~ begin <<adhesion_example.md|workflow-adhesion>>[0]
+    // ~\~ begin <<adhesion_example.md|workflow-adhesion>>[init]
     std::clog << "Computing regular triangulation for t = "
               << t << " ...\n";
     Adhesion adhesion(box, potential, t);
     // ~\~ end
 
-    // ~\~ begin <<adhesion_example.md|workflow-create-hdf5-group>>[0]
+    // ~\~ begin <<adhesion_example.md|workflow-create-hdf5-group>>[init]
     auto h5_group = output_file.createGroup(
       fmt::format("{}", iteration));
     write_attribute(h5_group, "time", t);
     // ~\~ end
-    // ~\~ begin <<adhesion_example.md|workflow-write-nodes>>[0]
+    // ~\~ begin <<adhesion_example.md|workflow-write-nodes>>[init]
     auto nodes = adhesion.get_nodes(threshold);
     write_vector(h5_group, "nodes", nodes);
     // ~\~ end
-    // ~\~ begin <<adhesion_example.md|workflow-write-obj>>[0]
+    // ~\~ begin <<adhesion_example.md|workflow-write-obj>>[init]
     {
       auto walls = adhesion.get_walls(threshold);
       std::string filename = fmt::format(

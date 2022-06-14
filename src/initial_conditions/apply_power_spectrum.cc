@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/initial_conditions/apply_power_spectrum.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/apply_power_spectrum.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/initial_conditions/apply_power_spectrum.cc>>[init]
 #include "initial_conditions.hh"
 #include "fft.hh"
 
@@ -13,7 +13,7 @@ void compute_potential(
             rfft.real_space.begin());
   rfft.forward_transform();
 
-  // ~\~ begin <<adhesion_example.md|apply-power-spectrum>>[0]
+  // ~\~ begin <<adhesion_example.md|apply-power-spectrum>>[init]
   auto f_shape = box.rfft_shape();
   std::array<size_t, 3> loc = {0, 0, 1};
   double v = pow(box.L / box.N, 3.0);

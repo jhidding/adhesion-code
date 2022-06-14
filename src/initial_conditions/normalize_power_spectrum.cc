@@ -1,9 +1,9 @@
 // ~\~ language=C++ filename=src/initial_conditions/normalize_power_spectrum.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/normalize_power_spectrum.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/initial_conditions/normalize_power_spectrum.cc>>[init]
 #include "initial_conditions.hh"
 #include <iostream>
 
-// ~\~ begin <<appendix.md|gsl-integrate-qagiu>>[0]
+// ~\~ begin <<appendix.md|gsl-integrate-qagiu>>[init]
 #include <gsl/gsl_integration.h>
 
 using Function = std::function<double (double)>;
@@ -36,7 +36,7 @@ double integrate_qagiu(
   return x;
 }
 // ~\~ end
-// ~\~ begin <<adhesion_example.md|top-hat-function>>[0]
+// ~\~ begin <<adhesion_example.md|top-hat-function>>[init]
 double W_th(double y) {
   return 3.0 / pow(y, 3) * (sin(y) - y * cos(y));
 }
@@ -51,7 +51,7 @@ PowerSpectrum normalize_power_spectrum(
   double epsabs = 1e-6, epsrel = 1e-6;
   double sigma8 = cosmology["sigma8"].as<double>();
 
-  // ~\~ begin <<adhesion_example.md|define-integrand>>[0]
+  // ~\~ begin <<adhesion_example.md|define-integrand>>[init]
   auto integrand = [&] (double k) {
     return P(k) / (2 * M_PI*M_PI) * pow(W_th(8.0 * k) * k, 2);
   };

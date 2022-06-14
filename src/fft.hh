@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/fft.hh
-// ~\~ begin <<appendix.md|src/fft.hh>>[0]
+// ~\~ begin <<appendix.md|src/fft.hh>>[init]
 #pragma once
 #include <fftw3.h>
 #include <memory>

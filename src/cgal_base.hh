@@ -1,12 +1,12 @@
 // ~\~ language=C++ filename=src/cgal_base.hh
-// ~\~ begin <<adhesion_example.md|src/cgal_base.hh>>[0]
+// ~\~ begin <<adhesion_example.md|src/cgal_base.hh>>[init]
 #pragma once
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Regular_triangulation_3.h>
 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 
-// ~\~ begin <<adhesion_example.md|regular-triangulation-type>>[0]
+// ~\~ begin <<adhesion_example.md|regular-triangulation-type>>[init]
 #ifdef CGAL_LINKED_WITH_TBB
   using TDS = CGAL::Triangulation_data_structure_3<
       CGAL::Regular_triangulation_vertex_base_3<K>,

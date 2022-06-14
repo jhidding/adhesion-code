@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/initial_conditions.hh
-// ~\~ begin <<adhesion_example.md|src/initial_conditions.hh>>[0]
+// ~\~ begin <<adhesion_example.md|src/initial_conditions.hh>>[init]
 #pragma once
 #include "boxparam.hh"
 #include <vector>

@@ -42,6 +42,7 @@ libs = -L${HOME}/.local/lib
 # libs =
 
 compile = g++
+# compile = clang
 compile_flags = -std=c++17 -Wall -Isrc  $(cflags) $(hdf5_cflags) $(cgal_cflags) $(tbb_cflags)
 link = g++
 link_flags = -lstdc++fs -lfftw3 -lyaml-cpp -lfmt $(libs) $(hdf5_libs) $(cgal_libs) $(gsl_libs) $(tbb_libs)
@@ -111,25 +112,24 @@ $(build_dir)/%.pdf : $(input_files)
 -include $(main_dep_file)
 
 $(build_dir)/%.o : %.cc Makefile
-	mkdir -p $(@D)
+	@mkdir -p $(@D)
 	$(compile) $(compile_flags) -MMD -c $< -o $@
 
 $(build_dir)/parallel-test : $(build_dir)/examples/cgal-parallel.o
-	mkdir -p $(@D)
+	@mkdir -p $(@D)
 	$(link) $^ $(link_flags) -o $@
 
 # Link main executable
 $(build_dir)/adhesion : $(obj_files) $(main_obj_file)
-	mkdir -p $(@D)
+	@mkdir -p $(@D)
 	$(link) $^ $(link_flags) -o $@
 
 # Link testing exectuable
 $(build_dir)/run-tests : $(obj_files) $(tests_obj_files)
-	mkdir -p $(@D)
+	@mkdir -p $(@D)
 	$(link) $^ $(link_flags) -lgtest -lgmock -lpthread -o $@
 
 clean:
-	-rm $(sources)
 	-rm -r $(build_dir)
 
 test: adhesion run-tests

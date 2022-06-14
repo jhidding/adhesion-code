@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/adhesion/velocity.cc
-// ~\~ begin <<adhesion_example.md|src/adhesion/velocity.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/adhesion/velocity.cc>>[init]
 #include "adhesion.hh"
 #include <limits>
 #include <CGAL/Cartesian_d.h>
@@ -9,12 +9,12 @@ typedef CGAL::Cartesian_d<double>    LiftedK;
 typedef CGAL::Point_d<LiftedK>       LiftedPoint;
 typedef CGAL::Hyperplane_d<LiftedK>  HyperPlane;
 
-// ~\~ begin <<adhesion_example.md|velocity-define-infinity>>[0]
+// ~\~ begin <<adhesion_example.md|velocity-define-infinity>>[init]
 constexpr double infinity
   = std::numeric_limits<double>::infinity();
 // ~\~ end
 
-// ~\~ begin <<adhesion_example.md|velocity-lifted-point>>[0]
+// ~\~ begin <<adhesion_example.md|velocity-lifted-point>>[init]
 inline LiftedPoint lifted_point(
     double x, double y, double z, double w)
 {
@@ -24,7 +24,7 @@ inline LiftedPoint lifted_point(
 // ~\~ end
 
 Vector Adhesion::velocity(RT::Cell_handle c) const {
-  // ~\~ begin <<adhesion_example.md|velocity-implementation>>[0]
+  // ~\~ begin <<adhesion_example.md|velocity-implementation>>[init]
   LiftedPoint points[4];
 
   for (unsigned i = 0; i < 4; ++i)

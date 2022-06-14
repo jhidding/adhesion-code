@@ -1,7 +1,7 @@
 // ~\~ language=C++ filename=src/surface.hh
-// ~\~ begin <<appendix.md|src/surface.hh>>[0]
+// ~\~ begin <<appendix.md|src/surface.hh>>[init]
 #pragma once
-// ~\~ begin <<appendix.md|include-optional>>[0]
+// ~\~ begin <<appendix.md|include-optional>>[init]
 #if __cplusplus == 201402L
 #include <experimental/optional>
 namespace std {

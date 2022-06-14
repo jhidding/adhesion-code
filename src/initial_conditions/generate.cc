@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/initial_conditions/generate.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/generate.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/initial_conditions/generate.cc>>[init]
 #include "initial_conditions.hh"
 #include <iostream>
 
@@ -8,8 +8,8 @@ std::vector<double> generate_initial_potential(
     Config const &config)
 {
   std::clog << "# Generating white noise with seed:\n"
-            << config["run"]["seed"] << "\n";
-  auto seed = config["run"]["seed"].as<unsigned long>();
+            << config["initial-conditions"]["random"]["seed"] << "\n";
+  auto seed = config["initial-conditions"]["random"]["seed"].as<unsigned long>();
   auto field = generate_white_noise(box, seed);
 
   std::clog << "Applying power spectrum with cosmology:\n"

@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/write_obj.hh
-// ~\~ begin <<appendix.md|src/write_obj.hh>>[0]
+// ~\~ begin <<appendix.md|src/write_obj.hh>>[init]
 #pragma once
 #include <iostream>
 

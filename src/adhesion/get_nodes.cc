@@ -1,8 +1,8 @@
 // ~\~ language=C++ filename=src/adhesion/get_nodes.cc
-// ~\~ begin <<adhesion_example.md|src/adhesion/get_nodes.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/adhesion/get_nodes.cc>>[init]
 #include "adhesion.hh"
 
-// ~\~ begin <<adhesion_example.md|adhesion-type-from-edge-count>>[0]
+// ~\~ begin <<adhesion_example.md|adhesion-type-from-edge-count>>[init]
 inline Adhesion::NodeType type_from_edge_count(int n)
 {
   switch (n) {

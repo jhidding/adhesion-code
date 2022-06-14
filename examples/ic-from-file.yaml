@@ -1,0 +1,14 @@
+# ~\~ language=YAML filename=examples/ic-from-file.yaml
+# ~\~ begin <<tutorial.md|examples/ic-from-file.yaml>>[init]
+initial-conditions:
+  file: my-ic.h5
+
+run:
+  time:     [0.5, 1.0, 2.0]
+
+output:
+  hdf5:            ./my-ic.h5
+  walls:           output/my-ic-{time:02.1f}-walls.obj
+  filaments:       output/my-ic-{time:02.1f}-filaments.obj
+  threshold:       1.0
+# ~\~ end

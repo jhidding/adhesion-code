@@ -1,11 +1,11 @@
 // ~\~ language=C++ filename=src/mesh_manipulation.hh
-// ~\~ begin <<appendix.md|src/mesh_manipulation.hh>>[0]
+// ~\~ begin <<appendix.md|src/mesh_manipulation.hh>>[init]
 #pragma once
 #include <tuple>
 #include "mesh.hh"
 #include "surface.hh"
 
-// ~\~ begin <<appendix.md|split-polygon>>[0]
+// ~\~ begin <<appendix.md|split-polygon>>[init]
 template <typename Point>
 using Polygon = std::tuple<
     std::vector<Point> *,
@@ -68,7 +68,7 @@ PolygonPair<Point> split_polygon(
     return PolygonPair<Point>(vertices, r2, r1);
 }
 // ~\~ end
-// ~\~ begin <<appendix.md|select-mesh>>[0]
+// ~\~ begin <<appendix.md|select-mesh>>[init]
 template <typename Point, typename Info>
 Mesh<Point, Info> select_mesh(
     Mesh<Point, Info> const &mesh,
@@ -111,7 +111,7 @@ Mesh<Point, Info> select_mesh(
   return m;
 }
 // ~\~ end
-// ~\~ begin <<appendix.md|clean-mesh>>[0]
+// ~\~ begin <<appendix.md|clean-mesh>>[init]
 template <typename Point, typename Info>
 Mesh<Point, Info> clean(
     Mesh<Point, Info> const &source)

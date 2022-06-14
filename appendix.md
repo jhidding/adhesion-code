@@ -483,6 +483,20 @@ void write_vector(
   write_vector_with_shape(group, name, v, shape);
 }
 
+template <typename T>
+std::vector<T> read_vector(
+   FileOrGroup &group,
+   std::string const &name)
+{
+  auto data_set = group.openDataSet(name);
+  auto data_space = data_set.getSpace();
+  auto size = data_space.getSimpleExtentNpoints();
+  std::clog << "Reading " << size << " elements from " << name << std::endl;
+  std::vector<T> data(size);
+  data_set.read(data.data(), H5TypeFactory<T>::get());
+  return data;
+}
+
 template <typename Group, typename T>
 void write_attribute(
     Group &group,
@@ -492,6 +506,17 @@ void write_attribute(
   auto attr = group.createAttribute(
     name, H5TypeFactory<T>::get(), H5::DataSpace());
   attr.write(H5TypeFactory<T>::get(), &value);
+}
+
+template <typename T, typename Group>
+T read_attribute(
+    Group &group,
+    std::string const &name)
+{
+  T value;
+  auto attr = group.openAttribute(name);
+  attr.read(H5TypeFactory<T>::get(), &value);
+  return value;
 }
 
 extern void write_mesh(

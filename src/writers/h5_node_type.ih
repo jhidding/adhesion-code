@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/writers/h5_node_type.ih
-// ~\~ begin <<appendix.md|src/writers/h5_node_type.ih>>[0]
+// ~\~ begin <<appendix.md|src/writers/h5_node_type.ih>>[init]
 extern H5::CompType h5_node_type();
 
 template <>

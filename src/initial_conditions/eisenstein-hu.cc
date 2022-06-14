@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/initial_conditions/eisenstein-hu.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/eisenstein-hu.cc>>[0]
+// ~\~ begin <<adhesion_example.md|src/initial_conditions/eisenstein-hu.cc>>[init]
 #include "initial_conditions.hh"
 
 PowerSpectrum EisensteinHu(Config const &cosmology)

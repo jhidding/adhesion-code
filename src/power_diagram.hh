@@ -1,5 +1,5 @@
 // ~\~ language=C++ filename=src/power_diagram.hh
-// ~\~ begin <<adhesion_example.md|src/power_diagram.hh>>[0]
+// ~\~ begin <<adhesion_example.md|src/power_diagram.hh>>[init]
 #include "cgal_base.hh"
 #include "mesh.hh"
 
