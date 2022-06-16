@@ -19,6 +19,8 @@
 
 namespace fs = std::filesystem;
 
+// ~\~ begin <<adhesion_example.md|make-initial-conditions>>[init]
+// ~\~ begin <<adhesion_example.md|random-initial-conditions>>[init]
 std::tuple<BoxParam,std::vector<double>> random_ic(YAML::Node const &config)
 {
   std::clog << "# Using box with parameters:\n"
@@ -30,11 +32,13 @@ std::tuple<BoxParam,std::vector<double>> random_ic(YAML::Node const &config)
     box, config);
   return std::make_tuple(box, potential);
 }
-
+// ~\~ end
+// ~\~ begin <<adhesion_example.md|load-initial-conditions>>[init]
 std::tuple<BoxParam,std::vector<double>> load_ic(YAML::Node const &config)
 {
   auto input_filename = config["initial-conditions"]["file"].as<std::string>();
-  H5::H5File input_file(input_filename);
+  std::clog << "# Loading IC from " << input_filename << std::endl;
+  H5::H5File input_file(input_filename, H5F_ACC_RDONLY);
 
   unsigned N = read_attribute<unsigned>(input_file, "N");
   double L = read_attribute<double>(input_file, "L");
@@ -43,14 +47,26 @@ std::tuple<BoxParam,std::vector<double>> load_ic(YAML::Node const &config)
   auto potential = read_vector<double>(input_file, "potential");
   return std::make_tuple(box, potential);
 }
+// ~\~ end
+
+std::tuple<BoxParam,std::vector<double>> make_ic(YAML::Node const &config)
+{
+  if (config["initial-conditions"]["random"]) {
+    return random_ic(config);
+  }
+  if (config["initial-conditions"]["file"]) {
+    return load_ic(config);
+  }
+  throw std::runtime_error(
+    "Configuration error: expected either `random` "
+    "or `file` in `initial-conditions`"); 
+}
+// ~\~ end
 
 void run(YAML::Node const &config)
 {
-  auto [box, potential] = (config["initial-conditions"]["file"] ?
-      load_ic(config) : random_ic(config));
-
   // ~\~ begin <<adhesion_example.md|workflow>>[init]
-
+  auto [box, potential] = make_ic(config);
   // ~\~ end
   // ~\~ begin <<adhesion_example.md|workflow>>[1]
   std::string output_filename
@@ -59,10 +75,12 @@ void run(YAML::Node const &config)
     fs::path(output_filename).parent_path());
   H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
 
-  write_attribute(output_file, "N", box.N);
-  write_attribute(output_file, "L", box.L);
-  write_vector_with_shape(
-    output_file, "potential", potential, box.shape());
+  if (config["initial-conditions"]["random"]) {
+    write_attribute(output_file, "N", box.N);
+    write_attribute(output_file, "L", box.L);
+    write_vector_with_shape(
+      output_file, "potential", potential, box.shape());
+  }
   // ~\~ end
   // ~\~ begin <<adhesion_example.md|workflow>>[2]
   std::vector<std::unique_ptr<Surface<Point>>> mesh_shape;

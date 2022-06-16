@@ -478,7 +478,7 @@ Equation\ @eq:two-point-function (also known as the two-point distribution) can 
 
 ## Power spectrum
 
-In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. In stead of talking about a correlation function, we often use its Fourier transform, the *power spectrum* to specify the correlation in the random field,
+In Figure\ @fig:colours-of-noise we show three instances of a Gaussian random field with three different correlation functions. Instead of talking about a correlation function, we often use its Fourier transform, the *power spectrum* to specify the correlation in the random field,
 
 $$\xi(\vec{r}) = \int \mathcal{P}(k) e^{i\vec{k}\cdot\vec{r}} \frac{{\rm d}^3 \vec{k}}{(2\pi)^3}.$$
 
@@ -1345,6 +1345,42 @@ As we discuss each step in the workflow, we add code onto *«workflow»*.
 
 namespace fs = std::filesystem;
 
+<<make-initial-conditions>>
+
+void run(YAML::Node const &config)
+{
+  <<workflow>>
+}
+```
+
+#### Generate initial conditions
+We have two ways to get initial conditions: generate them on the fly, or load them from a prepared HDF5 file. To select between those it is easiest to use a dispatch function:
+
+``` {.cpp #workflow}
+auto [box, potential] = make_ic(config);
+```
+
+``` {.cpp #make-initial-conditions}
+<<random-initial-conditions>>
+<<load-initial-conditions>>
+
+std::tuple<BoxParam,std::vector<double>> make_ic(YAML::Node const &config)
+{
+  if (config["initial-conditions"]["random"]) {
+    return random_ic(config);
+  }
+  if (config["initial-conditions"]["file"]) {
+    return load_ic(config);
+  }
+  throw std::runtime_error(
+    "Configuration error: expected either `random` "
+    "or `file` in `initial-conditions`"); 
+}
+```
+
+In the case of random initial conditions, we create the `BoxParam` from configuration values and then pass on to `generate_initial_potential` that uses the values in `config["cosmology"]` to generate the desired noise.
+
+``` {.cpp #random-initial-conditions}
 std::tuple<BoxParam,std::vector<double>> random_ic(YAML::Node const &config)
 {
   std::clog << "# Using box with parameters:\n"
@@ -1356,11 +1392,16 @@ std::tuple<BoxParam,std::vector<double>> random_ic(YAML::Node const &config)
     box, config);
   return std::make_tuple(box, potential);
 }
+```
 
+When we load initial conditions from a file, we expect the `BoxParam` values to be present as attributes. The `cosomology` section in the configuration is not needed in this case.
+
+``` {.cpp #load-initial-conditions}
 std::tuple<BoxParam,std::vector<double>> load_ic(YAML::Node const &config)
 {
   auto input_filename = config["initial-conditions"]["file"].as<std::string>();
-  H5::H5File input_file(input_filename);
+  std::clog << "# Loading IC from " << input_filename << std::endl;
+  H5::H5File input_file(input_filename, H5F_ACC_RDONLY);
 
   unsigned N = read_attribute<unsigned>(input_file, "N");
   double L = read_attribute<double>(input_file, "L");
@@ -1369,22 +1410,6 @@ std::tuple<BoxParam,std::vector<double>> load_ic(YAML::Node const &config)
   auto potential = read_vector<double>(input_file, "potential");
   return std::make_tuple(box, potential);
 }
-
-void run(YAML::Node const &config)
-{
-  auto [box, potential] = (config["initial-conditions"]["file"] ?
-      load_ic(config) : random_ic(config));
-
-  <<workflow>>
-}
-```
-
-#### Generate initial conditions
-
-We create a `BoxParam` instance and generate the initial potential.
-
-``` {.cpp #workflow}
-
 ```
 
 #### Write initial conditions to file
@@ -1398,10 +1423,12 @@ fs::create_directories(
   fs::path(output_filename).parent_path());
 H5::H5File output_file(output_filename, H5F_ACC_TRUNC);
 
-write_attribute(output_file, "N", box.N);
-write_attribute(output_file, "L", box.L);
-write_vector_with_shape(
-  output_file, "potential", potential, box.shape());
+if (config["initial-conditions"]["random"]) {
+  write_attribute(output_file, "N", box.N);
+  write_attribute(output_file, "L", box.L);
+  write_vector_with_shape(
+    output_file, "potential", potential, box.shape());
+}
 ```
 
 #### Output configuration
