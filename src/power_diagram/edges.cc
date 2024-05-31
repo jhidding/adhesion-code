@@ -1,8 +1,7 @@
-// ~\~ language=C++ filename=src/power_diagram/edges.cc
-// ~\~ begin <<adhesion_example.md|src/power_diagram/edges.cc>>[init]
+// ~/~ begin <<adhesion_example.md#src/power_diagram/edges.cc>>[init]
 #include "power_diagram.hh"
 
-// ~\~ begin <<adhesion_example.md|pd-is-big-facet>>[init]
+// ~/~ begin <<adhesion_example.md#pd-is-big-facet>>[init]
 inline bool is_big_facet(
     RT const &rt, RT::Facet const &f, double threshold)
 {
@@ -27,14 +26,14 @@ inline bool is_big_facet(
 
   return true;
 }
-// ~\~ end
+// ~/~ end
 
 Mesh<Point, double> power_diagram_edges(
   RT const &rt,
   double threshold)
 {
   Mesh<Point, double> mesh;
-  // ~\~ begin <<adhesion_example.md|pd-dual-vertex>>[init]
+  // ~/~ begin <<adhesion_example.md#pd-dual-vertex>>[init]
   std::map<RT::Cell_handle, unsigned> cell_index;
 
   auto get_dual_vertex = [&rt, &cell_index, &mesh] (
@@ -48,7 +47,7 @@ Mesh<Point, double> power_diagram_edges(
 
     return cell_index[h];
   };
-  // ~\~ end
+  // ~/~ end
 
   for (auto f = rt.finite_facets_begin();
        f != rt.finite_facets_end();
@@ -73,4 +72,4 @@ Mesh<Point, double> power_diagram_edges(
 
   return mesh;
 }
-// ~\~ end
+// ~/~ end

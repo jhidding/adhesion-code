@@ -1,15 +1,14 @@
-// ~\~ language=C++ filename=src/boxparam.hh
-// ~\~ begin <<adhesion_example.md|src/boxparam.hh>>[init]
+// ~/~ begin <<adhesion_example.md#src/boxparam.hh>>[init]
 #pragma once
 #include <cstdlib>
 #include <cmath>
 #include <array>
 
-// ~\~ begin <<adhesion_example.md|helper-functions>>[init]
+// ~/~ begin <<adhesion_example.md#helper-functions>>[init]
 template <typename T>
 inline T sqr(T x) { return x*x; }
-// ~\~ end
-// ~\~ begin <<adhesion_example.md|increment-index>>[init]
+// ~/~ end
+// ~/~ begin <<adhesion_example.md#increment-index>>[init]
 template <unsigned R>
 inline unsigned increment_index(
     std::array<size_t, R> const &shape,
@@ -25,7 +24,7 @@ inline unsigned increment_index(
 
   return R;
 }
-// ~\~ end
+// ~/~ end
 
 class BoxParam {
 public:
@@ -39,7 +38,7 @@ public:
     , L(L_)
   {}
 
-  // ~\~ begin <<adhesion_example.md|fourier-properties>>[init]
+  // ~/~ begin <<adhesion_example.md#fourier-properties>>[init]
   std::array<size_t, 3> rfft_shape() const {
     return std::array<size_t, 3>{ N, N, N/2 + 1 };
   }
@@ -47,23 +46,23 @@ public:
   size_t rfft_size() const {
     return N * N * (N / 2 + 1);
   }
-  // ~\~ end
-  // ~\~ begin <<adhesion_example.md|fourier-properties>>[1]
+  // ~/~ end
+  // ~/~ begin <<adhesion_example.md#fourier-properties>>[1]
   double wave_number(int i) const {
     return ( int(i) > int(N)/2
            ? int(i) - int(N)
            : int(i) ) * (2*M_PI)/L;
   }
-  // ~\~ end
-  // ~\~ begin <<adhesion_example.md|fourier-properties>>[2]
+  // ~/~ end
+  // ~/~ begin <<adhesion_example.md#fourier-properties>>[2]
   double k_abs(std::array<size_t, 3> const &loc) const {
     double x = 0.0;
     for (size_t i : loc)
       x += sqr(wave_number(i));
     return sqrt(x);
   }
-  // ~\~ end
-  // ~\~ begin <<adhesion_example.md|boxparam-methods>>[init]
+  // ~/~ end
+  // ~/~ begin <<adhesion_example.md#boxparam-methods>>[init]
   std::array<size_t, 3> shape() const {
     return std::array<size_t, 3>({ N, N, N });
   }
@@ -71,8 +70,8 @@ public:
   size_t size() const {
     return N * N * N;
   }
-  // ~\~ end
-  // ~\~ begin <<adhesion_example.md|boxparam-methods>>[1]
+  // ~/~ end
+  // ~/~ begin <<adhesion_example.md#boxparam-methods>>[1]
   std::array<size_t, 3> iloc(size_t i) const {
     size_t x = i % N,
            y = (i / N) % N,
@@ -80,13 +79,13 @@ public:
 
     return {z, y, x};
   }
-  // ~\~ end
-  // ~\~ begin <<adhesion_example.md|boxparam-methods>>[2]
+  // ~/~ end
+  // ~/~ begin <<adhesion_example.md#boxparam-methods>>[2]
   template <typename Point>
   Point point(size_t i) const {
     auto p = iloc(i);
     return Point(p[2] * L/N, p[1] * L/N, p[0] * L/N);
   }
-  // ~\~ end
+  // ~/~ end
 };
-// ~\~ end
+// ~/~ end

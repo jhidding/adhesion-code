@@ -1,7 +1,6 @@
-// ~\~ language=C++ filename=src/surface.hh
-// ~\~ begin <<appendix.md|src/surface.hh>>[init]
+// ~/~ begin <<appendix.md#src/surface.hh>>[init]
 #pragma once
-// ~\~ begin <<appendix.md|include-optional>>[init]
+// ~/~ begin <<appendix.md#include-optional>>[init]
 #if __cplusplus == 201402L
 #include <experimental/optional>
 namespace std {
@@ -12,7 +11,7 @@ using namespace std::experimental;
 #else
 #error "Unrecognised C++ version."
 #endif
-// ~\~ end
+// ~/~ end
 
 template <typename Point>
 class Surface
@@ -24,4 +23,4 @@ public:
 
   virtual ~Surface() {}
 };
-// ~\~ end
+// ~/~ end

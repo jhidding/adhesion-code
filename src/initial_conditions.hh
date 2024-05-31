@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/initial_conditions.hh
-// ~\~ begin <<adhesion_example.md|src/initial_conditions.hh>>[init]
+// ~/~ begin <<adhesion_example.md#src/initial_conditions.hh>>[init]
 #pragma once
 #include "boxparam.hh"
 #include <vector>
@@ -31,4 +30,4 @@ extern std::vector<double>
 generate_initial_potential(
     BoxParam const &box,
     Config const &config);
-// ~\~ end
+// ~/~ end

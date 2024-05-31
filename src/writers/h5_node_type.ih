@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/writers/h5_node_type.ih
-// ~\~ begin <<appendix.md|src/writers/h5_node_type.ih>>[init]
+// ~/~ begin <<appendix.md#src/writers/h5_node_type.ih>>[init]
 extern H5::CompType h5_node_type();
 
 template <>
@@ -10,4 +9,4 @@ struct H5TypeFactory<Adhesion::Node>
     return h5_node_type();
   }
 };
-// ~\~ end
+// ~/~ end

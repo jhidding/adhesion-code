@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/mesh.hh
-// ~\~ begin <<adhesion_example.md|src/mesh.hh>>[init]
+// ~/~ begin <<adhesion_example.md#src/mesh.hh>>[init]
 #pragma once
 #include <vector>
 
@@ -11,10 +10,10 @@ struct Mesh
   std::vector<unsigned> sizes;
   std::vector<Info>     info;
 
-  // ~\~ begin <<adhesion_example.md|mesh-methods>>[init]
+  // ~/~ begin <<adhesion_example.md#mesh-methods>>[init]
   size_t size() const { return sizes.size(); }
-  // ~\~ end
-  // ~\~ begin <<adhesion_example.md|mesh-methods>>[1]
+  // ~/~ end
+  // ~/~ begin <<adhesion_example.md#mesh-methods>>[1]
   void push_back(
     std::vector<unsigned> const &vertices,
     Info const &i)
@@ -23,6 +22,6 @@ struct Mesh
     sizes.push_back(vertices.size());
     info.push_back(i);
   }
-  // ~\~ end
+  // ~/~ end
 };
-// ~\~ end
+// ~/~ end

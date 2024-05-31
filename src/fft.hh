@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/fft.hh
-// ~\~ begin <<appendix.md|src/fft.hh>>[init]
+// ~/~ begin <<appendix.md#src/fft.hh>>[init]
 #pragma once
 #include <fftw3.h>
 #include <memory>
@@ -10,16 +9,12 @@
 #include <iostream>
 
 template <typename T>
-class FFTW_allocator   // : public std::allocator<T>
+class FFTW_allocator
 {
 public:
   typedef T           value_type;
   typedef size_t      size_type;
   typedef ptrdiff_t   difference_type;
-
-  FFTW_allocator() = default;
-  template <class U>
-  constexpr FFTW_allocator(const FFTW_allocator<U> &) noexcept {}
 
   T* allocate(
       size_t n)
@@ -78,4 +73,4 @@ public:
       for (double &z : real_space) z /= box.size();
   }
 };
-// ~\~ end
+// ~/~ end

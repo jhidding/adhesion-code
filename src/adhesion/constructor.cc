@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/adhesion/constructor.cc
-// ~\~ begin <<adhesion_example.md|src/adhesion/constructor.cc>>[init]
+// ~/~ begin <<adhesion_example.md#src/adhesion/constructor.cc>>[init]
 #include "adhesion.hh"
 
 Adhesion::Adhesion(
@@ -7,14 +6,14 @@ Adhesion::Adhesion(
     std::vector<double> const &potential,
     double t)
   : time(t)
-  // ~\~ begin <<adhesion_example.md|tbb-initialise-lock>>[init]
+  // ~/~ begin <<adhesion_example.md#tbb-initialise-lock>>[init]
   #ifdef CGAL_LINKED_WITH_TBB
   , lock(CGAL::Bbox_3(
       0.0, 0.0, 0.0,
       box.L, box.L, box.L), box.N)
   , rt(K(), &lock)
   #endif
-  // ~\~ end
+  // ~/~ end
 {
   vertices.reserve(box.size());
   for (size_t i = 0; i < box.size(); ++i)
@@ -28,4 +27,4 @@ Adhesion::Adhesion(
     vertices.begin(),
     vertices.end());
 }
-// ~\~ end
+// ~/~ end

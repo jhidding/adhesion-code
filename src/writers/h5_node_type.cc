@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/writers/h5_node_type.cc
-// ~\~ begin <<appendix.md|src/writers/h5_node_type.cc>>[init]
+// ~/~ begin <<appendix.md#src/writers/h5_node_type.cc>>[init]
 #include "adhesion.hh"
 #include "writers.hh"
 #include <cstddef>
@@ -19,4 +18,4 @@ H5::CompType h5_node_type()
   ct.insertMember("node_type", offsetof(Adhesion::Node, node_type), it);
   return ct;
 }
-// ~\~ end
+// ~/~ end

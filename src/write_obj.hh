@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/write_obj.hh
-// ~\~ begin <<appendix.md|src/write_obj.hh>>[init]
+// ~/~ begin <<appendix.md#src/write_obj.hh>>[init]
 #pragma once
 #include <iostream>
 
@@ -45,4 +44,4 @@ void write_faces_to_obj(std::ostream &out, Mesh<Point, double> const &mesh)
 {
   write_to_obj(out, "f", mesh);
 }
-// ~\~ end
+// ~/~ end

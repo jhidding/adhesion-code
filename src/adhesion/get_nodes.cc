@@ -1,8 +1,7 @@
-// ~\~ language=C++ filename=src/adhesion/get_nodes.cc
-// ~\~ begin <<adhesion_example.md|src/adhesion/get_nodes.cc>>[init]
+// ~/~ begin <<adhesion_example.md#src/adhesion/get_nodes.cc>>[init]
 #include "adhesion.hh"
 
-// ~\~ begin <<adhesion_example.md|adhesion-type-from-edge-count>>[init]
+// ~/~ begin <<adhesion_example.md#adhesion-type-from-edge-count>>[init]
 inline Adhesion::NodeType type_from_edge_count(int n)
 {
   switch (n) {
@@ -16,7 +15,7 @@ inline Adhesion::NodeType type_from_edge_count(int n)
   }
   return Adhesion::UNDEFINED_NODE_TYPE;
 }
-// ~\~ end
+// ~/~ end
 
 std::vector<Adhesion::Node>
 Adhesion::get_nodes(double threshold) const
@@ -42,4 +41,4 @@ Adhesion::get_nodes(double threshold) const
 
   return result;
 }
-// ~\~ end
+// ~/~ end

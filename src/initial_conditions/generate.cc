@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/initial_conditions/generate.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/generate.cc>>[init]
+// ~/~ begin <<adhesion_example.md#src/initial_conditions/generate.cc>>[init]
 #include "initial_conditions.hh"
 #include <iostream>
 
@@ -21,4 +20,4 @@ std::vector<double> generate_initial_potential(
 
   return field;
 }
-// ~\~ end
+// ~/~ end

@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/writers/hdf5-mesh.cc
-// ~\~ begin <<appendix.md|src/writers/hdf5-mesh.cc>>[init]
+// ~/~ begin <<appendix.md#src/writers/hdf5-mesh.cc>>[init]
 #include "writers.hh"
 
 void write_mesh(
@@ -22,4 +21,4 @@ void write_mesh(
   write_vector(group, "sizes", mesh.sizes);
   write_vector(group, "data",  mesh.data);
 }
-// ~\~ end
+// ~/~ end

@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/initial_conditions/eisenstein-hu.cc
-// ~\~ begin <<adhesion_example.md|src/initial_conditions/eisenstein-hu.cc>>[init]
+// ~/~ begin <<adhesion_example.md#src/initial_conditions/eisenstein-hu.cc>>[init]
 #include "initial_conditions.hh"
 
 PowerSpectrum EisensteinHu(Config const &cosmology)
@@ -21,4 +20,4 @@ PowerSpectrum EisensteinHu(Config const &cosmology)
     return pow(k, ns) * pow(T0, 2);
   };
 }
-// ~\~ end
+// ~/~ end

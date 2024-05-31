@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/adhesion/edge_count.cc
-// ~\~ begin <<adhesion_example.md|src/adhesion/edge_count.cc>>[init]
+// ~/~ begin <<adhesion_example.md#src/adhesion/edge_count.cc>>[init]
 #include "adhesion.hh"
 
 int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
@@ -17,4 +16,4 @@ int Adhesion::edge_count(RT::Cell_handle h, double threshold) const
   }
   return count;
 }
-// ~\~ end
+// ~/~ end

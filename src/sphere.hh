@@ -1,5 +1,4 @@
-// ~\~ language=C++ filename=src/sphere.hh
-// ~\~ begin <<appendix.md|src/sphere.hh>>[init]
+// ~/~ begin <<appendix.md#src/sphere.hh>>[init]
 #pragma once
 #include "surface.hh"
 
@@ -8,16 +7,16 @@ class Sphere: public Surface<typename K::Point_3>
 {
   using Point   = typename K::Point_3;
   using Vector  = typename K::Vector_3;
-  // ~\~ begin <<appendix.md|sphere-members>>[init]
+  // ~/~ begin <<appendix.md#sphere-members>>[init]
   Point  origin;
   double radius_squared;
-  // ~\~ end
+  // ~/~ end
 
 public:
   Sphere(Point const &p, double r):
       origin(p), radius_squared(r*r) {}
 
-  // ~\~ begin <<appendix.md|sphere-oriented-side>>[init]
+  // ~/~ begin <<appendix.md#sphere-oriented-side>>[init]
   int oriented_side(Point const &p) const
   {
     double d = (p - origin).squared_length();
@@ -30,8 +29,8 @@ public:
 
     return 0;
   }
-  // ~\~ end
-  // ~\~ begin <<appendix.md|sphere-intersect>>[init]
+  // ~/~ end
+  // ~/~ begin <<appendix.md#sphere-intersect>>[init]
   std::optional<Point> intersect(Point const &a, Point const &b) const
   {
     if (oriented_side(a) * oriented_side(b) >= 0)
@@ -58,6 +57,6 @@ public:
 
     return std::nullopt;                 // shouldn't happen
   }
-  // ~\~ end
+  // ~/~ end
 };
-// ~\~ end
+// ~/~ end

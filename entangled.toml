@@ -1,0 +1,13 @@
+version="2.0"
+watch_list = ["adhesion_example.md", "appendix.md"]
+
+[[languages]]
+name = "C++"
+identifiers = ["cpp"]
+comment = { open = "//" }
+
+[[languages]]
+name = "YAML"
+identifiers = ["yaml"]
+comment = { open = "#" }
+

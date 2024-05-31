@@ -1,18 +1,17 @@
-// ~\~ language=C++ filename=src/writers.hh
-// ~\~ begin <<appendix.md|src/writers.hh>>[init]
+// ~/~ begin <<appendix.md#src/writers.hh>>[init]
 #pragma once
 #include "cgal_base.hh"
 #include "adhesion.hh"
 #include "mesh.hh"
 #include <H5Cpp.h>
 
-// ~\~ begin <<appendix.md|hdf5-file-or-group>>[init]
+// ~/~ begin <<appendix.md#hdf5-file-or-group>>[init]
 #if H5_VERSION_GE(1, 10, 1)
 using FileOrGroup = H5::Group;
 #else
 using FileOrGroup = H5::CommonFG;
 #endif
-// ~\~ end
+// ~/~ end
 
 template <typename T>
 struct H5TypeFactory {};
@@ -101,4 +100,4 @@ extern void write_mesh(
     FileOrGroup &group,
     std::string const &name,
     Mesh<Point, double> const &mesh);
-// ~\~ end
+// ~/~ end

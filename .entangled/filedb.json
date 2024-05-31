@@ -1,0 +1,343 @@
+{
+  "version": "2.0.3",
+  "files": [
+    {
+      "path": "adhesion_example.md",
+      "deps": null,
+      "modified": "2024-05-31T15:04:09.393528",
+      "hexdigest": "00ee34680b7169d2360863a4e487694d39c0e879e6fde905f490a6e65a1caa10",
+      "size": 70161
+    },
+    {
+      "path": "appendix.md",
+      "deps": null,
+      "modified": "2024-05-31T15:04:09.401528",
+      "hexdigest": "c0ae8811c4a41bff1b6661506b4abefa7a20f4196e3401dd3ed561b9ab45fd58",
+      "size": 18980
+    },
+    {
+      "path": "src/initial_conditions/generate.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.365948",
+      "hexdigest": "c409f21a734d5b0c89d0db6183552fad696514cdaa32942d7576134d972b5ab7",
+      "size": 807
+    },
+    {
+      "path": "src/adhesion/get_walls.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.368948",
+      "hexdigest": "7fe29a0927f73e5c8c5522b1b8251f8f936c9cd70870b0e2c3b0521f7fa375ae",
+      "size": 372
+    },
+    {
+      "path": "examples/hello_world.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.364949",
+      "hexdigest": "c9e2728aa3a0c7b4d6e2c09650e4ba50c8480e29f6789b19a94a614446b10c90",
+      "size": 434
+    },
+    {
+      "path": "src/write_obj.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.353948",
+      "hexdigest": "10257ce45e930af02e0591294e26f398dd4227f2feb1475053c3a79012361464",
+      "size": 926
+    },
+    {
+      "path": "src/cgal_base.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.350948",
+      "hexdigest": "a2153ea66b354c8f752bdedc41f7f9ee2f3ad49597aa913d75633d66b359d083",
+      "size": 897
+    },
+    {
+      "path": "src/writers.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.348948",
+      "hexdigest": "04e098d920eb10a6dbdbe3c84e5e7ef863363782c391ca0961a436da197b20bc",
+      "size": 2385
+    },
+    {
+      "path": "src/adhesion/constructor.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.356948",
+      "hexdigest": "1b09a9680c53307f3504b5fb0b43d35a440c6f412a3f742840b1b77908f82bf2",
+      "size": 662
+    },
+    {
+      "path": "src/initial_conditions/white_noise.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.367949",
+      "hexdigest": "98e7d5cba340d3512e2b76dd6614e455c137797711c0fa863c409c04a97a27e4",
+      "size": 440
+    },
+    {
+      "path": "src/fft.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.362948",
+      "hexdigest": "93d28c0fd94f64312d97b8a0779bdab331471ad45f4de04851156235d960c518",
+      "size": 1728
+    },
+    {
+      "path": "src/mesh_manipulation.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.357949",
+      "hexdigest": "b7bee5d688caa87b3bb4a86b04957befea72124efd77544d2ace2653d98467b0",
+      "size": 3228
+    },
+    {
+      "path": "src/main.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.361948",
+      "hexdigest": "69b75cd69a3723aad542268ccea6dee5fcb6dfe8ec80c4867d912b5fb8c9eeb7",
+      "size": 2794
+    },
+    {
+      "path": "src/mesh.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.352948",
+      "hexdigest": "3f7fd92f08c3555398b72a97777384d9e669599b39e5e95e9cd8845b1c2c4f1d",
+      "size": 679
+    },
+    {
+      "path": "src/initial_conditions/apply_power_spectrum.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.341948",
+      "hexdigest": "fc920806934d49cd2ef045d81b4435d3448128d0674532166ef711a3f1e27fa4",
+      "size": 880
+    },
+    {
+      "path": "src/adhesion/get_nodes.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.366949",
+      "hexdigest": "8bc327dd925bb841dc239c741972e1fb323cc2ac9d7ce46bf149fcaac6d5c196",
+      "size": 1123
+    },
+    {
+      "path": "src/writers/h5_node_type.ih",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.344948",
+      "hexdigest": "9d868946f6e5790c304a2908326a4e69432691b3092d2cf9a8b827b109d4b7c9",
+      "size": 227
+    },
+    {
+      "path": "src/initial_conditions/normalize_power_spectrum.cc",
+      "deps": [
+        "appendix.md",
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.355948",
+      "hexdigest": "8786b41dcab515fe5fe166668b6e42cccca85f827d3b272d6544d4cde705beab",
+      "size": 1763
+    },
+    {
+      "path": "src/writers/h5_node_type.cc",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.360949",
+      "hexdigest": "c0fb787a5b34fba9b9cb8dfaa24d6c05bec49908809973b67b9418e2049255fe",
+      "size": 631
+    },
+    {
+      "path": "src/power_diagram/edges.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.354949",
+      "hexdigest": "1e87d4ddfa4765cc8aafe6d001905a07516b46686092062b9aee422ddc2f01e3",
+      "size": 1654
+    },
+    {
+      "path": "src/initial_conditions.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.351948",
+      "hexdigest": "7136032969247cd91c1c31b38142465de42afc771c915728b0ec64b6adebcbd1",
+      "size": 793
+    },
+    {
+      "path": "src/adhesion.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.346948",
+      "hexdigest": "7eb755d2439da02cf4fb7697c16d244de3d6f4fd0e892a3500bb3c7aeed5ba0f",
+      "size": 1437
+    },
+    {
+      "path": "src/power_diagram.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.334948",
+      "hexdigest": "0d8cb1f55f2ad178cdb57e3a03fcb1171388cc55378b6c038caefe874848711a",
+      "size": 285
+    },
+    {
+      "path": "src/boxparam.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.358948",
+      "hexdigest": "9b97db05ca4bd354704d153c7ea4f41a71ed45cc6e4a9d8a2d97642def6f8f25",
+      "size": 2220
+    },
+    {
+      "path": "src/run.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.349948",
+      "hexdigest": "4d9c0d402f86d755b981319e4fdde53abafd9eb41d619a2c7625ac8a11ed4863",
+      "size": 5125
+    },
+    {
+      "path": "src/initial_conditions/eisenstein-hu.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.369949",
+      "hexdigest": "f2965f5d5dc1a7222605dc5b4754e325c31d71718d6ad7969dcc00d2f2e2274a",
+      "size": 635
+    },
+    {
+      "path": "src/adhesion/edge_count.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.352948",
+      "hexdigest": "916c1c6476fb089e854cb04c2ad1a138099cf90e778733e7e279dbba7d1f557f",
+      "size": 433
+    },
+    {
+      "path": "src/run.hh",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.342948",
+      "hexdigest": "12c26a9d8240f602a34d966f7707ca289aaa5cf974da2bd95079340ea7281665",
+      "size": 148
+    },
+    {
+      "path": "src/adhesion/velocity.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.345948",
+      "hexdigest": "d4278fa05433c1e76fb86287f16fb2de690c16a98672002cdd27ac6b1454e255",
+      "size": 1457
+    },
+    {
+      "path": "src/writers/hdf5-mesh.cc",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.343948",
+      "hexdigest": "eef077fbcac44c7557d8f3690adde5df4194226a4c83148eb7bc2388bd6522aa",
+      "size": 691
+    },
+    {
+      "path": "src/power_diagram/faces.cc",
+      "deps": [
+        "adhesion_example.md"
+      ],
+      "modified": "2024-05-31T15:07:35.363949",
+      "hexdigest": "ddb37832597a37e07dcab8a0abfa8c11b83788a74bb1633cc22aaea42a3b447e",
+      "size": 1689
+    },
+    {
+      "path": "src/sphere.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.359948",
+      "hexdigest": "2e1273b3c516d6111befe1f92bb888281f9a72a1dae127a5c7abda39eb6cb77a",
+      "size": 1514
+    },
+    {
+      "path": "src/plane.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.361948",
+      "hexdigest": "4a7a73e474e393fe216f06628deba2f0a3f041c820806a82bf28b2a29982f28f",
+      "size": 1067
+    },
+    {
+      "path": "src/surface.hh",
+      "deps": [
+        "appendix.md"
+      ],
+      "modified": "2024-05-31T15:07:35.347948",
+      "hexdigest": "bc7965f2f123629068be40cb475947c5d77c375f8753025dcac393e6755c2fdc",
+      "size": 569
+    }
+  ],
+  "source": [],
+  "target": [
+    "src/sphere.hh",
+    "examples/hello_world.cc",
+    "src/initial_conditions/white_noise.cc",
+    "src/surface.hh",
+    "src/cgal_base.hh",
+    "src/adhesion/get_nodes.cc",
+    "src/mesh_manipulation.hh",
+    "src/initial_conditions/normalize_power_spectrum.cc",
+    "src/main.cc",
+    "src/run.cc",
+    "src/initial_conditions/apply_power_spectrum.cc",
+    "src/adhesion/get_walls.cc",
+    "src/adhesion/edge_count.cc",
+    "src/adhesion/velocity.cc",
+    "src/writers/h5_node_type.cc",
+    "src/initial_conditions/generate.cc",
+    "src/run.hh",
+    "src/writers.hh",
+    "src/initial_conditions/eisenstein-hu.cc",
+    "src/power_diagram.hh",
+    "src/writers/hdf5-mesh.cc",
+    "src/power_diagram/edges.cc",
+    "src/power_diagram/faces.cc",
+    "src/adhesion/constructor.cc",
+    "src/write_obj.hh",
+    "src/initial_conditions.hh",
+    "src/adhesion.hh",
+    "src/mesh.hh",
+    "src/fft.hh",
+    "src/boxparam.hh",
+    "src/writers/h5_node_type.ih",
+    "src/plane.hh"
+  ]
+}

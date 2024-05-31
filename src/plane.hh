@@ -1,14 +1,13 @@
-// ~\~ language=C++ filename=src/plane.hh
-// ~\~ begin <<appendix.md|src/plane.hh>>[init]
+// ~/~ begin <<appendix.md#src/plane.hh>>[init]
 #pragma once
 #include "surface.hh"
 
-// ~\~ begin <<appendix.md|sign-function>>[init]
+// ~/~ begin <<appendix.md#sign-function>>[init]
 template <typename T>
 inline int sign(T a) {
   return (a < 0 ? -1 : (a == 0 ? 0 : 1));
 }
-// ~\~ end
+// ~/~ end
 
 template <typename K>
 class Plane: public Surface<typename K::Point_3>
@@ -25,12 +24,12 @@ public:
     , normal(normal)
   {}
 
-  // ~\~ begin <<appendix.md|plane-oriented-side>>[init]
+  // ~/~ begin <<appendix.md#plane-oriented-side>>[init]
   int oriented_side(Point const &a) const {
     return sign((a - centre) * normal);
   }
-  // ~\~ end
-  // ~\~ begin <<appendix.md|plane-intersect>>[init]
+  // ~/~ end
+  // ~/~ begin <<appendix.md#plane-intersect>>[init]
   std::optional<Point> intersect(Point const &a, Point const &b) const
   {
     Vector u = centre - a,
@@ -46,6 +45,6 @@ public:
 
     return a + t * v;
   }
-  // ~\~ end
+  // ~/~ end
 };
-// ~\~ end
+// ~/~ end
