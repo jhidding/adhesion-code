@@ -10,26 +10,25 @@
 #include <iostream>
 
 template <typename T>
-class FFTW_allocator: public std::allocator<T>
+class FFTW_allocator   // : public std::allocator<T>
 {
 public:
   typedef T           value_type;
-  typedef T *         pointer;
-  typedef T &         reference;
-  typedef T const *   const_pointer;
-  typedef T const &   const_reference;
   typedef size_t      size_type;
   typedef ptrdiff_t   difference_type;
 
-  pointer allocate(
-      size_t n,
-      std::allocator<void>::const_pointer hint = 0)
+  FFTW_allocator() = default;
+  template <class U>
+  constexpr FFTW_allocator(const FFTW_allocator<U> &) noexcept {}
+
+  T* allocate(
+      size_t n)
   {
     return reinterpret_cast<T *>(fftw_malloc(n * sizeof(T)));
   }
 
   void deallocate(
-      pointer p,
+      T* p,
       size_t n)
   {
     fftw_free(p);

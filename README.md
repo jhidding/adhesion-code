@@ -19,6 +19,7 @@ This example is written in a style of *literate programming* [@Knuth1984]. This 
 Inside source fragments you may encounter a line with `<<...>>` marks like,
 
 *file: «examples/hello_world.cc»=*
+
 ```cpp
 #include <cstdlib>
 #include <iostream>
@@ -29,6 +30,7 @@ Inside source fragments you may encounter a line with `<<...>>` marks like,
 which is then elsewhere specified. Order doesn't matter,
 
 *«hello-world»=*
+
 ```cpp
 std::cout << "Hello, World!" << std::endl;
 ```
@@ -36,6 +38,7 @@ std::cout << "Hello, World!" << std::endl;
 So we can reference the `<<hello-world>>` code block later on.
 
 *«example-main-function»=*
+
 ```cpp
 int main(int argc, char **argv) {
   <<hello-world>>
@@ -45,6 +48,7 @@ int main(int argc, char **argv) {
 A definition can be appended with more code as follows (in this case, order does matter!):
 
 *«hello-world»+*
+
 ```cpp
 return EXIT_SUCCESS;
 ```
@@ -123,9 +127,18 @@ make install
 
 - download `fmtlib` and install with `cmake`
 
-    git clone https://github.com/fmtlib/fmt.git
+    git clone <https://github.com/fmtlib/fmt.git>
 
 TIP: if you would like to keep your `~/.local` directory clean, or use some form of package management, take a look at [`xstow`](http://xstow.sourceforge.net/).
+
+### Running using Nix
+
+The Nix flake file gives a development environment that allows me to build the executable. Run
+
+    nix develop
+    make
+
+I'm not enough of an Nix expert yet to configure a complete (and reproducible) Flake for this package. (Contributions welcome!)
 
 ### Running on Mac
 
